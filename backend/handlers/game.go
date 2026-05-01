@@ -26,8 +26,11 @@ type ChatRequest struct {
 	// 当前用户发送的消息
 	UserMessage string `json:"user_message" binding:"required"`
 	// 游戏状态
-	RoundsLeft int `json:"rounds_left"`
-	Affection  int `json:"affection"`
+	RoundsLeft          int    `json:"rounds_left"`
+	Affection           int    `json:"affection"`
+	AffectionBoostCount int    `json:"affection_boost_count"`
+	TurnsUsed           int    `json:"turns_used"`
+	AiState             string `json:"ai_state"`
 	// 玩家提供的 LLM 配置
 	Provider string `json:"provider"`
 	APIKey   string `json:"api_key"`
@@ -54,10 +57,29 @@ type ChatAfterRequest struct {
 	BaseURL     string    `json:"base_url"`
 }
 
+// EndingSummaryRequest 是 /api/ending-summary 的请求体
+type EndingSummaryRequest struct {
+	History             []Message `json:"history"`
+	EndingType          string    `json:"ending_type"`
+	RoundsUsed          int       `json:"rounds_used"`
+	AffectionBoostCount int       `json:"affection_boost_count"`
+	Provider            string    `json:"provider"`
+	APIKey              string    `json:"api_key"`
+	Model               string    `json:"model"`
+	BaseURL             string    `json:"base_url"`
+}
+
 // ChatResponse 是统一的 API 响应体
 type ChatResponse struct {
 	Reply string `json:"reply"`
 	Error string `json:"error,omitempty"`
+}
+
+// EndingSummaryResponse 是结局摘要的结构化响应
+type EndingSummaryResponse struct {
+	TurningLine string `json:"turning_line"`
+	Comment     string `json:"comment"`
+	Error       string `json:"error,omitempty"`
 }
 
 // --- 辅助函数 ---
@@ -127,7 +149,7 @@ func HandleChat(c *gin.Context) {
 	}
 
 	history := convertMessages(req.History)
-	reply, err := llm.Chat(clientCfg, req.UserMessage, history, req.RoundsLeft, req.Affection)
+	reply, err := llm.Chat(clientCfg, req.UserMessage, history, req.RoundsLeft, req.Affection, req.AffectionBoostCount, req.TurnsUsed, req.AiState)
 	if err != nil {
 		log.Printf("[HandleChat] LLM error: %v", err)
 		c.JSON(http.StatusOK, ChatResponse{
@@ -200,6 +222,35 @@ func HandleChatAfter(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, ChatResponse{Reply: reply})
+}
+
+// HandleEndingSummary 生成局后摘要中的关键转折句和短评
+// POST /api/ending-summary
+func HandleEndingSummary(c *gin.Context) {
+	var req EndingSummaryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, EndingSummaryResponse{Error: "无效的请求格式: " + err.Error()})
+		return
+	}
+
+	clientCfg, ok := buildClientConfig(req.Provider, req.APIKey, req.Model, req.BaseURL)
+	if !ok {
+		c.JSON(http.StatusOK, EndingSummaryResponse{Error: "未配置可用的 LLM API Key"})
+		return
+	}
+
+	history := convertMessages(req.History)
+	summary, err := llm.BuildEndingSummary(clientCfg, history, req.EndingType, req.RoundsUsed, req.AffectionBoostCount)
+	if err != nil {
+		log.Printf("[HandleEndingSummary] LLM error: %v", err)
+		c.JSON(http.StatusOK, EndingSummaryResponse{Error: "结局摘要生成失败: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, EndingSummaryResponse{
+		TurningLine: summary.TurningLine,
+		Comment:     summary.Comment,
+	})
 }
 
 // HandleHealth 是健康检查接口，供 Nginx/监控使用

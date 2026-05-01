@@ -154,6 +154,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { GAME_RULES } from '@/domain/gameContract'
 import { useSettingsStore } from '@/store/settingsStore'
 import { audioManager } from '@/modules/AudioManager'
 import { loadLLMConfig, saveLLMConfig, type LLMConfig } from '@/modules/LLMService'
@@ -229,8 +230,10 @@ const testConnection = async () => {
       body: JSON.stringify({
         history: [],
         user_message: '你好',
-        rounds_left: 10,
+        rounds_left: GAME_RULES.initialRoundCount,
         affection: 0,
+        affection_boost_count: 0,
+        turns_used: 1,
         provider: llmConfig.value.provider,
         api_key: llmConfig.value.apiKey,
         model: llmConfig.value.model,

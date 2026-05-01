@@ -1,42 +1,105 @@
 import { defineStore } from 'pinia'
 import { LLMService } from '@/modules/LLMService'
+import {
+  AFFECTION_BOOST_TAG_REGEX,
+  AI_STATE_BY_LABEL,
+  AI_STATE_BY_TYPE,
+  AI_STATE_TAG_REGEX,
+  AI_STATES,
+  ANY_AI_STATE_TAG_REGEX,
+  ANY_EMOTION_TAG_REGEX,
+  ANY_ENDING_TAG_REGEX,
+  EMOTION_BY_LABEL,
+  EMOTION_BY_TYPE,
+  EMOTION_TAG_REGEX,
+  ENDINGS,
+  ENDING_BY_LABEL,
+  ENDING_BY_TYPE,
+  ENDING_TAG_REGEX,
+  GAME_ROLE,
+  GAME_RULES,
+  MECHANIC_TAGS,
+  WAITING_TEXTS,
+  deriveAiStateType,
+  resolveFallbackEndingType,
+  type AiStateLabel,
+  type AiStateType,
+  type EmotionLabel,
+  type EmotionType,
+  type EndingLabel,
+  type EndingType
+} from '@/domain/gameContract'
+import type { EndingSummary, GameState, Message, PersistedGameState } from '@/domain/gameState'
 
-export interface Message {
-  role: 'user' | 'assistant';
-  content: string;
+const getRoundsUsed = (messages: Message[]) =>
+  messages.filter((message) => message.role === 'user').length
+
+const cleanSummaryLine = (value: unknown) =>
+  typeof value === 'string' ? value.trim().slice(0, GAME_RULES.maxSummaryTextLength) : ''
+
+const buildLocalEndingComment = (endingType: EndingType | null, boostCount: number) => {
+  if (endingType === ENDINGS.acquaintance.type) return '你让她在这一夜里看见了被理解的可能。'
+  if (endingType === ENDINGS.death.type) return boostCount > 0
+    ? '你曾经靠近过她，但最后一句风还是没能托住她。'
+    : '这一次，你们之间始终隔着没有被说破的沉默。'
+  return boostCount > 0
+    ? '你留下了一点温度，但还不足以让她停在原地。'
+    : '你是善意的路人，只是还没找到真正抵达她的方式。'
 }
 
-export interface GameState {
-  roundCount: number;
-  hintCount: number;
-  affection: number;
-  messages: Message[];
-  isWaiting: boolean;
-  waitingText: string;
-  isEnding: boolean;
-  endingType: string | null;
+const buildLocalEndingSummary = (state: GameState): EndingSummary => {
+  const playerMessages = state.messages.filter((message) => message.role === 'user')
+  const fallbackLine =
+    state.affectionBoostMessages[state.affectionBoostMessages.length - 1] ||
+    playerMessages[playerMessages.length - 1]?.content ||
+    '你没有留下明确的话。'
+
+  return {
+    roundsUsed: getRoundsUsed(state.messages),
+    affectionBoostCount: state.affectionBoostCount,
+    turningLine: cleanSummaryLine(fallbackLine),
+    comment: buildLocalEndingComment(state.endingType, state.affectionBoostCount)
+  }
 }
 
-const WAITING_TEXTS = [
-  "她吐了一口烟圈……",
-  "风太大了，她没听清……",
-  "她在看着你的眼睛发呆……",
-  "霓虹灯在她脸上闪烁……",
-  "她轻轻弹了弹烟灰……"
-];
+const normalizeEndingType = (value: unknown): EndingType | null =>
+  typeof value === 'string' && value in ENDING_BY_TYPE ? value as EndingType : null
+
+const normalizeAiStateType = (value: unknown): AiStateType | null =>
+  typeof value === 'string' && value in AI_STATE_BY_TYPE ? value as AiStateType : null
+
+const normalizeAiStateHistory = (value: unknown): AiStateType[] =>
+  Array.isArray(value)
+    ? value.map(normalizeAiStateType).filter((aiState): aiState is AiStateType => aiState !== null)
+    : []
+
+const normalizeEmotionType = (value: unknown): EmotionType | null =>
+  typeof value === 'string' && value in EMOTION_BY_TYPE ? value as EmotionType : null
+
+const normalizeEmotionHistory = (value: unknown): EmotionType[] =>
+  Array.isArray(value)
+    ? value.map(normalizeEmotionType).filter((emotion): emotion is EmotionType => emotion !== null)
+    : []
 
 export const useGameStore = defineStore('game', {
   state: (): GameState => ({
-    roundCount: 10,
-    hintCount: 3,
+    roundCount: GAME_RULES.initialRoundCount,
+    hintCount: GAME_RULES.initialHintCount,
     affection: 0,
+    affectionBoostCount: 0,
+    affectionBoostMessages: [],
+    lastAiStateTag: AI_STATES.guarded.type,
+    aiStateHistory: [AI_STATES.guarded.type],
+    lastEmotionTag: null,
+    emotionHistory: [],
     messages: [
-      { role: 'assistant', content: '夜晚的天台，微风吹过。霓虹灯的色彩在她的头发上跳跃。她坐在围栏上，指间的香烟忽明忽暗。你记得她，那个在夜色中游荡的摄影师。' }
+      { role: 'assistant', content: GAME_ROLE.openingMessage }
     ],
     isWaiting: false,
     waitingText: '',
     isEnding: false,
-    endingType: null
+    endingType: null,
+    endingSummary: null
   }),
   actions: {
 
@@ -49,7 +112,10 @@ export const useGameStore = defineStore('game', {
       
       const hint = await LLMService.getHint(this.messages, {
         roundsLeft: this.roundCount,
-        affection: this.affection
+        affection: this.affection,
+        affectionBoostCount: this.affectionBoostCount,
+        turnsUsed: getRoundsUsed(this.messages),
+        aiState: this.lastAiStateTag
       });
       
       this.isWaiting = false;
@@ -66,35 +132,62 @@ export const useGameStore = defineStore('game', {
       
       const reply = await LLMService.chat(userText, this.messages.slice(0, -1), {
         roundsLeft: this.roundCount,
-        affection: this.affection
+        affection: this.affection,
+        affectionBoostCount: this.affectionBoostCount,
+        turnsUsed: getRoundsUsed(this.messages),
+        aiState: this.lastAiStateTag
       });
       
       this.isWaiting = false;
       
       let finalReply = reply;
-      
-      // Check for affection boost
-      if (reply.includes('[好感度+5]')) {
-        this.affection += 5;
-        this.roundCount += 1;
-        finalReply = finalReply.replace(/\[好感度\+5\]/g, '').trim();
+
+      const aiStateMatch = finalReply.match(AI_STATE_TAG_REGEX);
+      if (aiStateMatch) {
+        const aiState = AI_STATE_BY_LABEL[aiStateMatch[1] as AiStateLabel]
+        if (aiState) {
+          this.lastAiStateTag = aiState.type;
+          this.aiStateHistory.push(aiState.type);
+        }
+        finalReply = finalReply.replace(ANY_AI_STATE_TAG_REGEX, '').trim();
       }
 
-      // Match the exact ending tags defined in LLMService.ts
-      const endingMatch = finalReply.match(/\[结局:(死亡|消失|相识)\]/);
+      const emotionMatch = finalReply.match(EMOTION_TAG_REGEX);
+      if (emotionMatch) {
+        const emotion = EMOTION_BY_LABEL[emotionMatch[1] as EmotionLabel]
+        if (emotion) {
+          this.lastEmotionTag = emotion.type;
+          this.emotionHistory.push(emotion.type);
+        }
+        finalReply = finalReply.replace(ANY_EMOTION_TAG_REGEX, '').trim();
+      } else {
+        this.lastEmotionTag = null;
+      }
+      
+      // Check for affection boost
+      if (reply.includes(MECHANIC_TAGS.affectionBoost)) {
+        this.affection += GAME_RULES.affectionBoostValue;
+        this.affectionBoostCount += 1;
+        this.affectionBoostMessages.push(userText);
+        this.roundCount += 1;
+        finalReply = finalReply.replace(AFFECTION_BOOST_TAG_REGEX, '').trim();
+      }
+
+      const endingMatch = finalReply.match(ENDING_TAG_REGEX);
       
       if (endingMatch) {
         this.isEnding = true;
-        const typeStr = endingMatch[1];
-        if (typeStr === '死亡') this.endingType = 'end_death';
-        else if (typeStr === '消失') this.endingType = 'end_disappear';
-        else if (typeStr === '相识') this.endingType = 'end_acquaintance';
-        else this.endingType = 'end_disappear';
+        const ending = ENDING_BY_LABEL[endingMatch[1] as EndingLabel]
+        this.endingType = ending?.type ?? ENDINGS.disappear.type;
         
-        finalReply = finalReply.replace(/\[结局:.*?\]/, '').trim();
+        finalReply = finalReply.replace(ANY_ENDING_TAG_REGEX, '').trim();
       } else if (this.roundCount <= 0) {
         this.isEnding = true;
-        this.endingType = 'end_disappear';
+        this.endingType = resolveFallbackEndingType({
+          affection: this.affection,
+          affectionBoostCount: this.affectionBoostCount,
+          turnsUsed: getRoundsUsed(this.messages)
+        });
       }
       
       if (finalReply) {
@@ -102,26 +195,76 @@ export const useGameStore = defineStore('game', {
       }
     },
     resetGame() {
-      this.roundCount = 10;
-      this.hintCount = 3;
+      this.roundCount = GAME_RULES.initialRoundCount;
+      this.hintCount = GAME_RULES.initialHintCount;
       this.affection = 0;
+      this.affectionBoostCount = 0;
+      this.affectionBoostMessages = [];
+      this.lastAiStateTag = AI_STATES.guarded.type;
+      this.aiStateHistory = [AI_STATES.guarded.type];
+      this.lastEmotionTag = null;
+      this.emotionHistory = [];
       this.messages = [
-        { role: 'assistant', content: '夜晚的天台，微风吹过。霓虹灯的色彩在她的头发上跳跃。她坐在围栏上，指间的香烟忽明忽暗。你记得她，那个在夜色中游荡的摄影师。' }
+        { role: 'assistant', content: GAME_ROLE.openingMessage }
       ];
       this.isWaiting = false;
       this.waitingText = '';
       this.isEnding = false;
       this.endingType = null;
+      this.endingSummary = null;
     },
-    loadState(state: any) {
+    loadState(state: PersistedGameState) {
       this.roundCount = state.roundCount;
-      this.hintCount = state.hintCount ?? 3;
+      this.hintCount = state.hintCount ?? GAME_RULES.initialHintCount;
       this.affection = state.affection ?? 0;
       this.messages = state.messages || [];
+      this.affectionBoostMessages = Array.isArray(state.affectionBoostMessages) ? state.affectionBoostMessages : [];
+      this.affectionBoostCount = state.affectionBoostCount ?? (this.affectionBoostMessages.length || Math.floor(this.affection / GAME_RULES.affectionBoostValue));
+      this.lastAiStateTag = normalizeAiStateType(state.lastAiStateTag) ?? deriveAiStateType({
+        roundCount: this.roundCount,
+        affection: this.affection
+      });
+      this.aiStateHistory = normalizeAiStateHistory(state.aiStateHistory);
+      if (this.aiStateHistory.length === 0 && this.lastAiStateTag) {
+        this.aiStateHistory = [this.lastAiStateTag];
+      }
+      this.lastEmotionTag = normalizeEmotionType(state.lastEmotionTag);
+      this.emotionHistory = normalizeEmotionHistory(state.emotionHistory);
       this.isWaiting = false;
       this.waitingText = '';
       this.isEnding = state.isEnding || false;
-      this.endingType = state.endingType || null;
+      this.endingType = normalizeEndingType(state.endingType);
+      this.endingSummary = state.endingSummary ? {
+        roundsUsed: state.endingSummary.roundsUsed ?? getRoundsUsed(this.messages),
+        affectionBoostCount: state.endingSummary.affectionBoostCount ?? this.affectionBoostCount,
+        turningLine: cleanSummaryLine(state.endingSummary.turningLine),
+        comment: cleanSummaryLine(state.endingSummary.comment)
+      } : null;
+    },
+    async generateEndingSummary() {
+      if (!this.isEnding) return null;
+      if (this.endingSummary) return this.endingSummary;
+
+      const fallbackSummary = buildLocalEndingSummary(this.$state);
+
+      try {
+        const aiSummary = await LLMService.getEndingSummary(this.messages, {
+          endingType: this.endingType,
+          roundsUsed: fallbackSummary.roundsUsed,
+          affectionBoostCount: this.affectionBoostCount
+        });
+
+        this.endingSummary = {
+          ...fallbackSummary,
+          turningLine: cleanSummaryLine(aiSummary?.turningLine) || fallbackSummary.turningLine,
+          comment: cleanSummaryLine(aiSummary?.comment) || fallbackSummary.comment
+        };
+      } catch (e) {
+        console.error('Failed to generate ending summary:', e);
+        this.endingSummary = fallbackSummary;
+      }
+
+      return this.endingSummary;
     }
   }
 })

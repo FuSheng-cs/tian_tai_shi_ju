@@ -8,10 +8,10 @@
         </svg>
       </button>
       <div class="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex-shrink-0">
-        <img src="/assets/images/char_girl_smile.png" alt="Avatar" class="w-full h-full object-cover object-top" />
+        <img src="/assets/images/char_girl_sneer.png" alt="Avatar" class="w-full h-full object-cover object-top" />
       </div>
       <div>
-        <h1 class="font-bold text-gray-900">艾</h1>
+        <h1 class="font-bold text-gray-900">{{ GAME_ROLE.characterName }}</h1>
         <p class="text-xs text-gray-500">在线</p>
       </div>
     </div>
@@ -22,7 +22,7 @@
         
         <!-- Assistant Avatar -->
         <div v-if="msg.role === 'assistant'" class="w-8 h-8 rounded-full bg-gray-300 overflow-hidden flex-shrink-0 mr-2 mt-1">
-          <img src="/assets/images/char_girl_smile.png" alt="Avatar" class="w-full h-full object-cover object-top" />
+          <img src="/assets/images/char_girl_sneer.png" alt="Avatar" class="w-full h-full object-cover object-top" />
         </div>
 
         <!-- Message Bubble -->
@@ -42,7 +42,7 @@
       <!-- Typing Indicator -->
       <div v-if="isWaiting" class="flex justify-start">
         <div class="w-8 h-8 rounded-full bg-gray-300 overflow-hidden flex-shrink-0 mr-2 mt-1">
-          <img src="/assets/images/char_girl_smile.png" alt="Avatar" class="w-full h-full object-cover object-top" />
+          <img src="/assets/images/char_girl_sneer.png" alt="Avatar" class="w-full h-full object-cover object-top" />
         </div>
         <div class="bg-white text-gray-500 border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-2 text-sm flex items-center gap-1">
           <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
@@ -77,20 +77,17 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import { GAME_ROLE } from '@/domain/gameContract'
+import type { Message } from '@/domain/gameState'
 import { LLMService } from '@/modules/LLMService'
 import { audioManager } from '@/modules/AudioManager'
-
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
 
 const router = useRouter()
 const inputText = ref('')
 const isWaiting = ref(false)
 const chatContainer = ref<HTMLElement | null>(null)
 
-const messages = ref<ChatMessage[]>([
+const messages = ref<Message[]>([
   { role: 'assistant', content: '我到家了。' },
   { role: 'assistant', content: '今天天台的风还挺大的。' }
 ])
