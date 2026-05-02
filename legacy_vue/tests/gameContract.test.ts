@@ -13,6 +13,7 @@ import {
   OPENING_SEQUENCE_FRAMES,
   ROOFTOP_BGM_SRC,
   SCENE_BACKGROUNDS,
+  STAIR_STEP_SFX_SRCS,
   resolveFallbackEndingType,
   resolveVisualState
 } from '../src/domain/gameContract'
@@ -105,7 +106,11 @@ describe('game contract', () => {
       expect(frame.caption).toMatch(/我/)
     }
 
-    expect(existsSync(resolve(cwd(), '..', 'legacy_vue/public/assets/audio/sfx_stair_step.mp3'))).toBe(true)
+    expect(STAIR_STEP_SFX_SRCS).toHaveLength(4)
+    for (const sfxSrc of STAIR_STEP_SFX_SRCS) {
+      const assetPath = sfxSrc.replace('/assets/', 'legacy_vue/public/assets/')
+      expect(existsSync(resolve(cwd(), '..', assetPath))).toBe(true)
+    }
   })
 
   it('maps the rooftop BGM to an existing trimmed asset', () => {

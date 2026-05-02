@@ -23,6 +23,7 @@ describe('AchievementsView', () => {
 
     const wrapper = mount(AchievementsView)
 
+    expect(wrapper.classes()).toContain('overflow-y-scroll')
     expect(wrapper.text()).toContain('雨夜档案')
     expect(wrapper.text()).toContain('已点亮 2 / 18')
     expect(wrapper.text()).toContain('相遇')

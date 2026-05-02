@@ -39,6 +39,24 @@ type LLMResponse struct {
 }
 
 // ClientConfig 是调用 LLM 时的客户端配置（由玩家或服务器提供）
+type AnthropicRequest struct {
+	Model       string    `json:"model"`
+	MaxTokens   int       `json:"max_tokens"`
+	Temperature float64   `json:"temperature"`
+	System      string    `json:"system,omitempty"`
+	Messages    []Message `json:"messages"`
+}
+
+type AnthropicResponse struct {
+	Content []struct {
+		Type string `json:"type"`
+		Text string `json:"text"`
+	} `json:"content"`
+	Error *struct {
+		Message string `json:"message"`
+	} `json:"error,omitempty"`
+}
+
 type ClientConfig struct {
 	Provider string // openai / qwen / doubao / custom
 	APIKey   string
@@ -67,9 +85,29 @@ var providerDefaults = map[string]struct {
 		BaseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
 		Model:   "qwen-plus",
 	},
+	"deepseek": {
+		BaseURL: "https://api.deepseek.com/v1",
+		Model:   "deepseek-chat",
+	},
 	"doubao": {
 		BaseURL: "https://ark.cn-beijing.volces.com/api/v3",
 		Model:   "doubao-pro-4k",
+	},
+	"kimi": {
+		BaseURL: "https://api.moonshot.cn/v1",
+		Model:   "moonshot-v1-8k",
+	},
+	"zhipu": {
+		BaseURL: "https://open.bigmodel.cn/api/paas/v4",
+		Model:   "glm-4-flash",
+	},
+	"claude": {
+		BaseURL: "https://api.anthropic.com/v1",
+		Model:   "claude-3-5-haiku-latest",
+	},
+	"anthropic": {
+		BaseURL: "https://api.anthropic.com/v1",
+		Model:   "claude-3-5-haiku-latest",
 	},
 }
 
@@ -79,9 +117,26 @@ var httpClient = &http.Client{Timeout: 60 * time.Second}
 
 // callLLM 是通用的 LLM HTTP 调用函数（所有 Provider 都使用 OpenAI 兼容格式）
 func callLLM(cfg ClientConfig, messages []Message, temperature float64) (string, error) {
+	provider := strings.ToLower(strings.TrimSpace(cfg.Provider))
+	if provider == "claude" || provider == "anthropic" {
+		return callAnthropicLLM(cfg, messages, temperature)
+	}
+	return callOpenAICompatibleLLM(cfg, messages, temperature)
+}
+
+func callOpenAICompatibleLLM(cfg ClientConfig, messages []Message, temperature float64) (string, error) {
 	// 确定 BaseURL 和 Model
 	baseURL := cfg.BaseURL
 	model := cfg.Model
+	provider := strings.ToLower(strings.TrimSpace(cfg.Provider))
+	if provider == "custom" {
+		if strings.TrimSpace(baseURL) == "" {
+			return "", fmt.Errorf("custom provider requires base_url")
+		}
+		if strings.TrimSpace(model) == "" {
+			return "", fmt.Errorf("custom provider requires model")
+		}
+	}
 	if baseURL == "" {
 		if defaults, ok := providerDefaults[strings.ToLower(cfg.Provider)]; ok {
 			baseURL = defaults.BaseURL
@@ -163,6 +218,97 @@ func callLLM(cfg ClientConfig, messages []Message, temperature float64) (string,
 	}
 
 	return llmResp.Choices[0].Message.Content, nil
+}
+
+func callAnthropicLLM(cfg ClientConfig, messages []Message, temperature float64) (string, error) {
+	baseURL := cfg.BaseURL
+	model := cfg.Model
+	if baseURL == "" {
+		baseURL = providerDefaults["claude"].BaseURL
+	}
+	if model == "" {
+		model = providerDefaults["claude"].Model
+	}
+
+	trimmed := strings.TrimRight(baseURL, "/")
+	endpoint := trimmed
+	if !strings.HasSuffix(trimmed, "/messages") {
+		parts := strings.Split(trimmed, "/")
+		lastPart := parts[len(parts)-1]
+		hasVersion := len(lastPart) >= 2 && lastPart[0] == 'v' && lastPart[1] >= '0' && lastPart[1] <= '9'
+		if !hasVersion {
+			trimmed = trimmed + "/v1"
+		}
+		endpoint = trimmed + "/messages"
+	}
+	log.Printf("[LLM] Calling endpoint: %s (model: %s, provider: %s)", endpoint, model, cfg.Provider)
+
+	systemParts := make([]string, 0, 1)
+	chatMessages := make([]Message, 0, len(messages))
+	for _, message := range messages {
+		switch strings.ToLower(message.Role) {
+		case "system":
+			systemParts = append(systemParts, message.Content)
+		case "assistant":
+			chatMessages = append(chatMessages, Message{Role: "assistant", Content: message.Content})
+		default:
+			chatMessages = append(chatMessages, Message{Role: "user", Content: message.Content})
+		}
+	}
+
+	reqBody := AnthropicRequest{
+		Model:       model,
+		MaxTokens:   1024,
+		Temperature: temperature,
+		System:      strings.Join(systemParts, "\n\n"),
+		Messages:    chatMessages,
+	}
+
+	bodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", endpoint, bytes.NewReader(bodyBytes))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-api-key", cfg.APIKey)
+	req.Header.Set("anthropic-version", "2023-06-01")
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("LLM API error (status %d): %s", resp.StatusCode, string(respBytes))
+	}
+
+	var llmResp AnthropicResponse
+	if err := json.Unmarshal(respBytes, &llmResp); err != nil {
+		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if llmResp.Error != nil {
+		return "", fmt.Errorf("LLM returned error: %s", llmResp.Error.Message)
+	}
+
+	for _, part := range llmResp.Content {
+		if part.Type == "text" && strings.TrimSpace(part.Text) != "" {
+			return part.Text, nil
+		}
+	}
+
+	return "", fmt.Errorf("LLM returned no text content")
 }
 
 // --- 核心 Prompt（保存在后端，不暴露给前端）---

@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AI_STATES, ENDINGS } from '../src/domain/gameContract'
 import type { Message } from '../src/domain/gameState'
-import { LLMService, saveLLMConfig } from '../src/modules/LLMService'
+import {
+  LLMService,
+  LLM_PROVIDERS,
+  getLLMProvider,
+  loadLLMConfig,
+  saveLLMConfig
+} from '../src/modules/LLMService'
 
 const mockFetch = vi.fn()
 
@@ -99,5 +105,31 @@ describe('LLMService', () => {
       model: 'gpt-test',
       base_url: 'https://llm.example/v1'
     })
+  })
+
+  it('exposes mainstream domestic, GPT, Claude, and custom providers', () => {
+    expect(LLM_PROVIDERS.map((provider) => provider.id)).toEqual([
+      'qwen',
+      'deepseek',
+      'doubao',
+      'kimi',
+      'zhipu',
+      'openai',
+      'claude',
+      'custom'
+    ])
+    expect(getLLMProvider('claude')).toMatchObject({
+      protocol: 'anthropic',
+      defaultBaseUrl: 'https://api.anthropic.com/v1'
+    })
+    expect(getLLMProvider('unknown-provider')).toMatchObject({
+      id: 'qwen'
+    })
+  })
+
+  it('normalizes stale provider values from localStorage', () => {
+    localStorage.setItem('damo_llm_provider', 'old-provider')
+
+    expect(loadLLMConfig().provider).toBe('qwen')
   })
 })

@@ -3,11 +3,13 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import {
+  AI_STATES,
   ENDINGS,
   GAME_ENTRY_SESSION_KEY,
   GAME_ENTRY_TYPES,
   OPENING_SEQUENCE_FRAMES,
-  ROOFTOP_BGM_SRC
+  ROOFTOP_BGM_SRC,
+  SCENE_BACKGROUNDS
 } from '../src/domain/gameContract'
 import { useGameStore } from '../src/store/gameStore'
 import OpeningSequenceOverlay from '../src/components/OpeningSequenceOverlay.vue'
@@ -157,6 +159,16 @@ describe('opening guide flow', () => {
     expect(mocks.unlock).toHaveBeenCalledWith('first_try')
   })
 
+  it('uses the smoking CG while waiting for the LLM response', () => {
+    const store = useGameStore()
+    store.lastAiStateTag = AI_STATES.wavering.type
+    store.isWaiting = true
+
+    const wrapper = mountGameView()
+
+    expect(wrapper.find('img[alt="Background"]').attributes('src')).toBe(SCENE_BACKGROUNDS.smoke)
+  })
+
   it('evaluates achievements after the first player message', async () => {
     const wrapper = mountGameView()
 
@@ -207,10 +219,12 @@ describe('opening guide flow', () => {
 
     await wrapper.find('.continue-button').trigger('click')
     expect(mocks.playStairStep).toHaveBeenCalledTimes(1)
+    expect(mocks.playStairStep).toHaveBeenLastCalledWith(0)
     expect(wrapper.find('.opening-caption').text()).toBe(OPENING_SEQUENCE_FRAMES[1].caption)
 
     await wrapper.find('.opening-sequence').trigger('click')
     expect(mocks.playStairStep).toHaveBeenCalledTimes(2)
+    expect(mocks.playStairStep).toHaveBeenLastCalledWith(1)
     expect(wrapper.find('.opening-caption').text()).toBe(OPENING_SEQUENCE_FRAMES[2].caption)
 
     wrapper.unmount()
@@ -229,9 +243,12 @@ describe('opening guide flow', () => {
     }
 
     expect(wrapper.find('.opening-caption').text()).toBe(OPENING_SEQUENCE_FRAMES[OPENING_SEQUENCE_FRAMES.length - 1].caption)
+    expect(mocks.playStairStep).toHaveBeenCalledTimes(OPENING_SEQUENCE_FRAMES.length - 1)
     await wrapper.find('.continue-button').trigger('click')
     await vi.advanceTimersByTimeAsync(420)
 
+    expect(mocks.playStairStep).toHaveBeenCalledTimes(OPENING_SEQUENCE_FRAMES.length)
+    expect(mocks.playStairStep).toHaveBeenLastCalledWith(OPENING_SEQUENCE_FRAMES.length - 1)
     expect(wrapper.emitted('complete')).toHaveLength(1)
   })
 
@@ -245,6 +262,7 @@ describe('opening guide flow', () => {
 
     await wrapper.find('.skip-button').trigger('click')
     expect(wrapper.find('.opening-caption').text()).toBe(OPENING_SEQUENCE_FRAMES[OPENING_SEQUENCE_FRAMES.length - 1].caption)
+    expect(mocks.playStairStep).toHaveBeenLastCalledWith(OPENING_SEQUENCE_FRAMES.length - 1)
 
     await vi.advanceTimersByTimeAsync(640)
     expect(wrapper.emitted('complete')).toHaveLength(1)

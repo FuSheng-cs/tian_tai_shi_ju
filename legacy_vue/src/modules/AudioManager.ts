@@ -1,12 +1,16 @@
 import { Howl, Howler } from 'howler'
 import { useSettingsStore } from '@/store/settingsStore'
-import { ROOFTOP_BGM_SRC } from '@/domain/gameContract'
+import { ROOFTOP_BGM_SRC, STAIR_STEP_SFX_SRCS } from '@/domain/gameContract'
+
+const STAIR_STEP_VOLUME_SCALE = 0.48
 
 class AudioManager {
   private bgm: Howl | null = null
   private bgmSrc: string | null = null
   private bgmMap: Record<string, Howl> = {}
   private sfxMap: Record<string, Howl> = {}
+  private stairStepSfxKeys: string[] = []
+  private nextStairStepIndex = 0
   private initialized = false
 
   init() {
@@ -27,10 +31,14 @@ class AudioManager {
       loop: false
     })
 
-    this.sfxMap.stair_step = new Howl({
-      src: ['/assets/audio/sfx_stair_step.mp3'],
-      volume: settingsStore.sfxVolume,
-      loop: false
+    this.stairStepSfxKeys = STAIR_STEP_SFX_SRCS.map((src, index) => {
+      const key = `stair_step_${index + 1}`
+      this.sfxMap[key] = new Howl({
+        src: [src],
+        volume: settingsStore.sfxVolume * STAIR_STEP_VOLUME_SCALE,
+        loop: false
+      })
+      return key
     })
 
     this.preloadBgm(ROOFTOP_BGM_SRC)
@@ -87,12 +95,18 @@ class AudioManager {
     }
   }
 
-  playStairStep() {
+  playStairStep(stepIndex?: number) {
     const settingsStore = useSettingsStore()
-    const sfx = this.sfxMap.stair_step
+    const sequenceIndex = stepIndex ?? this.nextStairStepIndex
+    const sfxKey = this.stairStepSfxKeys[
+      ((sequenceIndex % this.stairStepSfxKeys.length) + this.stairStepSfxKeys.length) % this.stairStepSfxKeys.length
+    ]
+    const sfx = sfxKey ? this.sfxMap[sfxKey] : null
+    this.nextStairStepIndex = sequenceIndex + 1
+
     if (sfx) {
-      sfx.volume(settingsStore.sfxVolume * (0.82 + Math.random() * 0.18))
-      sfx.rate(0.94 + Math.random() * 0.12)
+      sfx.volume(settingsStore.sfxVolume * STAIR_STEP_VOLUME_SCALE)
+      sfx.rate(1)
       sfx.play()
     }
   }
@@ -115,8 +129,9 @@ class AudioManager {
       this.bgm.volume(settingsStore.bgmVolume)
     }
 
-    Object.values(this.sfxMap).forEach((sfx) => {
-      sfx.volume(settingsStore.sfxVolume)
+    Object.entries(this.sfxMap).forEach(([key, sfx]) => {
+      const volumeScale = this.stairStepSfxKeys.includes(key) ? STAIR_STEP_VOLUME_SCALE : 1
+      sfx.volume(settingsStore.sfxVolume * volumeScale)
     })
 
     if (this.sfxMap.typewriter) {

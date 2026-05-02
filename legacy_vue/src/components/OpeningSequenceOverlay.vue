@@ -110,19 +110,21 @@ const advance = () => {
   if (completed || isExiting.value) return
 
   if (isLastFrame.value) {
+    audioManager.playStairStep(currentIndex.value)
     scheduleExit()
     return
   }
 
+  const stepIndex = currentIndex.value
   currentIndex.value += 1
-  audioManager.playStairStep()
+  audioManager.playStairStep(stepIndex)
 }
 
 const skip = () => {
   if (completed) return
   clearManagedTimers()
   currentIndex.value = props.frames.length - 1
-  audioManager.playStairStep()
+  audioManager.playStairStep(currentIndex.value)
   scheduleExit(220)
 }
 

@@ -1,5 +1,5 @@
 <template>
-  <main class="achievements-view min-h-screen overflow-hidden bg-[#050506] text-gray-100">
+  <main class="achievements-view archive-scroll h-screen min-h-0 overflow-x-hidden overflow-y-scroll bg-[#050506] text-gray-100">
     <div class="fixed inset-0" aria-hidden="true">
       <picture>
         <source :srcset="ROOFTOP_BG_MOBILE" media="(max-width: 768px)" />
@@ -13,7 +13,7 @@
       <div class="absolute inset-0 bg-[repeating-linear-gradient(110deg,rgba(255,255,255,0.05)_0,rgba(255,255,255,0.05)_1px,transparent_1px,transparent_18px)] opacity-20"></div>
     </div>
 
-    <section class="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-6 sm:px-6 lg:px-8">
+    <section class="relative z-10 mx-auto flex min-h-full w-full max-w-6xl flex-col px-4 py-6 sm:px-6 lg:px-8">
       <header class="flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-end md:justify-between">
         <div>
           <p class="text-xs uppercase tracking-[0.28em] text-purple-200/70">Rain Night Archive</p>
@@ -210,3 +210,29 @@ onBeforeUnmount(() => {
   window.removeEventListener('achievement-unlocked', refreshAchievements)
 })
 </script>
+
+<style scoped>
+.archive-scroll {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(168, 85, 247, 0.5) rgba(5, 5, 6, 0.28);
+}
+
+.archive-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+
+.archive-scroll::-webkit-scrollbar-track {
+  background: rgba(5, 5, 6, 0.28);
+}
+
+.archive-scroll::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.48);
+  border: 2px solid rgba(5, 5, 6, 0.28);
+  border-radius: 999px;
+}
+
+.archive-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(196, 181, 253, 0.68);
+}
+</style>

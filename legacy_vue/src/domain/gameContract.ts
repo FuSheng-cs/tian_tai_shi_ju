@@ -9,6 +9,12 @@ export const GAME_RULES = {
 
 export const GAME_ENTRY_SESSION_KEY = 'damo_game_entry'
 export const ROOFTOP_BGM_SRC = '/assets/audio/bgm_rooftop.mp3'
+export const STAIR_STEP_SFX_SRCS = [
+  '/assets/audio/sfx_stair_step.mp3',
+  '/assets/audio/sfx_stair_step_02.mp3',
+  '/assets/audio/sfx_stair_step_03.mp3',
+  '/assets/audio/sfx_stair_step_04.mp3'
+] as const
 
 export const GAME_ENTRY_TYPES = {
   newGame: 'new',
@@ -86,7 +92,7 @@ export const AI_STATES = {
     type: 'guarded',
     label: '戒备',
     tag: '[状态:戒备]',
-    backgroundImage: SCENE_BACKGROUNDS.smoke
+    backgroundImage: SCENE_BACKGROUNDS.normal
   },
   watching: {
     type: 'watching',
