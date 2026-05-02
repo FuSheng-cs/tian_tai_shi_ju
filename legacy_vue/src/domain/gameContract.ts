@@ -7,6 +7,44 @@ export const GAME_RULES = {
   maxSummaryTextLength: 80
 } as const
 
+export const GAME_ENTRY_SESSION_KEY = 'damo_game_entry'
+export const ROOFTOP_BGM_SRC = '/assets/audio/bgm_rooftop.mp3'
+
+export const GAME_ENTRY_TYPES = {
+  newGame: 'new',
+  load: 'load'
+} as const
+
+export const OPENING_SEQUENCE_FRAMES = [
+  {
+    id: 'stair-door',
+    image: '/assets/images/cg_opening_stair_01_16_9.webp',
+    caption: '我只是想上来透口气，可门后的风声像是在提醒我：别出声。',
+    chapterTitle: '序章',
+    chapterMeta: '23:47 / 天台入口'
+  },
+  {
+    id: 'door-open',
+    image: '/assets/images/cg_opening_stair_02_16_9.webp',
+    caption: '我推开门，雨和城市的冷光一起涌进来。'
+  },
+  {
+    id: 'rooftop-entry',
+    image: '/assets/images/cg_opening_stair_03_16_9.webp',
+    caption: '栏杆边那个背影让我停住了脚步。是艾。'
+  },
+  {
+    id: 'approach',
+    image: '/assets/images/cg_opening_stair_04_16_9.webp',
+    caption: '她没有回头。烟头亮了一下，我忽然不知道第一句话该怎么说。'
+  },
+  {
+    id: 'first-words',
+    image: '/assets/images/cg_opening_stair_05_16_9.webp',
+    caption: '她坐在雨里，像城市忘了关掉的一盏冷灯。我把呼吸压低，怕再响一点，她就会被风带走。'
+  }
+] as const
+
 export const GAME_ROLE = {
   gameTitle: '天台十句',
   characterName: '艾',

@@ -11,7 +11,7 @@
         <h1 id="start-title" class="sr-only">天台十句</h1>
         <img
           class="title-art"
-          src="/assets/images/menu_title.png"
+          :src="MENU_TITLE_IMAGE"
           alt=""
           aria-hidden="true"
           draggable="false"
@@ -71,7 +71,7 @@
 
     <footer class="menu-footer" aria-label="版本信息">
       <span class="footer-dot"></span>
-      <span>v1.1.0</span>
+      <span>v1.6.0</span>
       <span class="footer-line"></span>
       <span>AI-DRIVEN NARRATIVE EXPERIENCE</span>
     </footer>
@@ -104,7 +104,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { GAME_ROLE, GAME_RULES } from '@/domain/gameContract'
+import { GAME_ENTRY_SESSION_KEY, GAME_ENTRY_TYPES, GAME_ROLE, GAME_RULES } from '@/domain/gameContract'
 import { useGameStore } from '@/store/gameStore'
 import { audioManager } from '@/modules/AudioManager'
 import { SaveSystem, type SaveSlot } from '@/modules/SaveSystem'
@@ -120,6 +120,7 @@ import {
 const router = useRouter()
 const gameStore = useGameStore()
 const SAVE_SLOT_IDS = GAME_RULES.saveSlotIds
+const MENU_TITLE_IMAGE = '/assets/images/menu_title.png'
 
 const showLoadSlots = ref(false)
 const saveSlots = ref<SaveSlot[]>([])
@@ -129,6 +130,7 @@ const saveSlotMap = computed(() => new Map(saveSlots.value.map((slot) => [slot.i
 const startGame = () => {
   audioManager.playSfx('click')
   gameStore.resetGame()
+  sessionStorage.setItem(GAME_ENTRY_SESSION_KEY, GAME_ENTRY_TYPES.newGame)
   router.push('/game')
 }
 
@@ -166,6 +168,7 @@ const loadFromSlot = (slotId: number) => {
   if (!hasLoadSlot(slotId)) return
 
   if (SaveSystem.load(slotId)) {
+    sessionStorage.setItem(GAME_ENTRY_SESSION_KEY, GAME_ENTRY_TYPES.load)
     router.push('/game')
   } else {
     alert('未找到有效存档。')

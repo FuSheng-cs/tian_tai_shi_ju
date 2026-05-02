@@ -10,6 +10,8 @@ import {
   GAME_ROLE,
   GAME_RULES,
   MECHANIC_TAGS,
+  OPENING_SEQUENCE_FRAMES,
+  ROOFTOP_BGM_SRC,
   SCENE_BACKGROUNDS,
   resolveFallbackEndingType,
   resolveVisualState
@@ -92,6 +94,32 @@ describe('game contract', () => {
       const assetPath = aiState.backgroundImage.replace('/assets/', 'legacy_vue/public/assets/')
       expect(existsSync(resolve(cwd(), '..', assetPath))).toBe(true)
     }
+  })
+
+  it('maps the opening sequence frames and step SFX to existing assets', () => {
+    expect(OPENING_SEQUENCE_FRAMES).toHaveLength(5)
+
+    for (const frame of OPENING_SEQUENCE_FRAMES) {
+      const assetPath = frame.image.replace('/assets/', 'legacy_vue/public/assets/')
+      expect(existsSync(resolve(cwd(), '..', assetPath))).toBe(true)
+      expect(frame.caption).toMatch(/我/)
+    }
+
+    expect(existsSync(resolve(cwd(), '..', 'legacy_vue/public/assets/audio/sfx_stair_step.wav'))).toBe(true)
+  })
+
+  it('maps the rooftop BGM to an existing trimmed asset', () => {
+    const assetPath = ROOFTOP_BGM_SRC.replace('/assets/', 'legacy_vue/public/assets/')
+    expect(existsSync(resolve(cwd(), '..', assetPath))).toBe(true)
+  })
+
+  it('keeps the opening sequence written as player inner monologue', () => {
+    expect(OPENING_SEQUENCE_FRAMES[0]).toMatchObject({
+      chapterTitle: '序章',
+      chapterMeta: '23:47 / 天台入口'
+    })
+    expect(OPENING_SEQUENCE_FRAMES[4].caption).toContain('怕再响一点')
+    expect(OPENING_SEQUENCE_FRAMES[4].caption).not.toContain('十句话')
   })
 
   it('resolves CG priority through the visual state machine', () => {

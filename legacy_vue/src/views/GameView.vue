@@ -10,12 +10,18 @@
       />
     </div>
 
+    <OpeningSequenceOverlay
+      v-if="isOpeningSequenceActive"
+      :frames="OPENING_SEQUENCE_FRAMES"
+      @complete="completeOpeningSequence"
+    />
+
     <!-- Character layer removed since the new images are full-scene compositions -->
 
     <!-- Top UI -->
-    <div class="absolute top-0 left-0 right-0 z-30 p-6 flex justify-between items-start pointer-events-auto">
-      <div class="flex gap-4">
-        <div class="w-48 bg-black/50 p-2 rounded backdrop-blur-sm border border-gray-700">
+    <div class="absolute top-0 left-0 right-0 z-30 flex flex-wrap items-start justify-between gap-3 p-4 pointer-events-auto md:p-6">
+      <div class="flex max-w-[calc(100%-112px)] flex-wrap gap-2 md:max-w-none md:gap-4">
+        <div class="w-40 bg-black/50 p-2 rounded backdrop-blur-sm border border-gray-700 md:w-48">
           <div class="text-sm text-gray-300 mb-1 flex justify-between">
             <span>剩余机会</span>
             <span>{{ gameStore.roundCount }}/{{ GAME_RULES.initialRoundCount }}</span>
@@ -23,26 +29,26 @@
           <ProgressBar :value="gameStore.roundCount" :max="GAME_RULES.initialRoundCount" color="#ef4444" />
         </div>
         
-        <div v-if="gameStore.hintCount > 0 && !gameStore.isEnding" class="bg-[#0a0515]/90 px-4 py-2 rounded-xl border border-gray-800 shadow-lg backdrop-blur-md flex items-center">
+        <div v-if="gameStore.hintCount > 0 && !gameStore.isEnding" class="bg-[#0a0515]/90 px-3 py-2 rounded-xl border border-gray-800 shadow-lg backdrop-blur-md flex items-center md:px-4">
           <button 
             @click="handleHint" 
-            :disabled="gameStore.isWaiting"
-            class="text-sm text-yellow-500 hover:text-yellow-400 font-bold disabled:opacity-50 flex items-center gap-2 transition-colors"
+            :disabled="gameStore.isWaiting || isOpeningSequenceActive"
+            class="text-xs text-yellow-500 hover:text-yellow-400 font-bold disabled:opacity-50 flex items-center gap-2 transition-colors sm:text-sm"
           >
             <span class="text-lg">💡</span> 寻找线索 ({{ gameStore.hintCount }})
           </button>
         </div>
       </div>
       
-      <div class="flex gap-3">
+      <div class="flex shrink-0 gap-2 md:gap-3">
         <button
           @click="openSaveSlots"
-          :disabled="gameStore.isWaiting"
-          class="bg-gray-800/80 hover:bg-gray-700 px-3 py-1.5 rounded text-sm border border-gray-600 backdrop-blur-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-800/80"
+          :disabled="gameStore.isWaiting || isOpeningSequenceActive"
+          class="bg-gray-800/80 hover:bg-gray-700 px-2.5 py-1.5 rounded text-sm border border-gray-600 backdrop-blur-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-800/80 md:px-3"
         >
           保存
         </button>
-        <button @click="goHome" class="bg-gray-800/80 hover:bg-gray-700 px-3 py-1.5 rounded text-sm border border-gray-600 backdrop-blur-sm transition-colors">退出</button>
+        <button @click="goHome" class="bg-gray-800/80 hover:bg-gray-700 px-2.5 py-1.5 rounded text-sm border border-gray-600 backdrop-blur-sm transition-colors md:px-3">退出</button>
       </div>
     </div>
 
@@ -81,7 +87,7 @@
     </div>
 
     <!-- Dialog Box -->
-    <div class="absolute bottom-0 left-0 right-0 z-30 p-4 md:p-8 pointer-events-auto bg-gradient-to-t from-black via-black/80 to-transparent pt-24">
+    <div v-if="!isOpeningSequenceActive" class="absolute bottom-0 left-0 right-0 z-30 p-4 md:p-8 pointer-events-auto bg-gradient-to-t from-black via-black/80 to-transparent pt-24">
       <div class="max-w-4xl mx-auto">
         <div class="bg-black/60 border border-gray-700/50 rounded-xl p-6 shadow-2xl backdrop-blur-md min-h-[160px] flex flex-col justify-end transition-all duration-500">
           
@@ -105,7 +111,8 @@
           </div>
 
           <!-- Input Area -->
-          <div v-if="!gameStore.isWaiting && !gameStore.isEnding && textCompleted" class="mt-6 flex gap-4">
+          <div v-if="!gameStore.isWaiting && !gameStore.isEnding && textCompleted" class="mt-6">
+            <div class="flex gap-4">
             <input 
               v-model="inputText" 
               @keyup.enter="handleSend"
@@ -117,6 +124,7 @@
             <button @click="handleSend" class="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.6)]">
               发送
             </button>
+            </div>
           </div>
 
           <div v-if="gameStore.isEnding && textCompleted" class="mt-6 space-y-4">
@@ -168,11 +176,21 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ENDINGS, GAME_ROLE, GAME_RULES, resolveVisualState } from '@/domain/gameContract'
+import {
+  ENDINGS,
+  GAME_ENTRY_SESSION_KEY,
+  GAME_ENTRY_TYPES,
+  GAME_ROLE,
+  GAME_RULES,
+  OPENING_SEQUENCE_FRAMES,
+  ROOFTOP_BGM_SRC,
+  resolveVisualState
+} from '@/domain/gameContract'
 import { useGameStore } from '@/store/gameStore'
 import { audioManager } from '@/modules/AudioManager'
 import { SaveSystem, type SaveSlot } from '@/modules/SaveSystem'
 import { AchievementTracker } from '@/modules/AchievementTracker'
+import OpeningSequenceOverlay from '@/components/OpeningSequenceOverlay.vue'
 import TypewriterText from '@/components/TypewriterText.vue'
 import ProgressBar from '@/components/ProgressBar.vue'
 
@@ -186,6 +204,8 @@ const latestHint = ref<string | null>(null)
 const showSaveSlots = ref(false)
 const saveSlots = ref<SaveSlot[]>([])
 const isEndingSummaryLoading = ref(false)
+const isOpeningSequenceActive = ref(false)
+const hasStartedBgm = ref(false)
 
 const latestMessage = computed(() => {
   if (gameStore.messages.length === 0) return null
@@ -193,6 +213,7 @@ const latestMessage = computed(() => {
 })
 
 const saveSlotMap = computed(() => new Map(saveSlots.value.map((slot) => [slot.id, slot])))
+const hasPlayerMessages = computed(() => gameStore.messages.some((message) => message.role === 'user'))
 
 const currentVisualState = computed(() => resolveVisualState({
   roundCount: gameStore.roundCount,
@@ -204,6 +225,17 @@ const currentVisualState = computed(() => resolveVisualState({
 }))
 
 const currentBg = computed(() => currentVisualState.value.backgroundImage)
+
+const startRooftopBgm = () => {
+  if (hasStartedBgm.value) return
+  hasStartedBgm.value = true
+  audioManager.playBgm(ROOFTOP_BGM_SRC)
+}
+
+const completeOpeningSequence = () => {
+  isOpeningSequenceActive.value = false
+  startRooftopBgm()
+}
 
 const onTextComplete = () => {
   textCompleted.value = true
@@ -226,7 +258,7 @@ const ensureEndingSummary = async () => {
 
 const handleSend = async () => {
   const text = inputText.value.trim()
-  if (!text || gameStore.isWaiting || gameStore.isEnding) return
+  if (!text || gameStore.isWaiting || gameStore.isEnding || isOpeningSequenceActive.value) return
   
   audioManager.playSfx('click')
   inputText.value = ''
@@ -237,7 +269,7 @@ const handleSend = async () => {
 }
 
 const handleHint = async () => {
-  if (gameStore.hintCount <= 0 || gameStore.isWaiting) return
+  if (gameStore.hintCount <= 0 || gameStore.isWaiting || isOpeningSequenceActive.value) return
   audioManager.playSfx('click')
   textCompleted.value = false
   const hint = await gameStore.requestHint()
@@ -271,7 +303,7 @@ const refreshSaveSlots = () => {
 
 const openSaveSlots = () => {
   audioManager.playSfx('click')
-  if (gameStore.isWaiting) {
+  if (gameStore.isWaiting || isOpeningSequenceActive.value) {
     alert('正在等待回应，暂时不能保存。')
     return
   }
@@ -310,6 +342,16 @@ const goToChatAfter = () => {
 
 onMounted(() => {
   AchievementTracker.unlock('first_try')
-  audioManager.playBgm('/assets/audio/bgm_rooftop.mp3')
+  startRooftopBgm()
+
+  const entryType = sessionStorage.getItem(GAME_ENTRY_SESSION_KEY)
+  sessionStorage.removeItem(GAME_ENTRY_SESSION_KEY)
+  const shouldPlayOpening = entryType === GAME_ENTRY_TYPES.newGame && !hasPlayerMessages.value && !gameStore.isEnding
+
+  if (shouldPlayOpening) {
+    isOpeningSequenceActive.value = true
+    return
+  }
+
 })
 </script>
