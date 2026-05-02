@@ -18,9 +18,9 @@
         <div class="w-48 bg-black/50 p-2 rounded backdrop-blur-sm border border-gray-700">
           <div class="text-sm text-gray-300 mb-1 flex justify-between">
             <span>剩余机会</span>
-            <span>{{ gameStore.roundCount }}/10</span>
+            <span>{{ gameStore.roundCount }}/{{ GAME_RULES.initialRoundCount }}</span>
           </div>
-          <ProgressBar :value="gameStore.roundCount" :max="10" color="#ef4444" />
+          <ProgressBar :value="gameStore.roundCount" :max="GAME_RULES.initialRoundCount" color="#ef4444" />
         </div>
         
         <div v-if="gameStore.hintCount > 0 && !gameStore.isEnding" class="bg-[#0a0515]/90 px-4 py-2 rounded-xl border border-gray-800 shadow-lg backdrop-blur-md flex items-center">
@@ -99,7 +99,7 @@
           
           <div v-else-if="latestMessage" class="text-lg md:text-xl leading-relaxed text-gray-100">
             <div class="font-pixel text-purple-400 text-lg mb-3">
-              {{ latestMessage.role === 'assistant' ? (gameStore.isEnding ? '旁白' : '神秘女孩') : '你' }}
+              {{ latestMessage.role === 'assistant' ? (gameStore.isEnding ? GAME_ROLE.narratorSpeakerName : GAME_ROLE.assistantSpeakerName) : GAME_ROLE.playerSpeakerName }}
             </div>
             <TypewriterText :text="latestMessage.content" @complete="onTextComplete" :key="gameStore.messages.length" />
           </div>
@@ -119,13 +119,45 @@
             </button>
           </div>
 
-          <div v-if="gameStore.isEnding && textCompleted" class="mt-6 flex justify-center gap-4">
-            <button v-if="gameStore.endingType === 'end_acquaintance'" @click="goToChatAfter" class="px-8 py-3 bg-[#07c160] hover:bg-[#06ad56] text-white font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(7,193,96,0.4)]">
-              添加联系人...
-            </button>
-            <button v-else @click="goHome" class="px-8 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg border border-gray-600 transition-colors">
-              返回标题
-            </button>
+          <div v-if="gameStore.isEnding && textCompleted" class="mt-6 space-y-4">
+            <section class="border-t border-gray-700/60 pt-4 text-sm text-gray-300">
+              <div class="mb-3 flex items-center justify-between text-xs uppercase text-purple-300/80">
+                <span>本局回声</span>
+                <span v-if="isEndingSummaryLoading" class="text-gray-500">整理中...</span>
+              </div>
+
+              <div v-if="gameStore.endingSummary" class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="border-l border-purple-400/50 pl-3">
+                    <div class="text-xs text-gray-500">使用句数</div>
+                    <div class="mt-0.5 font-bold text-gray-100">{{ gameStore.endingSummary.roundsUsed }} 句</div>
+                  </div>
+                  <div class="border-l border-pink-400/50 pl-3">
+                    <div class="text-xs text-gray-500">好感触发</div>
+                    <div class="mt-0.5 font-bold text-gray-100">{{ gameStore.endingSummary.affectionBoostCount }} 次</div>
+                  </div>
+                </div>
+                <p class="leading-relaxed text-gray-200">
+                  <span class="text-gray-500">关键转折句：</span>“{{ gameStore.endingSummary.turningLine }}”
+                </p>
+                <p class="leading-relaxed text-purple-100/90">
+                  <span class="text-gray-500">局后评语：</span>{{ gameStore.endingSummary.comment }}
+                </p>
+              </div>
+
+              <div v-else class="text-gray-500">
+                正在从这一夜里挑出最重要的一句话……
+              </div>
+            </section>
+
+            <div class="flex justify-center gap-4">
+              <button v-if="gameStore.endingType === ENDINGS.acquaintance.type" @click="goToChatAfter" class="px-8 py-3 bg-[#07c160] hover:bg-[#06ad56] text-white font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(7,193,96,0.4)]">
+                添加联系人...
+              </button>
+              <button v-else @click="goHome" class="px-8 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg border border-gray-600 transition-colors">
+                返回标题
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -136,6 +168,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ENDINGS, GAME_ROLE, GAME_RULES, resolveVisualState } from '@/domain/gameContract'
 import { useGameStore } from '@/store/gameStore'
 import { audioManager } from '@/modules/AudioManager'
 import { SaveSystem, type SaveSlot } from '@/modules/SaveSystem'
@@ -145,13 +178,14 @@ import ProgressBar from '@/components/ProgressBar.vue'
 
 const router = useRouter()
 const gameStore = useGameStore()
-const SAVE_SLOT_IDS = [1, 2, 3] as const
+const SAVE_SLOT_IDS = GAME_RULES.saveSlotIds
 
 const inputText = ref('')
 const textCompleted = ref(false)
 const latestHint = ref<string | null>(null)
 const showSaveSlots = ref(false)
 const saveSlots = ref<SaveSlot[]>([])
+const isEndingSummaryLoading = ref(false)
 
 const latestMessage = computed(() => {
   if (gameStore.messages.length === 0) return null
@@ -160,25 +194,33 @@ const latestMessage = computed(() => {
 
 const saveSlotMap = computed(() => new Map(saveSlots.value.map((slot) => [slot.id, slot])))
 
-const currentBg = computed(() => {
-  if (gameStore.isEnding) {
-    if (gameStore.endingType === 'end_death') return '/assets/images/cg_end_fall.png'
-    if (gameStore.endingType === 'end_disappear') return '/assets/images/cg_end_disappear.png'
-    if (gameStore.endingType === 'end_true_release') return '/assets/images/cg_acquaintance_16_9.webp' // Reusing this image for the true ending fade out
-    if (gameStore.endingType === 'end_self_deception') return '/assets/images/char_girl_sad.png'
-    if (gameStore.endingType === 'end_eternal_cage') return '/assets/images/char_girl_smoke.png'
-  }
-  
-  // Use the new full-scene character images based on the state
-  if (gameStore.roundCount > 7) return '/assets/images/char_girl_smoke.png'
-  if (gameStore.roundCount > 3) return '/assets/images/char_girl_normal.png'
-  return '/assets/images/char_girl_sad.png'
-})
+const currentVisualState = computed(() => resolveVisualState({
+  roundCount: gameStore.roundCount,
+  affection: gameStore.affection,
+  isEnding: gameStore.isEnding,
+  endingType: gameStore.endingType,
+  aiStateType: gameStore.lastAiStateTag,
+  emotionType: gameStore.lastEmotionTag
+}))
+
+const currentBg = computed(() => currentVisualState.value.backgroundImage)
 
 const onTextComplete = () => {
   textCompleted.value = true
   if (gameStore.isEnding && gameStore.endingType) {
     AchievementTracker.unlock(gameStore.endingType)
+    void ensureEndingSummary()
+  }
+}
+
+const ensureEndingSummary = async () => {
+  if (!gameStore.isEnding || gameStore.endingSummary || isEndingSummaryLoading.value) return
+
+  isEndingSummaryLoading.value = true
+  try {
+    await gameStore.generateEndingSummary()
+  } finally {
+    isEndingSummaryLoading.value = false
   }
 }
 

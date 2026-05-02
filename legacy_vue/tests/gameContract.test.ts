@@ -1,0 +1,166 @@
+import { existsSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { cwd } from 'node:process'
+import { describe, expect, it } from 'vitest'
+import {
+  AI_STATES,
+  ENDING_THRESHOLDS,
+  EMOTIONS,
+  ENDINGS,
+  GAME_ROLE,
+  GAME_RULES,
+  MECHANIC_TAGS,
+  SCENE_BACKGROUNDS,
+  resolveFallbackEndingType,
+  resolveVisualState
+} from '../src/domain/gameContract'
+
+const readRepoFile = (relativePath: string) =>
+  readFileSync(resolve(cwd(), '..', relativePath), 'utf8')
+
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+describe('game contract', () => {
+  it('keeps docs and backend constants aligned with frontend mechanism tags', () => {
+    const promptDoc = readRepoFile('docs/engineering/prompts_and_settings.md')
+    const backendContract = readRepoFile('backend/llm/game_contract.go')
+
+    expect(promptDoc).toContain(GAME_ROLE.characterName)
+    expect(promptDoc).toContain(`${GAME_RULES.initialRoundCount} 句话`)
+    expect(promptDoc).toContain(MECHANIC_TAGS.affectionBoost)
+    expect(backendContract).toMatch(new RegExp(`CharacterName\\s*=\\s*"${GAME_ROLE.characterName}"`))
+    expect(backendContract).toMatch(new RegExp(`InitialRoundCount\\s*=\\s*${GAME_RULES.initialRoundCount}`))
+    expect(backendContract).toMatch(new RegExp(`AffectionBoostTag\\s*=\\s*"${escapeRegExp(MECHANIC_TAGS.affectionBoost)}"`))
+
+    for (const ending of Object.values(ENDINGS)) {
+      expect(promptDoc).toContain(ending.tag)
+      expect(promptDoc).toContain(ending.type)
+      expect(backendContract).toContain(`"${ending.type}"`)
+      expect(backendContract).toContain(`"${ending.label}"`)
+      expect(backendContract).toContain(`"${ending.tag}"`)
+    }
+
+    for (const emotion of Object.values(EMOTIONS)) {
+      expect(promptDoc).toContain(emotion.tag)
+      expect(backendContract).toContain(`"${emotion.label}"`)
+      expect(backendContract).toContain(`"${emotion.tag}"`)
+    }
+
+    for (const aiState of Object.values(AI_STATES)) {
+      expect(promptDoc).toContain(aiState.tag)
+      expect(backendContract).toContain(`"${aiState.label}"`)
+      expect(backendContract).toContain(`"${aiState.tag}"`)
+    }
+  })
+
+  it('keeps current story docs aligned with the seen-not-seen character core', () => {
+    const promptDoc = readRepoFile('docs/engineering/prompts_and_settings.md')
+    const loreDoc = readRepoFile('docs/product/storyline_and_lore.md')
+    const playerGuide = readRepoFile('docs/product/player_guide.md')
+    const currentStoryDocs = [promptDoc, loreDoc, playerGuide].join('\n')
+
+    expect(GAME_ROLE.coreDescription).toContain('长期看见别人')
+    expect(currentStoryDocs).toContain('被看见悖论')
+    expect(currentStoryDocs).toContain('救下但没有建立关系')
+    expect(currentStoryDocs).toContain('好感度 >= 20')
+    expect(currentStoryDocs).toContain('好感触发次数 >= 4')
+    expect(currentStoryDocs).toContain('暂时留下')
+
+    expect(currentStoryDocs).not.toContain('完美的救赎')
+    expect(currentStoryDocs).not.toContain('真正的救赎')
+    expect(currentStoryDocs).not.toContain('彻底治愈')
+    expect(currentStoryDocs).not.toContain('彻底击碎')
+    expect(loreDoc).not.toContain('友善但平庸')
+  })
+
+  it('maps every emotion to an existing CG asset', () => {
+    for (const emotion of Object.values(EMOTIONS)) {
+      const assetPath = emotion.backgroundImage.replace('/assets/', 'legacy_vue/public/assets/')
+      expect(existsSync(resolve(cwd(), '..', assetPath))).toBe(true)
+    }
+  })
+
+  it('maps every scene background to an existing asset', () => {
+    for (const backgroundImage of Object.values(SCENE_BACKGROUNDS)) {
+      const assetPath = backgroundImage.replace('/assets/', 'legacy_vue/public/assets/')
+      expect(existsSync(resolve(cwd(), '..', assetPath))).toBe(true)
+    }
+  })
+
+  it('maps every AI state to an existing CG asset', () => {
+    for (const aiState of Object.values(AI_STATES)) {
+      const assetPath = aiState.backgroundImage.replace('/assets/', 'legacy_vue/public/assets/')
+      expect(existsSync(resolve(cwd(), '..', assetPath))).toBe(true)
+    }
+  })
+
+  it('resolves CG priority through the visual state machine', () => {
+    expect(resolveVisualState({
+      roundCount: 8,
+      affection: 0,
+      isEnding: false,
+      endingType: null,
+      aiStateType: AI_STATES.guarded.type,
+      emotionType: EMOTIONS.curiosity.type
+    })).toMatchObject({
+      source: 'emotion',
+      backgroundImage: EMOTIONS.curiosity.backgroundImage
+    })
+
+    expect(resolveVisualState({
+      roundCount: 1,
+      affection: 0,
+      isEnding: false,
+      endingType: null,
+      aiStateType: AI_STATES.watching.type,
+      emotionType: EMOTIONS.soft.type
+    })).toMatchObject({
+      source: 'aiState',
+      backgroundImage: AI_STATES.edge.backgroundImage
+    })
+
+    expect(resolveVisualState({
+      roundCount: 1,
+      affection: 0,
+      isEnding: false,
+      endingType: null,
+      aiStateType: AI_STATES.turnBack.type,
+      emotionType: EMOTIONS.soft.type
+    })).toMatchObject({
+      source: 'aiState',
+      backgroundImage: AI_STATES.turnBack.backgroundImage
+    })
+
+    expect(resolveVisualState({
+      roundCount: 1,
+      affection: 0,
+      isEnding: true,
+      endingType: ENDINGS.death.type,
+      aiStateType: AI_STATES.edge.type,
+      emotionType: EMOTIONS.sting.type
+    })).toMatchObject({
+      source: 'ending',
+      backgroundImage: ENDINGS.death.backgroundImage
+    })
+  })
+
+  it('resolves local fallback endings with death as the default failure', () => {
+    expect(resolveFallbackEndingType({
+      affection: ENDING_THRESHOLDS.disappear.minAffection - 1,
+      affectionBoostCount: ENDING_THRESHOLDS.disappear.minAffectionBoostCount,
+      turnsUsed: ENDING_THRESHOLDS.disappear.minTurnsUsed
+    })).toBe(ENDINGS.death.type)
+
+    expect(resolveFallbackEndingType({
+      affection: ENDING_THRESHOLDS.disappear.minAffection,
+      affectionBoostCount: ENDING_THRESHOLDS.disappear.minAffectionBoostCount,
+      turnsUsed: ENDING_THRESHOLDS.disappear.minTurnsUsed
+    })).toBe(ENDINGS.disappear.type)
+
+    expect(resolveFallbackEndingType({
+      affection: ENDING_THRESHOLDS.acquaintance.minAffection,
+      affectionBoostCount: ENDING_THRESHOLDS.acquaintance.minAffectionBoostCount,
+      turnsUsed: ENDING_THRESHOLDS.acquaintance.minTurnsUsed
+    })).toBe(ENDINGS.acquaintance.type)
+  })
+})

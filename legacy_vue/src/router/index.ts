@@ -1,12 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import type { RouteRecordRaw } from 'vue-router'
-import StartView from '@/views/StartView.vue'
+import type { RouterHistory, RouteRecordRaw } from 'vue-router'
+import { ENDINGS } from '@/domain/gameContract'
+import type { GameState } from '@/domain/gameState'
+import { useGameStore } from '@/store/gameStore'
 
-const routes: Array<RouteRecordRaw> = [
+export const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
     name: 'Start',
-    component: StartView
+    component: () => import('@/views/StartView.vue')
   },
   {
     path: '/game',
@@ -30,9 +32,27 @@ const routes: Array<RouteRecordRaw> = [
   }
 ]
 
-const router = createRouter({
-  history: createWebHistory(),
-  routes
-})
+export const canEnterChatAfterStory = (state: Pick<GameState, 'isEnding' | 'endingType'>) =>
+  state.isEnding && state.endingType === ENDINGS.acquaintance.type
+
+export const createAppRouter = (
+  history: RouterHistory = createWebHistory(),
+  appRoutes: RouteRecordRaw[] = routes
+) => {
+  const router = createRouter({
+    history,
+    routes: appRoutes
+  })
+
+  router.beforeEach((to) => {
+    if (to.name === 'ChatAfter' && !canEnterChatAfterStory(useGameStore())) {
+      return { name: 'Start' }
+    }
+  })
+
+  return router
+}
+
+const router = createAppRouter()
 
 export default router

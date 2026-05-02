@@ -1,3 +1,5 @@
+import { ENDINGS } from '@/domain/gameContract'
+
 const ACHIEVEMENT_KEY = 'damo_achievements'
 
 export interface Achievement {
@@ -8,9 +10,9 @@ export interface Achievement {
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
-  { id: 'end_death', name: '坠落', description: '未能触及她的内心，她选择了离开这个世界。' },
-  { id: 'end_disappear', name: '消失', description: '平庸的交谈，她带着失望消失在夜色中。' },
-  { id: 'end_acquaintance', name: '相识', description: '你真正触及了她的内心，拯救了她，并获得了她的联系方式。' },
+  { id: ENDINGS.death.type, name: ENDINGS.death.achievementName, description: '未能触及她的内心，她选择了离开这个世界。' },
+  { id: ENDINGS.disappear.type, name: ENDINGS.disappear.achievementName, description: '你让她今晚离开栏杆，但她没有留下联系方式。' },
+  { id: ENDINGS.acquaintance.type, name: ENDINGS.acquaintance.achievementName, description: '她暂时留下，并愿意继续和你联系。' },
   { id: 'first_try', name: '初次相遇', description: '第一次在天台遇见她。' }
 ]
 

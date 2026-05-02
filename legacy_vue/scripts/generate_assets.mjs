@@ -216,7 +216,7 @@ const charGirl = ({ w, h, mood }) => {
   const skin = '#e5e7eb'
   const eye = mood === 'sad' ? 'M 0 0 C 10 6 20 6 30 0' : 'M 0 0 C 10 -4 20 -4 30 0'
   const mouth =
-    mood === 'smile'
+    mood === 'sneer'
       ? 'M 460 760 C 490 780 510 780 540 760'
       : mood === 'sad'
         ? 'M 460 780 C 490 760 510 760 540 780'
@@ -375,7 +375,7 @@ const main = async () => {
   await renderSvgTo('cg_acquaintance_9_16.webp', cgAcquaintance({ w: 1080, h: 1920 }), 'webp')
 
   await renderSvgTo('char_girl_normal.png', charGirl({ w: 1000, h: 1500, mood: 'neutral' }), 'png')
-  await renderSvgTo('char_girl_smile.png', charGirl({ w: 1000, h: 1500, mood: 'smile' }), 'png')
+  await renderSvgTo('char_girl_sneer.png', charGirl({ w: 1000, h: 1500, mood: 'sneer' }), 'png')
   await renderSvgTo('char_girl_sad.png', charGirl({ w: 1000, h: 1500, mood: 'sad' }), 'png')
   await renderSvgTo('char_girl_smoke.png', charGirl({ w: 1000, h: 1500, mood: 'smoke' }), 'png')
 
@@ -400,4 +400,3 @@ main().catch((e) => {
   console.error(e)
   process.exit(1)
 })
-

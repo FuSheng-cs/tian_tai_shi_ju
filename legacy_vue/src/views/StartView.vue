@@ -19,8 +19,8 @@
         <p class="tagline">
           <span class="quote-mark quote-mark-open" aria-hidden="true">“</span>
           <span class="quote-copy">
-            你只有 <strong>10 句话</strong> 的时间。<br />
-            但也许，我们都需要更多的时间来原谅自己。
+            你只有 <strong>{{ GAME_RULES.initialRoundCount }} 句话</strong> 的时间。<br />
+            但也许，真诚的倾听能让她多停留一会儿。
           </span>
           <span class="quote-mark quote-mark-close" aria-hidden="true">”</span>
         </p>
@@ -32,11 +32,11 @@
           <span>关于游戏</span>
         </header>
         <p>
-          在这个霓虹闪烁的深夜，你来到了天台。坐在围栏边缘的女孩名叫艾。
+          在这个霓虹闪烁的深夜，你来到了天台。坐在围栏边缘的女孩名叫{{ GAME_ROLE.characterName }}。
           她厌倦世界，也厌倦被人用标准答案拯救。
         </p>
         <p>
-          你的目标：用有限的十句话靠近她的内心，把她从边缘拉回来。
+          你的目标：用有限的 {{ GAME_RULES.initialRoundCount }} 句话靠近她的内心，把她从边缘拉回来。
         </p>
         <ul class="intro-list">
           <li>每一句话都可能改变她的情绪与选择。</li>
@@ -104,6 +104,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { GAME_ROLE, GAME_RULES } from '@/domain/gameContract'
 import { useGameStore } from '@/store/gameStore'
 import { audioManager } from '@/modules/AudioManager'
 import { SaveSystem, type SaveSlot } from '@/modules/SaveSystem'
@@ -118,7 +119,7 @@ import {
 
 const router = useRouter()
 const gameStore = useGameStore()
-const SAVE_SLOT_IDS = [1, 2, 3] as const
+const SAVE_SLOT_IDS = GAME_RULES.saveSlotIds
 
 const showLoadSlots = ref(false)
 const saveSlots = ref<SaveSlot[]>([])

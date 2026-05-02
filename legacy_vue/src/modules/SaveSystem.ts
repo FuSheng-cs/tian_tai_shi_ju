@@ -1,5 +1,6 @@
 import CRC32 from 'crc-32'
-import type { Message } from '@/store/gameStore'
+import { GAME_RULES } from '@/domain/gameContract'
+import type { PersistedGameState, StablePersistedGameState } from '@/domain/gameState'
 import { useGameStore } from '@/store/gameStore'
 
 const SAVE_KEY_PREFIX = 'damo_save_'
@@ -10,28 +11,26 @@ export interface SaveSlot {
   data: string; // Base64 encoded JSON + CRC32
 }
 
-export interface PersistedGameState {
-  roundCount: number;
-  hintCount: number;
-  affection: number;
-  messages: Message[];
-  isEnding: boolean;
-  endingType: string | null;
-}
-
 export class SaveSystem {
   static save(slotId: number): boolean {
     try {
       const gameStore = useGameStore()
       if (gameStore.isWaiting) return false
 
-      const stateToSave: PersistedGameState = {
+      const stateToSave: StablePersistedGameState = {
         roundCount: gameStore.roundCount,
         hintCount: gameStore.hintCount,
         affection: gameStore.affection,
+        affectionBoostCount: gameStore.affectionBoostCount,
+        affectionBoostMessages: [...gameStore.affectionBoostMessages],
+        lastAiStateTag: gameStore.lastAiStateTag,
+        aiStateHistory: [...gameStore.aiStateHistory],
+        lastEmotionTag: gameStore.lastEmotionTag,
+        emotionHistory: [...gameStore.emotionHistory],
         messages: [...gameStore.messages],
         isEnding: gameStore.isEnding,
-        endingType: gameStore.endingType
+        endingType: gameStore.endingType,
+        endingSummary: gameStore.endingSummary
       }
       
       const jsonStr = JSON.stringify(stateToSave)
@@ -73,7 +72,7 @@ export class SaveSystem {
       }
       
       const gameStore = useGameStore()
-      gameStore.loadState(payload.state)
+      gameStore.loadState(payload.state as PersistedGameState)
       return true
     } catch (e) {
       console.error('Failed to load game:', e)
@@ -83,8 +82,8 @@ export class SaveSystem {
 
   static getSlots(): SaveSlot[] {
     const slots: SaveSlot[] = []
-    for (let i = 1; i <= 3; i++) { // Support 3 slots
-      const slotStr = localStorage.getItem(`${SAVE_KEY_PREFIX}${i}`)
+    for (const slotId of GAME_RULES.saveSlotIds) {
+      const slotStr = localStorage.getItem(`${SAVE_KEY_PREFIX}${slotId}`)
       if (slotStr) {
         slots.push(JSON.parse(slotStr))
       }

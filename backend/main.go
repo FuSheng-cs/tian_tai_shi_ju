@@ -38,6 +38,7 @@ func main() {
 		api.POST("/chat", handlers.HandleChat)
 		api.POST("/hint", handlers.HandleHint)
 		api.POST("/chat-after", handlers.HandleChatAfter)
+		api.POST("/ending-summary", handlers.HandleEndingSummary)
 	}
 
 	addr := ":" + config.Cfg.Port

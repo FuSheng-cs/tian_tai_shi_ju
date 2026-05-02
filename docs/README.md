@@ -11,7 +11,8 @@
 ## Engineering
 
 - [技术文档](engineering/technical_overview.md)：说明前后端结构、运行机制、状态管理、测试与工程状态。
-- [Prompt 与设定说明](engineering/prompts_and_settings.md)：记录主线对话、提示和后日谈 Prompt。
+- [Prompt 与设定说明](engineering/prompts_and_settings.md)：集中记录主线对话、提示、后日谈和局后摘要 Prompt。
+- [黑白灰情绪 CG 资源表](engineering/emotion_cg_assets.md)：记录情绪标签对应 CG 文件与生成提示词。
 - [优化建议](engineering/optimization_report.md)：按优先级列出产品、技术和工程优化项。
 
 ## Archive

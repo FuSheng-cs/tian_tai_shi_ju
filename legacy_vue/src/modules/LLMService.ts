@@ -2,6 +2,8 @@
 // 此文件只负责将请求转发给 Go 后端，不再直接调用任何 LLM 服务商。
 // 系统 Prompt 已移至后端保护，前端不可见。
 
+import type { EndingSummaryContext, LLMConversationContext, Message } from '@/domain/gameState'
+
 // LocalStorage 中存储玩家 LLM 配置的键名
 const LS_KEYS = {
   PROVIDER: 'damo_llm_provider',
@@ -19,6 +21,11 @@ export interface LLMConfig {
   apiKey: string
   model: string      // 可选，留空使用 Provider 默认模型
   baseUrl: string    // 可选，自定义 Base URL
+}
+
+export interface EndingSummaryReview {
+  turningLine: string;
+  comment: string;
 }
 
 // 读取玩家保存在本地的 LLM 配置
@@ -65,9 +72,33 @@ async function callBackend(endpoint: string, body: object): Promise<string> {
   }
 }
 
+async function callBackendJson<T>(endpoint: string, body: object): Promise<T | null> {
+  const url = `${BACKEND_URL}/api/${endpoint}`
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+
+    const data = await response.json()
+
+    if (data.error) {
+      console.error(`[LLMService] Backend error on /${endpoint}:`, data.error)
+      return null
+    }
+
+    return data as T
+  } catch (e) {
+    console.error(`[LLMService] Network error on /${endpoint}:`, e)
+    return null
+  }
+}
+
 export class LLMService {
   // 主游戏对话
-  static async chat(userMessage: string, history: any[], loopContext: any): Promise<string> {
+  static async chat(userMessage: string, history: Message[], loopContext: LLMConversationContext): Promise<string> {
     const cfg = loadLLMConfig()
 
     return callBackend('chat', {
@@ -75,6 +106,9 @@ export class LLMService {
       user_message: userMessage,
       rounds_left: loopContext.roundsLeft,
       affection: loopContext.affection,
+      affection_boost_count: loopContext.affectionBoostCount,
+      turns_used: loopContext.turnsUsed,
+      ai_state: loopContext.aiState,
       provider: cfg.provider,
       api_key: cfg.apiKey,
       model: cfg.model,
@@ -83,7 +117,7 @@ export class LLMService {
   }
 
   // 故事结束后的续聊
-  static async chatAfterStory(userMessage: string, history: any[]): Promise<string> {
+  static async chatAfterStory(userMessage: string, history: Message[]): Promise<string> {
     const cfg = loadLLMConfig()
 
     return callBackend('chat-after', {
@@ -97,7 +131,7 @@ export class LLMService {
   }
 
   // 获取游戏提示
-  static async getHint(history: any[], _loopContext: any): Promise<string> {
+  static async getHint(history: Message[], _loopContext: LLMConversationContext): Promise<string> {
     const cfg = loadLLMConfig()
 
     return callBackend('hint', {
@@ -107,5 +141,29 @@ export class LLMService {
       model: cfg.model,
       base_url: cfg.baseUrl
     })
+  }
+
+  // 生成结局摘要中的关键转折句和局后短评
+  static async getEndingSummary(history: Message[], endingContext: EndingSummaryContext): Promise<EndingSummaryReview | null> {
+    const cfg = loadLLMConfig()
+    const result = await callBackendJson<{ turning_line?: string; comment?: string }>('ending-summary', {
+      history: history,
+      ending_type: endingContext.endingType,
+      rounds_used: endingContext.roundsUsed,
+      affection_boost_count: endingContext.affectionBoostCount,
+      provider: cfg.provider,
+      api_key: cfg.apiKey,
+      model: cfg.model,
+      base_url: cfg.baseUrl
+    })
+
+    if (!result || typeof result.turning_line !== 'string' || typeof result.comment !== 'string') {
+      return null
+    }
+
+    return {
+      turningLine: result.turning_line.trim(),
+      comment: result.comment.trim()
+    }
   }
 }
