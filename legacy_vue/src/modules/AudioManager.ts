@@ -28,7 +28,7 @@ class AudioManager {
     })
 
     this.sfxMap.stair_step = new Howl({
-      src: ['/assets/audio/sfx_stair_step.wav'],
+      src: ['/assets/audio/sfx_stair_step.mp3'],
       volume: settingsStore.sfxVolume,
       loop: false
     })

@@ -105,7 +105,7 @@ describe('game contract', () => {
       expect(frame.caption).toMatch(/我/)
     }
 
-    expect(existsSync(resolve(cwd(), '..', 'legacy_vue/public/assets/audio/sfx_stair_step.wav'))).toBe(true)
+    expect(existsSync(resolve(cwd(), '..', 'legacy_vue/public/assets/audio/sfx_stair_step.mp3'))).toBe(true)
   })
 
   it('maps the rooftop BGM to an existing trimmed asset', () => {
