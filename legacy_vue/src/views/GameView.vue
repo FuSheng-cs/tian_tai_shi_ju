@@ -241,6 +241,7 @@ const onTextComplete = () => {
   textCompleted.value = true
   if (gameStore.isEnding && gameStore.endingType) {
     AchievementTracker.unlock(gameStore.endingType)
+    AchievementTracker.evaluateFromState(gameStore.$state)
     void ensureEndingSummary()
   }
 }
@@ -266,6 +267,9 @@ const handleSend = async () => {
   latestHint.value = null
   
   await gameStore.sendMessage(text)
+  if (!gameStore.isEnding) {
+    AchievementTracker.evaluateFromState(gameStore.$state)
+  }
 }
 
 const handleHint = async () => {
@@ -323,6 +327,7 @@ const saveToSlot = (slotId: number) => {
 
   if (SaveSystem.save(slotId)) {
     refreshSaveSlots()
+    AchievementTracker.evaluateSaveSlots(saveSlots.value)
     showSaveSlots.value = false
     alert(`游戏已保存至栏位 ${slotId}`)
   } else {

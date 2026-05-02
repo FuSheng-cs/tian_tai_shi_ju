@@ -4,12 +4,14 @@
       <component :is="Component" />
     </transition>
   </router-view>
+  <AchievementToast />
 </template>
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useSettingsStore } from '@/store/settingsStore'
 import { audioManager } from '@/modules/AudioManager'
+import AchievementToast from '@/components/AchievementToast.vue'
 
 const settings = useSettingsStore()
 

@@ -1,13 +1,15 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import {
+  ENDINGS,
   GAME_ENTRY_SESSION_KEY,
   GAME_ENTRY_TYPES,
   OPENING_SEQUENCE_FRAMES,
   ROOFTOP_BGM_SRC
 } from '../src/domain/gameContract'
+import { useGameStore } from '../src/store/gameStore'
 import OpeningSequenceOverlay from '../src/components/OpeningSequenceOverlay.vue'
 import GameView from '../src/views/GameView.vue'
 import StartView from '../src/views/StartView.vue'
@@ -16,7 +18,14 @@ const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   playBgm: vi.fn(),
   preloadBgm: vi.fn(),
-  playStairStep: vi.fn()
+  playStairStep: vi.fn(),
+  chat: vi.fn(),
+  getSlots: vi.fn(() => [{ id: 1, timestamp: 1710000000000, data: 'slot' }]),
+  load: vi.fn(() => true),
+  save: vi.fn(() => true),
+  unlock: vi.fn(),
+  evaluateFromState: vi.fn(),
+  evaluateSaveSlots: vi.fn()
 }))
 
 vi.mock('vue-router', () => ({
@@ -34,15 +43,25 @@ vi.mock('../src/modules/AudioManager', () => ({
 
 vi.mock('../src/modules/SaveSystem', () => ({
   SaveSystem: {
-    getSlots: vi.fn(() => [{ id: 1, timestamp: 1710000000000, data: 'slot' }]),
-    load: vi.fn(() => true),
-    save: vi.fn(() => true)
+    getSlots: mocks.getSlots,
+    load: mocks.load,
+    save: mocks.save
   }
 }))
 
 vi.mock('../src/modules/AchievementTracker', () => ({
   AchievementTracker: {
-    unlock: vi.fn()
+    unlock: mocks.unlock,
+    evaluateFromState: mocks.evaluateFromState,
+    evaluateSaveSlots: mocks.evaluateSaveSlots
+  }
+}))
+
+vi.mock('../src/modules/LLMService', () => ({
+  LLMService: {
+    chat: mocks.chat,
+    getHint: vi.fn(),
+    getEndingSummary: vi.fn()
   }
 }))
 
@@ -72,6 +91,19 @@ describe('opening guide flow', () => {
     mocks.playBgm.mockClear()
     mocks.preloadBgm.mockClear()
     mocks.playStairStep.mockClear()
+    mocks.chat.mockReset()
+    mocks.chat.mockResolvedValue('她沉默了一会儿。')
+    mocks.getSlots.mockClear()
+    mocks.getSlots.mockReturnValue([{ id: 1, timestamp: 1710000000000, data: 'slot' }])
+    mocks.load.mockClear()
+    mocks.load.mockReturnValue(true)
+    mocks.save.mockClear()
+    mocks.save.mockReturnValue(true)
+    mocks.unlock.mockClear()
+    mocks.evaluateFromState.mockClear()
+    mocks.evaluateSaveSlots.mockClear()
+    vi.stubGlobal('alert', vi.fn())
+    vi.stubGlobal('confirm', vi.fn(() => true))
     vi.useRealTimers()
   })
 
@@ -117,6 +149,49 @@ describe('opening guide flow', () => {
 
     expect(wrapper.find('[data-test="opening-sequence"]').exists()).toBe(false)
     expect(mocks.playBgm).toHaveBeenCalledWith(ROOFTOP_BGM_SRC)
+  })
+
+  it('unlocks the first encounter when entering the game', () => {
+    mountGameView()
+
+    expect(mocks.unlock).toHaveBeenCalledWith('first_try')
+  })
+
+  it('evaluates achievements after the first player message', async () => {
+    const wrapper = mountGameView()
+
+    await wrapper.find('.typewriter-text').trigger('click')
+    await nextTick()
+    await wrapper.find('input').setValue('我只是想先听你说完。')
+    await wrapper.find('input').trigger('keyup.enter')
+    await flushPromises()
+
+    expect(mocks.evaluateFromState).toHaveBeenCalled()
+  })
+
+  it('unlocks ending achievements after the ending text completes', async () => {
+    const store = useGameStore()
+    store.isEnding = true
+    store.endingType = ENDINGS.acquaintance.type
+    store.messages = [{ role: 'assistant', content: '她把烟按灭了。' }]
+
+    const wrapper = mountGameView()
+    await wrapper.find('.typewriter-text').trigger('click')
+
+    expect(mocks.unlock).toHaveBeenCalledWith(ENDINGS.acquaintance.type)
+    expect(mocks.evaluateFromState).toHaveBeenCalled()
+  })
+
+  it('evaluates save achievements after a successful save', async () => {
+    const wrapper = mountGameView()
+
+    const saveButton = wrapper.findAll('button').find((button) => button.text().includes('保存'))
+    expect(saveButton).toBeTruthy()
+    await saveButton!.trigger('click')
+    await wrapper.find('.grid button').trigger('click')
+
+    expect(mocks.save).toHaveBeenCalledWith(1)
+    expect(mocks.evaluateSaveSlots).toHaveBeenCalledWith([{ id: 1, timestamp: 1710000000000, data: 'slot' }])
   })
 
   it('advances the opening overlay by player clicks and plays steps on frame changes', async () => {

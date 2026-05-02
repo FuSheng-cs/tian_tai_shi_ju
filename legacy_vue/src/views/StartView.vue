@@ -71,7 +71,7 @@
 
     <footer class="menu-footer" aria-label="版本信息">
       <span class="footer-dot"></span>
-      <span>v1.6.0</span>
+      <span>v1.7.0</span>
       <span class="footer-line"></span>
       <span>AI-DRIVEN NARRATIVE EXPERIENCE</span>
     </footer>
