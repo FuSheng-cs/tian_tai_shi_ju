@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { AI_STATES, EMOTIONS, ENDINGS, GAME_RULES, MECHANIC_TAGS } from '../src/domain/gameContract'
+import { AI_STATES, EMOTIONS, ENDINGS, ENDING_THRESHOLDS, GAME_RULES, MECHANIC_TAGS } from '../src/domain/gameContract'
 import { useGameStore } from '../src/store/gameStore'
 import { LLMService } from '../src/modules/LLMService'
 
@@ -202,6 +202,40 @@ describe('Game Store', () => {
     expect(store.roundCount).toBe(0)
     expect(store.isEnding).toBe(true)
     expect(store.endingType).toBe(ENDINGS.death.type)
+  })
+
+  it('reconciles untagged acquaintance narrative with ending CG and progress state', async () => {
+    for (let i = 0; i < GAME_RULES.initialRoundCount - 1; i += 1) {
+      vi.mocked(LLMService.chat).mockResolvedValueOnce('她沉默着听完了这一句。')
+    }
+    vi.mocked(LLMService.chat).mockResolvedValueOnce('她把手机递过来，说：存个艾就行。明天九点，别迟到。')
+    const store = useGameStore()
+
+    for (let i = 0; i < GAME_RULES.initialRoundCount; i += 1) {
+      await store.sendMessage(`看见她的第 ${i + 1} 句话`)
+    }
+
+    expect(store.isEnding).toBe(true)
+    expect(store.endingType).toBe(ENDINGS.acquaintance.type)
+    expect(store.affection).toBeGreaterThanOrEqual(ENDING_THRESHOLDS.acquaintance.minAffection)
+    expect(store.affectionBoostCount).toBeGreaterThanOrEqual(ENDING_THRESHOLDS.acquaintance.minAffectionBoostCount)
+  })
+
+  it('reconciles untagged disappear narrative instead of falling through to death', async () => {
+    for (let i = 0; i < GAME_RULES.initialRoundCount - 1; i += 1) {
+      vi.mocked(LLMService.chat).mockResolvedValueOnce('她低头看着栏杆，没有立刻回答。')
+    }
+    vi.mocked(LLMService.chat).mockResolvedValueOnce('她走进消防通道，没有回头，脚步声逐渐消失。')
+    const store = useGameStore()
+
+    for (let i = 0; i < GAME_RULES.initialRoundCount; i += 1) {
+      await store.sendMessage(`陪她停留的第 ${i + 1} 句话`)
+    }
+
+    expect(store.isEnding).toBe(true)
+    expect(store.endingType).toBe(ENDINGS.disappear.type)
+    expect(store.affection).toBeGreaterThanOrEqual(ENDING_THRESHOLDS.disappear.minAffection)
+    expect(store.affectionBoostCount).toBeGreaterThanOrEqual(ENDING_THRESHOLDS.disappear.minAffectionBoostCount)
   })
 
   it('keeps ending state as the visual priority when emotion and ending tags both appear', async () => {

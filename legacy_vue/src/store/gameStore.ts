@@ -13,6 +13,7 @@ import {
   EMOTION_BY_TYPE,
   EMOTION_TAG_REGEX,
   ENDINGS,
+  ENDING_THRESHOLDS,
   ENDING_BY_LABEL,
   ENDING_BY_TYPE,
   ENDING_TAG_REGEX,
@@ -33,6 +34,19 @@ import type { EndingSummary, GameState, Message, PersistedGameState } from '@/do
 
 const getRoundsUsed = (messages: Message[]) =>
   messages.filter((message) => message.role === 'user').length
+
+const reconcileInferredEndingProgress = (state: GameState, endingType: EndingType) => {
+  const threshold = endingType === ENDINGS.acquaintance.type
+    ? ENDING_THRESHOLDS.acquaintance
+    : endingType === ENDINGS.disappear.type
+      ? ENDING_THRESHOLDS.disappear
+      : null
+
+  if (!threshold) return
+
+  state.affection = Math.max(state.affection, threshold.minAffection)
+  state.affectionBoostCount = Math.max(state.affectionBoostCount, threshold.minAffectionBoostCount)
+}
 
 const cleanSummaryLine = (value: unknown) =>
   typeof value === 'string' ? value.trim().slice(0, GAME_RULES.maxSummaryTextLength) : ''
@@ -183,11 +197,14 @@ export const useGameStore = defineStore('game', {
         finalReply = finalReply.replace(ANY_ENDING_TAG_REGEX, '').trim();
       } else if (this.roundCount <= 0) {
         this.isEnding = true;
-        this.endingType = resolveFallbackEndingType({
+        const fallbackEndingType = resolveFallbackEndingType({
           affection: this.affection,
           affectionBoostCount: this.affectionBoostCount,
-          turnsUsed: getRoundsUsed(this.messages)
+          turnsUsed: getRoundsUsed(this.messages),
+          lastAssistantText: finalReply
         });
+        this.endingType = fallbackEndingType;
+        reconcileInferredEndingProgress(this.$state, fallbackEndingType);
       }
       
       if (finalReply) {

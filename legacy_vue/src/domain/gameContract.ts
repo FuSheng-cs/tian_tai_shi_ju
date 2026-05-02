@@ -200,6 +200,59 @@ export interface EndingResolutionSnapshot {
   affection: number;
   affectionBoostCount: number;
   turnsUsed: number;
+  lastAssistantText?: string;
+}
+
+const countPatternMatches = (text: string, patterns: RegExp[]) =>
+  patterns.reduce((count, pattern) => count + (pattern.test(text) ? 1 : 0), 0)
+
+export const inferEndingTypeFromNarrative = (text: string): EndingType | null => {
+  const normalized = text.replace(/\s+/g, '')
+  if (!normalized) return null
+
+  const deathScore = countPatternMatches(normalized, [
+    /身体向后倾/,
+    /向后倒/,
+    /滑落/,
+    /坠落/,
+    /跳下/,
+    /楼下.*空白/,
+    /最后一缕烟/
+  ])
+  if (deathScore >= 1) return ENDINGS.death.type
+
+  const acquaintanceScore = countPatternMatches(normalized, [
+    /手机.*递/,
+    /递.*手机/,
+    /联系方式/,
+    /存个?['"“]?艾/,
+    /别打备注/,
+    /明天.*(九点|见|别迟到|继续|底片|饭团|冲洗|洗出来)/,
+    /(九点|明天).*(别迟到|冲洗店|洗.*底片)/,
+    /愿意.*继续.*(说话|联系)/,
+    /交换.*联系方式/
+  ])
+
+  const disappearScore = countPatternMatches(normalized, [
+    /消防通道.*(离开|走|阴影)/,
+    /楼梯间.*(离开|阴影|脚步声)/,
+    /没有回头/,
+    /脚步声.*(消失|远去|吞掉)/,
+    /栏杆.*空/,
+    /不交换.*联系方式/,
+    /不用回头/,
+    /今晚这口气.*留着/
+  ])
+
+  if (acquaintanceScore >= 2 && acquaintanceScore >= disappearScore) {
+    return ENDINGS.acquaintance.type
+  }
+
+  if (disappearScore >= 2) {
+    return ENDINGS.disappear.type
+  }
+
+  return null
 }
 
 const meetsEndingThreshold = (
@@ -211,6 +264,11 @@ const meetsEndingThreshold = (
   snapshot.turnsUsed >= threshold.minTurnsUsed
 
 export const resolveFallbackEndingType = (snapshot: EndingResolutionSnapshot): EndingType => {
+  const narrativeEnding = inferEndingTypeFromNarrative(snapshot.lastAssistantText ?? '')
+  if (narrativeEnding) {
+    return narrativeEnding
+  }
+
   if (meetsEndingThreshold(snapshot, ENDING_THRESHOLDS.acquaintance)) {
     return ENDINGS.acquaintance.type
   }
@@ -300,6 +358,16 @@ export interface ResolvedVisualState {
   aiStateType: AiStateType | null;
 }
 
+export const resolveWaitingBackground = (visualState: ResolvedVisualState): string => {
+  const aiState = visualState.aiStateType ? AI_STATE_BY_TYPE[visualState.aiStateType] : null
+
+  if (aiState?.type === AI_STATES.edge.type || aiState?.type === AI_STATES.turnBack.type) {
+    return aiState.backgroundImage
+  }
+
+  return SCENE_BACKGROUNDS.smoke
+}
+
 export const deriveAiStateType = (snapshot: Pick<VisualStateSnapshot, 'roundCount' | 'affection'>): AiStateType => {
   if (snapshot.roundCount <= 1) return AI_STATES.edge.type
   if (snapshot.roundCount <= GAME_RULES.criticalPressureRoundCount && snapshot.affection < 20) return AI_STATES.edge.type
@@ -335,21 +403,21 @@ export const resolveVisualState = (snapshot: VisualStateSnapshot): ResolvedVisua
   const effectiveAiState = chooseEffectiveAiState(explicitAiState, derivedAiState)
   const aiState = AI_STATE_BY_TYPE[effectiveAiState]
 
+  const emotion = snapshot.emotionType ? EMOTION_BY_TYPE[snapshot.emotionType] : null
+  if (emotion && effectiveAiState !== AI_STATES.edge.type) {
+    return {
+      source: 'emotion',
+      backgroundImage: emotion.backgroundImage,
+      label: emotion.label,
+      aiStateType: effectiveAiState
+    }
+  }
+
   if (effectiveAiState === AI_STATES.edge.type || effectiveAiState === AI_STATES.turnBack.type) {
     return {
       source: 'aiState',
       backgroundImage: aiState.backgroundImage,
       label: aiState.label,
-      aiStateType: effectiveAiState
-    }
-  }
-
-  const emotion = snapshot.emotionType ? EMOTION_BY_TYPE[snapshot.emotionType] : null
-  if (emotion) {
-    return {
-      source: 'emotion',
-      backgroundImage: emotion.backgroundImage,
-      label: emotion.label,
       aiStateType: effectiveAiState
     }
   }

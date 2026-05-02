@@ -34,12 +34,55 @@ func TestBuildMainSystemPromptContainsGameplayMechanics(t *testing.T) {
 		"前 5 句内不得触发最终结局",
 		"情绪标签只代表视觉反馈",
 		"普通友善但平庸",
+		"标签一致性是硬性规则",
+		"递手机、存联系方式、明天九点",
 	}
 
 	for _, item := range required {
 		if !strings.Contains(prompt, item) {
 			t.Fatalf("prompt missing required gameplay rule: %s", item)
 		}
+	}
+}
+
+func TestNormalizeFinalMechanicTagsInfersMissingEndingTags(t *testing.T) {
+	tests := []struct {
+		name string
+		text string
+		want string
+	}{
+		{
+			name: "acquaintance",
+			text: "她把手机递过来，说：存个艾就行。明天九点，别迟到。",
+			want: EndingAcquaintanceTag,
+		},
+		{
+			name: "disappear",
+			text: "她走进消防通道，没有回头，脚步声逐渐消失。",
+			want: EndingDisappearTag,
+		},
+		{
+			name: "death",
+			text: "她轻轻呼出最后一缕烟，身体向后倾去。",
+			want: EndingDeathTag,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := normalizeFinalMechanicTags(tt.text, 0)
+			if !strings.Contains(got, tt.want) {
+				t.Fatalf("expected inferred tag %s in %q", tt.want, got)
+			}
+		})
+	}
+}
+
+func TestNormalizeFinalMechanicTagsDoesNotEndEarly(t *testing.T) {
+	text := "她把手机递过来，说：存个艾就行。明天九点，别迟到。"
+	got := normalizeFinalMechanicTags(text, 1)
+	if got != text {
+		t.Fatalf("should not add ending tags before final pressure turn, got %q", got)
 	}
 }
 

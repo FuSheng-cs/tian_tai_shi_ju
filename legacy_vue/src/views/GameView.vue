@@ -184,7 +184,7 @@ import {
   GAME_RULES,
   OPENING_SEQUENCE_FRAMES,
   ROOFTOP_BGM_SRC,
-  SCENE_BACKGROUNDS,
+  resolveWaitingBackground,
   resolveVisualState
 } from '@/domain/gameContract'
 import { useGameStore } from '@/store/gameStore'
@@ -226,7 +226,9 @@ const currentVisualState = computed(() => resolveVisualState({
 }))
 
 const currentBg = computed(() =>
-  gameStore.isWaiting ? SCENE_BACKGROUNDS.smoke : currentVisualState.value.backgroundImage
+  gameStore.isWaiting
+    ? resolveWaitingBackground(currentVisualState.value)
+    : currentVisualState.value.backgroundImage
 )
 
 const startRooftopBgm = () => {

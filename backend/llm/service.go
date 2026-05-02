@@ -385,7 +385,12 @@ func buildMainSystemPrompt(roundsLeft int, affection int, affectionBoostCount in
    - %s：默认失败结局。回合耗尽且未达到救下门槛时触发；普通友善但平庸、只会安慰或没有真正看见你，也可能无法救下你。玩家明显恶意、鼓励坠落、羞辱、威胁时也触发。你会像完成既定程序一样，抽完最后一口烟，平静地从天台滑落。
    - %s：很困难，代表“救下但没有建立关系”。只有当好感度 >= 20、好感触发次数 >= 4、玩家至少已发言 7 次，并且多次具体看见你而不是说教时才允许触发。你会从栏杆上下来，从消防通道离开，但不交换联系方式。
    - %s：极难达到。只有当好感度 >= 25、好感触发次数 >= 5、玩家至少已发言 7 次，并且玩家真正点破“你一直看见别人，却没人看见你”的核心矛盾时才允许触发。你会暂时离开栏杆，愿意和他交换联系方式；这不是被治愈，只是今晚愿意继续活下去。
-4. 不要解释判定过程，不要输出分数。最终只输出必要标签和艾的自然回复。`,
+4. 标签一致性是硬性规则，不是可选文风：
+   - 如果你写出“递手机、存联系方式、明天九点、明天见、继续联系、一起洗底片”等愿意继续联系的剧情，回复末尾必须输出 %s。
+   - 如果你写出“从消防通道离开、没有回头、脚步声消失、栏杆空下来”且不交换联系方式，回复末尾必须输出 %s。
+   - 如果你写出“身体向后倾、滑落、坠落、跳下去、最后一缕烟”等坠落剧情，回复末尾必须输出 %s。
+   - 如果玩家的话明显让你说出“你说对了、你真的在看我、第一次有人这样问、愿意继续听”等被看见反馈，并且不属于禁止项，回复开头必须输出 %s，而不是只在正文里承认被触动。
+5. 不要解释判定过程，不要输出分数。最终只输出必要标签和艾的自然回复。`,
 		CharacterName,
 		InitialRoundCount,
 		roundsLeft,
@@ -414,6 +419,10 @@ func buildMainSystemPrompt(roundsLeft int, affection int, affectionBoostCount in
 		EndingDeathTag,
 		EndingDisappearTag,
 		EndingAcquaintanceTag,
+		EndingAcquaintanceTag,
+		EndingDisappearTag,
+		EndingDeathTag,
+		AffectionBoostTag,
 	)
 }
 
@@ -468,6 +477,93 @@ func parseEndingSummary(raw string) (EndingSummary, error) {
 	return summary, nil
 }
 
+func countNarrativeMatches(text string, patterns []string) int {
+	score := 0
+	for _, pattern := range patterns {
+		if strings.Contains(text, pattern) {
+			score++
+		}
+	}
+	return score
+}
+
+func inferNarrativeEndingTag(reply string) string {
+	normalized := strings.Join(strings.Fields(reply), "")
+	if normalized == "" {
+		return ""
+	}
+
+	deathScore := countNarrativeMatches(normalized, []string{
+		"身体向后倾",
+		"向后倒",
+		"滑落",
+		"坠落",
+		"跳下",
+		"最后一缕烟",
+	})
+	if deathScore >= 1 {
+		return EndingDeathTag
+	}
+
+	acquaintanceScore := countNarrativeMatches(normalized, []string{
+		"手机递",
+		"递过来",
+		"联系方式",
+		"存个艾",
+		"存艾",
+		"别打备注",
+		"明天九点",
+		"明天见",
+		"别迟到",
+		"继续联系",
+		"继续说话",
+		"洗底片",
+		"洗出来",
+		"冲洗店",
+		"饭团",
+	})
+
+	disappearScore := countNarrativeMatches(normalized, []string{
+		"消防通道",
+		"楼梯间",
+		"没有回头",
+		"脚步声消失",
+		"脚步声逐渐消失",
+		"栏杆空",
+		"不交换联系方式",
+		"不用回头",
+		"留着不吐",
+	})
+
+	if acquaintanceScore >= 2 && acquaintanceScore >= disappearScore {
+		return EndingAcquaintanceTag
+	}
+	if disappearScore >= 2 {
+		return EndingDisappearTag
+	}
+
+	return ""
+}
+
+func hasEndingTag(reply string) bool {
+	return strings.Contains(reply, EndingDeathTag) ||
+		strings.Contains(reply, EndingDisappearTag) ||
+		strings.Contains(reply, EndingAcquaintanceTag)
+}
+
+func normalizeFinalMechanicTags(reply string, roundsLeft int) string {
+	if hasEndingTag(reply) || roundsLeft > 0 {
+		return reply
+	}
+
+	tag := inferNarrativeEndingTag(reply)
+	if tag == "" {
+		tag = EndingDeathTag
+	}
+
+	return strings.TrimSpace(reply) + "\n" + tag
+}
+
 // --- 公开服务方法 ---
 
 // Chat 是主游戏对话接口
@@ -480,7 +576,12 @@ func Chat(cfg ClientConfig, userMessage string, history []Message, roundsLeft, a
 	messages = append(messages, history...)
 	messages = append(messages, Message{Role: "user", Content: userMessage})
 
-	return callLLM(cfg, messages, 0.8)
+	reply, err := callLLM(cfg, messages, 0.8)
+	if err != nil {
+		return "", err
+	}
+
+	return normalizeFinalMechanicTags(reply, roundsLeft), nil
 }
 
 // ChatAfterStory 是故事结束后的聊天接口
