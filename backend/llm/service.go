@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode"
 )
 
 // --- 数据结构 ---
@@ -574,6 +575,40 @@ func stripEndingTags(reply string) string {
 	return strings.TrimSpace(cleaned)
 }
 
+func isQuestionMarkNoiseLine(line string) bool {
+	trimmed := strings.TrimSpace(line)
+	if trimmed == "" {
+		return false
+	}
+
+	questionMarks := 0
+	meaningfulRunes := 0
+	for _, r := range trimmed {
+		switch {
+		case r == '?' || r == '？':
+			questionMarks++
+		case unicode.IsSpace(r) || unicode.IsPunct(r) || unicode.IsSymbol(r):
+			continue
+		default:
+			meaningfulRunes++
+		}
+	}
+
+	return questionMarks >= 2 && meaningfulRunes == 0
+}
+
+func stripQuestionMarkNoiseLines(reply string) string {
+	lines := strings.Split(reply, "\n")
+	kept := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if isQuestionMarkNoiseLine(line) {
+			continue
+		}
+		kept = append(kept, line)
+	}
+	return strings.TrimSpace(strings.Join(kept, "\n"))
+}
+
 func resolveThresholdEndingTag(affection, affectionBoostCount, turnsUsed int) string {
 	if affection >= 25 && affectionBoostCount >= 5 && turnsUsed >= 7 {
 		return EndingAcquaintanceTag
@@ -639,7 +674,7 @@ func normalizeFinalMechanicTags(reply string, roundsLeft, affection, affectionBo
 		finalTag = modelTag
 	}
 
-	body := stripEndingTags(reply)
+	body := stripQuestionMarkNoiseLines(stripEndingTags(reply))
 	if inferredTag != "" && inferredTag != finalTag {
 		body = ""
 	}

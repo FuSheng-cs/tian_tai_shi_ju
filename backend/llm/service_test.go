@@ -89,6 +89,17 @@ func TestNormalizeFinalMechanicTagsAddsDeathNarrativeForDefaultFailure(t *testin
 	}
 }
 
+func TestNormalizeFinalMechanicTagsDropsQuestionMarkNoise(t *testing.T) {
+	got := normalizeFinalMechanicTags("????,????\n", 0, 0, 0, 10)
+
+	if strings.Contains(got, "????") {
+		t.Fatalf("should remove question mark noise, got %q", got)
+	}
+	if !strings.Contains(got, "越过栏杆") || !strings.Contains(got, EndingDeathTag) {
+		t.Fatalf("should preserve deterministic death ending, got %q", got)
+	}
+}
+
 func TestNormalizeFinalMechanicTagsRejectsUnmetRescueTag(t *testing.T) {
 	text := "她终于从栏杆上下来，走进消防通道，没有回头。\n" + EndingDisappearTag
 	got := normalizeFinalMechanicTags(text, 0, 0, 0, 10)
