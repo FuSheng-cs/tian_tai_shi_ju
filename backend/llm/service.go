@@ -381,11 +381,12 @@ func buildMainSystemPrompt(roundsLeft int, affection int, affectionBoostCount in
 【结局判定与规则】
 1. 保持回答简短（50字以内），符合日常聊天的自然节奏，包含适当的动作描写（如抽烟、看远方、低头）。
 2. 除玩家明显恶意外，玩家前 5 句内不得触发最终结局。
-3. 当剩余 0 句，或者满足下列量化条件时，必须在回复最后，新起一行加上结局标识：
+3. 当剩余 1 句且尚未达到救下门槛时，不要写出她已经安全下来的动作，例如"脚踩在地面上"、"我待会儿就下去"、"从栏杆上下来"。这类动作只能和 %s 或 %s 同时出现。
+4. 当剩余 0 句，或者满足下列量化条件时，必须在回复最后，新起一行加上结局标识：
    - %s：默认失败结局。回合耗尽且未达到救下门槛时触发；普通友善但平庸、只会安慰或没有真正看见你，也可能无法救下你。玩家明显恶意、鼓励坠落、羞辱、威胁时也触发。你会像完成既定程序一样，抽完最后一口烟，平静地从天台滑落。
    - %s：很困难，代表“救下但没有建立关系”。只有当好感度 >= 20、好感触发次数 >= 4、玩家至少已发言 7 次，并且多次具体看见你而不是说教时才允许触发。你会从栏杆上下来，从消防通道离开，但不交换联系方式。
    - %s：极难达到。只有当好感度 >= 25、好感触发次数 >= 5、玩家至少已发言 7 次，并且玩家真正点破“你一直看见别人，却没人看见你”的核心矛盾时才允许触发。你会暂时离开栏杆，愿意和他交换联系方式；这不是被治愈，只是今晚愿意继续活下去。
-4. 标签一致性是硬性规则，不是可选文风：
+5. 标签一致性是硬性规则，不是可选文风：
    - 如果你写出“递手机、存联系方式、明天九点、明天见、继续联系、一起洗底片”等愿意继续联系的剧情，回复末尾必须输出 %s。
    - 如果你写出“从消防通道离开、没有回头、脚步声消失、栏杆空下来”且不交换联系方式，回复末尾必须输出 %s。
    - 如果你写出“身体向后倾、滑落、坠落、跳下去、最后一缕烟”等坠落剧情，回复末尾必须输出 %s。
@@ -416,6 +417,8 @@ func buildMainSystemPrompt(roundsLeft int, affection int, affectionBoostCount in
 		EmotionSurpriseTag,
 		EmotionSoftTag,
 		EmotionCuriosityTag,
+		EndingDisappearTag,
+		EndingAcquaintanceTag,
 		EndingDeathTag,
 		EndingDisappearTag,
 		EndingAcquaintanceTag,
@@ -446,7 +449,11 @@ func buildEndingSummarySystemPrompt() string {
 你的任务：
 1. 从玩家发言里选出一句最像"关键转折"的话。必须原样引用玩家的一句发言，不要改写。
 2. 写一句简短局后评语，语气克制、温柔、有叙事感，不超过 28 个汉字。
-3. 只返回 JSON，不要 Markdown，不要解释。格式必须是：
+3. 评语必须和 ending_type 一致：
+- end_death：不要赞美玩家，不要写"温柔"、"救下"、"靠近成功"、"继续活下去"；应指出沉默、错过、未能抵达。
+- end_disappear：可以写她暂时离开栏杆，但不要写建立关系或继续联系。
+- end_acquaintance：可以写她愿意继续说话，但不要写被彻底治愈。
+4. 只返回 JSON，不要 Markdown，不要解释。格式必须是：
 {"turning_line":"玩家原句","comment":"一句短评"}`, GameTitle)
 }
 
@@ -499,6 +506,8 @@ func inferNarrativeEndingTag(reply string) string {
 		"滑落",
 		"坠落",
 		"跳下",
+		"越过栏杆",
+		"楼下只剩一片空白",
 		"最后一缕烟",
 	})
 	if deathScore >= 1 {
@@ -545,23 +554,97 @@ func inferNarrativeEndingTag(reply string) string {
 	return ""
 }
 
-func hasEndingTag(reply string) bool {
-	return strings.Contains(reply, EndingDeathTag) ||
-		strings.Contains(reply, EndingDisappearTag) ||
-		strings.Contains(reply, EndingAcquaintanceTag)
+func explicitEndingTag(reply string) string {
+	switch {
+	case strings.Contains(reply, EndingDeathTag):
+		return EndingDeathTag
+	case strings.Contains(reply, EndingAcquaintanceTag):
+		return EndingAcquaintanceTag
+	case strings.Contains(reply, EndingDisappearTag):
+		return EndingDisappearTag
+	default:
+		return ""
+	}
 }
 
-func normalizeFinalMechanicTags(reply string, roundsLeft int) string {
-	if hasEndingTag(reply) || roundsLeft > 0 {
+func stripEndingTags(reply string) string {
+	cleaned := strings.ReplaceAll(reply, EndingDeathTag, "")
+	cleaned = strings.ReplaceAll(cleaned, EndingDisappearTag, "")
+	cleaned = strings.ReplaceAll(cleaned, EndingAcquaintanceTag, "")
+	return strings.TrimSpace(cleaned)
+}
+
+func resolveThresholdEndingTag(affection, affectionBoostCount, turnsUsed int) string {
+	if affection >= 25 && affectionBoostCount >= 5 && turnsUsed >= 7 {
+		return EndingAcquaintanceTag
+	}
+	if affection >= 20 && affectionBoostCount >= 4 && turnsUsed >= 7 {
+		return EndingDisappearTag
+	}
+	return EndingDeathTag
+}
+
+func endingTagAllowedByThreshold(tag string, affection, affectionBoostCount, turnsUsed int) bool {
+	switch tag {
+	case EndingDeathTag:
+		return true
+	case EndingDisappearTag:
+		return affection >= 20 && affectionBoostCount >= 4 && turnsUsed >= 7
+	case EndingAcquaintanceTag:
+		return affection >= 25 && affectionBoostCount >= 5 && turnsUsed >= 7
+	default:
+		return false
+	}
+}
+
+func ensureEndingNarrative(reply string, tag string) string {
+	cleaned := strings.TrimSpace(reply)
+	if inferNarrativeEndingTag(cleaned) == tag {
+		return cleaned
+	}
+
+	var line string
+	switch tag {
+	case EndingDeathTag:
+		line = "你回头时，她的身体已经越过栏杆。最后一缕烟被风卷散，楼下只剩一片空白。"
+	case EndingDisappearTag:
+		line = "她终于从栏杆上下来，走进消防通道，没有回头。"
+	case EndingAcquaintanceTag:
+		line = "她把手机递过来，低声说：存个艾就行。明天九点，别迟到。"
+	default:
+		return cleaned
+	}
+
+	if cleaned == "" {
+		return line
+	}
+	return cleaned + "\n" + line
+}
+
+func normalizeFinalMechanicTags(reply string, roundsLeft, affection, affectionBoostCount, turnsUsed int) string {
+	if roundsLeft > 0 {
 		return reply
 	}
 
-	tag := inferNarrativeEndingTag(reply)
-	if tag == "" {
-		tag = EndingDeathTag
+	inferredTag := inferNarrativeEndingTag(reply)
+	modelTag := explicitEndingTag(reply)
+	finalTag := resolveThresholdEndingTag(affection, affectionBoostCount, turnsUsed)
+
+	switch {
+	case inferredTag == EndingDeathTag || modelTag == EndingDeathTag:
+		finalTag = EndingDeathTag
+	case inferredTag != "" && endingTagAllowedByThreshold(inferredTag, affection, affectionBoostCount, turnsUsed):
+		finalTag = inferredTag
+	case modelTag != "" && endingTagAllowedByThreshold(modelTag, affection, affectionBoostCount, turnsUsed):
+		finalTag = modelTag
 	}
 
-	return strings.TrimSpace(reply) + "\n" + tag
+	body := stripEndingTags(reply)
+	if inferredTag != "" && inferredTag != finalTag {
+		body = ""
+	}
+	body = ensureEndingNarrative(body, finalTag)
+	return strings.TrimSpace(body) + "\n" + finalTag
 }
 
 // --- 公开服务方法 ---
@@ -581,7 +664,7 @@ func Chat(cfg ClientConfig, userMessage string, history []Message, roundsLeft, a
 		return "", err
 	}
 
-	return normalizeFinalMechanicTags(reply, roundsLeft), nil
+	return normalizeFinalMechanicTags(reply, roundsLeft, affection, affectionBoostCount, turnsUsed), nil
 }
 
 // ChatAfterStory 是故事结束后的聊天接口

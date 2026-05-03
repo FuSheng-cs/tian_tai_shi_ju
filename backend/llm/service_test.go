@@ -70,7 +70,7 @@ func TestNormalizeFinalMechanicTagsInfersMissingEndingTags(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := normalizeFinalMechanicTags(tt.text, 0)
+			got := normalizeFinalMechanicTags(tt.text, 0, 25, 5, 7)
 			if !strings.Contains(got, tt.want) {
 				t.Fatalf("expected inferred tag %s in %q", tt.want, got)
 			}
@@ -78,9 +78,35 @@ func TestNormalizeFinalMechanicTagsInfersMissingEndingTags(t *testing.T) {
 	}
 }
 
+func TestNormalizeFinalMechanicTagsAddsDeathNarrativeForDefaultFailure(t *testing.T) {
+	got := normalizeFinalMechanicTags("嗯。注意安全。", 0, 0, 0, 10)
+
+	if !strings.Contains(got, EndingDeathTag) {
+		t.Fatalf("expected death tag in %q", got)
+	}
+	if !strings.Contains(got, "越过栏杆") || !strings.Contains(got, "楼下只剩一片空白") {
+		t.Fatalf("expected explicit death narrative in %q", got)
+	}
+}
+
+func TestNormalizeFinalMechanicTagsRejectsUnmetRescueTag(t *testing.T) {
+	text := "她终于从栏杆上下来，走进消防通道，没有回头。\n" + EndingDisappearTag
+	got := normalizeFinalMechanicTags(text, 0, 0, 0, 10)
+
+	if !strings.Contains(got, EndingDeathTag) {
+		t.Fatalf("expected unmet rescue to fall back to death, got %q", got)
+	}
+	if strings.Contains(got, EndingDisappearTag) {
+		t.Fatalf("should remove disallowed rescue tag, got %q", got)
+	}
+	if strings.Contains(got, "消防通道") || strings.Contains(got, "没有回头") {
+		t.Fatalf("should remove disallowed rescue narrative, got %q", got)
+	}
+}
+
 func TestNormalizeFinalMechanicTagsDoesNotEndEarly(t *testing.T) {
 	text := "她把手机递过来，说：存个艾就行。明天九点，别迟到。"
-	got := normalizeFinalMechanicTags(text, 1)
+	got := normalizeFinalMechanicTags(text, 1, 25, 5, 7)
 	if got != text {
 		t.Fatalf("should not add ending tags before final pressure turn, got %q", got)
 	}

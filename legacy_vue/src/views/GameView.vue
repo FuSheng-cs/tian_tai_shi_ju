@@ -128,6 +128,19 @@
           </div>
 
           <div v-if="gameStore.isEnding && textCompleted" class="mt-6 space-y-4">
+            <div
+              v-if="endingDefinition"
+              class="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+              :class="{
+                'border-red-300/35 bg-red-950/25 text-red-50': gameStore.endingType === ENDINGS.death.type,
+                'border-sky-300/35 bg-sky-950/25 text-sky-50': gameStore.endingType === ENDINGS.disappear.type,
+                'border-emerald-300/35 bg-emerald-950/25 text-emerald-50': gameStore.endingType === ENDINGS.acquaintance.type
+              }"
+            >
+              <span class="text-xs opacity-75">结局</span>
+              <strong class="text-base">{{ endingDefinition.achievementName }}</strong>
+            </div>
+
             <section class="border-t border-gray-700/60 pt-4 text-sm text-gray-300">
               <div class="mb-3 flex items-center justify-between text-xs uppercase text-purple-300/80">
                 <span>本局回声</span>
@@ -177,6 +190,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
+  ENDING_BY_TYPE,
   ENDINGS,
   GAME_ENTRY_SESSION_KEY,
   GAME_ENTRY_TYPES,
@@ -215,6 +229,9 @@ const latestMessage = computed(() => {
 
 const saveSlotMap = computed(() => new Map(saveSlots.value.map((slot) => [slot.id, slot])))
 const hasPlayerMessages = computed(() => gameStore.messages.some((message) => message.role === 'user'))
+const endingDefinition = computed(() =>
+  gameStore.endingType ? ENDING_BY_TYPE[gameStore.endingType] : null
+)
 
 const currentVisualState = computed(() => resolveVisualState({
   roundCount: gameStore.roundCount,

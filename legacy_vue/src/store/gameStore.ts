@@ -51,6 +51,28 @@ const reconcileInferredEndingProgress = (state: GameState, endingType: EndingTyp
 const cleanSummaryLine = (value: unknown) =>
   typeof value === 'string' ? value.trim().slice(0, GAME_RULES.maxSummaryTextLength) : ''
 
+const DEATH_TURNING_LINE_PATTERNS = [
+  /不想管/,
+  /没时间/,
+  /自己解决/,
+  /矫情/,
+  /不想帮/,
+  /随便/,
+  /我走了/,
+  /不是唯一/
+]
+
+const findDeathTurningLine = (playerMessages: Message[]) => {
+  for (let i = playerMessages.length - 1; i >= 0; i -= 1) {
+    const line = playerMessages[i]?.content ?? ''
+    if (DEATH_TURNING_LINE_PATTERNS.some((pattern) => pattern.test(line))) {
+      return line
+    }
+  }
+
+  return playerMessages[playerMessages.length - 1]?.content
+}
+
 const buildLocalEndingComment = (endingType: EndingType | null, boostCount: number) => {
   if (endingType === ENDINGS.acquaintance.type) return '你让她在这一夜里看见了被理解的可能。'
   if (endingType === ENDINGS.death.type) return boostCount > 0
@@ -63,7 +85,11 @@ const buildLocalEndingComment = (endingType: EndingType | null, boostCount: numb
 
 const buildLocalEndingSummary = (state: GameState): EndingSummary => {
   const playerMessages = state.messages.filter((message) => message.role === 'user')
+  const deathTurningLine = state.endingType === ENDINGS.death.type
+    ? findDeathTurningLine(playerMessages)
+    : null
   const fallbackLine =
+    deathTurningLine ||
     state.affectionBoostMessages[state.affectionBoostMessages.length - 1] ||
     playerMessages[playerMessages.length - 1]?.content ||
     '你没有留下明确的话。'
@@ -263,6 +289,11 @@ export const useGameStore = defineStore('game', {
       if (this.endingSummary) return this.endingSummary;
 
       const fallbackSummary = buildLocalEndingSummary(this.$state);
+
+      if (this.endingType === ENDINGS.death.type) {
+        this.endingSummary = fallbackSummary;
+        return this.endingSummary;
+      }
 
       try {
         const aiSummary = await LLMService.getEndingSummary(this.messages, {
