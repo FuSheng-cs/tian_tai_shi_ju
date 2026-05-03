@@ -9,13 +9,20 @@
     <section class="menu-shell">
       <div class="brand-panel">
         <h1 id="start-title" class="sr-only">天台十句</h1>
-        <img
-          class="title-art"
-          :src="MENU_TITLE_IMAGE"
-          alt=""
-          aria-hidden="true"
-          draggable="false"
-        />
+        <picture>
+          <source :srcset="MENU_TITLE_WEBP_IMAGE" type="image/webp" />
+          <img
+            class="title-art"
+            :src="MENU_TITLE_IMAGE"
+            width="1660"
+            height="496"
+            alt=""
+            aria-hidden="true"
+            decoding="async"
+            fetchpriority="high"
+            draggable="false"
+          />
+        </picture>
         <p class="tagline">
           <span class="quote-mark quote-mark-open" aria-hidden="true">“</span>
           <span class="quote-copy">
@@ -120,6 +127,7 @@ import {
 const router = useRouter()
 const gameStore = useGameStore()
 const SAVE_SLOT_IDS = GAME_RULES.saveSlotIds
+const MENU_TITLE_WEBP_IMAGE = '/assets/images/menu_title.webp'
 const MENU_TITLE_IMAGE = '/assets/images/menu_title.png'
 
 const showLoadSlots = ref(false)
