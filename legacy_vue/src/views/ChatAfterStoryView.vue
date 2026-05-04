@@ -8,7 +8,7 @@
         </svg>
       </button>
       <div class="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex-shrink-0">
-        <img src="/assets/images/char_girl_sneer.png" alt="Avatar" class="w-full h-full object-cover object-top" />
+        <img :src="CHAT_AVATAR_IMAGE" alt="Avatar" class="w-full h-full object-cover object-top" />
       </div>
       <div>
         <h1 class="font-bold text-gray-900">{{ GAME_ROLE.characterName }}</h1>
@@ -22,7 +22,7 @@
         
         <!-- Assistant Avatar -->
         <div v-if="msg.role === 'assistant'" class="w-8 h-8 rounded-full bg-gray-300 overflow-hidden flex-shrink-0 mr-2 mt-1">
-          <img src="/assets/images/char_girl_sneer.png" alt="Avatar" class="w-full h-full object-cover object-top" />
+          <img :src="CHAT_AVATAR_IMAGE" alt="Avatar" class="w-full h-full object-cover object-top" />
         </div>
 
         <!-- Message Bubble -->
@@ -42,7 +42,7 @@
       <!-- Typing Indicator -->
       <div v-if="isWaiting" class="flex justify-start">
         <div class="w-8 h-8 rounded-full bg-gray-300 overflow-hidden flex-shrink-0 mr-2 mt-1">
-          <img src="/assets/images/char_girl_sneer.png" alt="Avatar" class="w-full h-full object-cover object-top" />
+          <img :src="CHAT_AVATAR_IMAGE" alt="Avatar" class="w-full h-full object-cover object-top" />
         </div>
         <div class="bg-white text-gray-500 border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-2 text-sm flex items-center gap-1">
           <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
@@ -77,20 +77,62 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { GAME_ROLE } from '@/domain/gameContract'
-import type { Message } from '@/domain/gameState'
+import { CHAT_AVATAR_IMAGE, GAME_ROLE, GAME_RULES } from '@/domain/gameContract'
+import type { AfterStoryContext, Message } from '@/domain/gameState'
+import { useGameStore } from '@/store/gameStore'
 import { LLMService } from '@/modules/LLMService'
 import { audioManager } from '@/modules/AudioManager'
 
 const router = useRouter()
+const gameStore = useGameStore()
 const inputText = ref('')
 const isWaiting = ref(false)
 const chatContainer = ref<HTMLElement | null>(null)
 
-const messages = ref<Message[]>([
-  { role: 'assistant', content: '我到家了。' },
-  { role: 'assistant', content: '今天天台的风还挺大的。' }
-])
+const normalizeLine = (value: string | null | undefined, maxLength = 48) => {
+  const text = (value ?? '').replace(/\s+/g, ' ').trim()
+  if (text.length <= maxLength) return text
+  return `${text.slice(0, maxLength)}...`
+}
+
+const latestMessageByRole = (role: Message['role']) =>
+  [...gameStore.messages].reverse().find((message) => message.role === role)?.content ?? ''
+
+const getTurnsUsed = () =>
+  gameStore.endingSummary?.roundsUsed ?? Math.max(0, GAME_RULES.initialRoundCount - gameStore.roundCount)
+
+const buildAfterStoryContext = (): AfterStoryContext => {
+  const lastPlayerLine = latestMessageByRole('user')
+  const endingReply = latestMessageByRole('assistant')
+
+  return {
+    endingType: gameStore.endingType,
+    lastPlayerLine,
+    endingReply,
+    turningLine: gameStore.endingSummary?.turningLine ?? lastPlayerLine,
+    endingComment: gameStore.endingSummary?.comment ?? '',
+    roundsUsed: getTurnsUsed(),
+    affectionBoostCount: gameStore.endingSummary?.affectionBoostCount ?? gameStore.affectionBoostCount,
+    affection: gameStore.affection
+  }
+}
+
+const buildInitialMessages = (): Message[] => {
+  const context = buildAfterStoryContext()
+  const keyLine = normalizeLine(context.turningLine || context.lastPlayerLine, 34)
+
+  return [
+    { role: 'assistant', content: '我到楼下了。刚才天台上的风还在耳边。' },
+    {
+      role: 'assistant',
+      content: keyLine
+        ? `你刚才说的「${keyLine}」，我还在想。`
+        : '刚才的事，我还在慢慢消化。'
+    }
+  ]
+}
+
+const messages = ref<Message[]>(buildInitialMessages())
 
 const scrollToBottom = async () => {
   await nextTick()
@@ -108,8 +150,7 @@ const sendMessage = async () => {
   isWaiting.value = true
   scrollToBottom()
 
-  // Make the API call using a specific "After Story" prompt
-  const reply = await LLMService.chatAfterStory(text, messages.value.slice(0, -1))
+  const reply = await LLMService.chatAfterStory(text, messages.value.slice(0, -1), buildAfterStoryContext())
   
   isWaiting.value = false
   messages.value.push({ role: 'assistant', content: reply })

@@ -49,12 +49,13 @@ type HintRequest struct {
 
 // ChatAfterRequest 是 /api/chat-after 的请求体
 type ChatAfterRequest struct {
-	History     []Message `json:"history"`
-	UserMessage string    `json:"user_message" binding:"required"`
-	Provider    string    `json:"provider"`
-	APIKey      string    `json:"api_key"`
-	Model       string    `json:"model"`
-	BaseURL     string    `json:"base_url"`
+	History           []Message             `json:"history"`
+	UserMessage       string                `json:"user_message" binding:"required"`
+	AfterStoryContext llm.AfterStoryContext `json:"after_story_context"`
+	Provider          string                `json:"provider"`
+	APIKey            string                `json:"api_key"`
+	Model             string                `json:"model"`
+	BaseURL           string                `json:"base_url"`
 }
 
 // EndingSummaryRequest 是 /api/ending-summary 的请求体
@@ -71,8 +72,9 @@ type EndingSummaryRequest struct {
 
 // ChatResponse 是统一的 API 响应体
 type ChatResponse struct {
-	Reply string `json:"reply"`
-	Error string `json:"error,omitempty"`
+	Reply      string              `json:"reply"`
+	Evaluation *llm.TurnEvaluation `json:"evaluation,omitempty"`
+	Error      string              `json:"error,omitempty"`
 }
 
 // EndingSummaryResponse 是结局摘要的结构化响应
@@ -142,24 +144,31 @@ func HandleChat(c *gin.Context) {
 	clientCfg, ok := buildClientConfig(req.Provider, req.APIKey, req.Model, req.BaseURL)
 	if !ok {
 		// 无 API Key：返回模拟回复（与原来 mockChat 行为一致）
+		evaluation := llm.DefaultTurnEvaluation(req.AiState)
 		c.JSON(http.StatusOK, ChatResponse{
-			Reply: "过去就像昨天的雨水，早就干了。你问这些做什么？（此为模拟回复，请在设置中配置 API Key）",
+			Reply:      "过去就像昨天的雨水，早就干了。你问这些做什么？（此为模拟回复，请在设置中配置 API Key）",
+			Evaluation: &evaluation,
 		})
 		return
 	}
 
 	history := convertMessages(req.History)
-	reply, err := llm.Chat(clientCfg, req.UserMessage, history, req.RoundsLeft, req.Affection, req.AffectionBoostCount, req.TurnsUsed, req.AiState)
+	result, err := llm.Chat(clientCfg, req.UserMessage, history, req.RoundsLeft, req.Affection, req.AffectionBoostCount, req.TurnsUsed, req.AiState)
 	if err != nil {
 		log.Printf("[HandleChat] LLM error: %v", err)
+		evaluation := llm.DefaultTurnEvaluation(req.AiState)
 		c.JSON(http.StatusOK, ChatResponse{
-			Error: "LLM 调用失败: " + err.Error(),
-			Reply: "（风太大了，我听不清你说什么... 请检查 API Key 或网络连接）",
+			Error:      "LLM 调用失败: " + err.Error(),
+			Reply:      "（风太大了，我听不清你说什么... 请检查 API Key 或网络连接）",
+			Evaluation: &evaluation,
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, ChatResponse{Reply: reply})
+	c.JSON(http.StatusOK, ChatResponse{
+		Reply:      result.Reply,
+		Evaluation: &result.Evaluation,
+	})
 }
 
 // HandleHint 处理游戏提示请求
@@ -211,7 +220,7 @@ func HandleChatAfter(c *gin.Context) {
 	}
 
 	history := convertMessages(req.History)
-	reply, err := llm.ChatAfterStory(clientCfg, req.UserMessage, history)
+	reply, err := llm.ChatAfterStory(clientCfg, req.UserMessage, history, req.AfterStoryContext)
 	if err != nil {
 		log.Printf("[HandleChatAfter] LLM error: %v", err)
 		c.JSON(http.StatusOK, ChatResponse{

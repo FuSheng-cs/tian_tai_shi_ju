@@ -12,11 +12,14 @@ import {
   MECHANIC_TAGS,
   OPENING_SEQUENCE_FRAMES,
   ROOFTOP_BGM_SRC,
+  ROOFTOP_BGM_SRCS,
   SCENE_BACKGROUNDS,
+  SCENE_MOBILE_BACKGROUNDS,
   STAIR_STEP_SFX_SRCS,
   inferEndingTypeFromNarrative,
   resolveFallbackEndingType,
   resolveWaitingBackground,
+  resolveWaitingMobileBackground,
   resolveVisualState
 } from '../src/domain/gameContract'
 
@@ -86,7 +89,10 @@ describe('game contract', () => {
   })
 
   it('maps every scene background to an existing asset', () => {
-    for (const backgroundImage of Object.values(SCENE_BACKGROUNDS)) {
+    for (const backgroundImage of [
+      ...Object.values(SCENE_BACKGROUNDS),
+      ...Object.values(SCENE_MOBILE_BACKGROUNDS)
+    ]) {
       const assetPath = backgroundImage.replace('/assets/', 'legacy_vue/public/assets/')
       expect(existsSync(resolve(cwd(), '..', assetPath))).toBe(true)
     }
@@ -96,6 +102,8 @@ describe('game contract', () => {
     for (const aiState of Object.values(AI_STATES)) {
       const assetPath = aiState.backgroundImage.replace('/assets/', 'legacy_vue/public/assets/')
       expect(existsSync(resolve(cwd(), '..', assetPath))).toBe(true)
+      const mobileAssetPath = aiState.mobileBackgroundImage.replace('/assets/', 'legacy_vue/public/assets/')
+      expect(existsSync(resolve(cwd(), '..', mobileAssetPath))).toBe(true)
     }
   })
 
@@ -118,6 +126,10 @@ describe('game contract', () => {
   it('maps the rooftop BGM to an existing trimmed asset', () => {
     const assetPath = ROOFTOP_BGM_SRC.replace('/assets/', 'legacy_vue/public/assets/')
     expect(existsSync(resolve(cwd(), '..', assetPath))).toBe(true)
+    for (const bgmSrc of ROOFTOP_BGM_SRCS) {
+      const fallbackAssetPath = bgmSrc.replace('/assets/', 'legacy_vue/public/assets/')
+      expect(existsSync(resolve(cwd(), '..', fallbackAssetPath))).toBe(true)
+    }
   })
 
   it('keeps the opening sequence written as player inner monologue', () => {
@@ -175,7 +187,8 @@ describe('game contract', () => {
       emotionType: EMOTIONS.sting.type
     })).toMatchObject({
       source: 'ending',
-      backgroundImage: ENDINGS.death.backgroundImage
+      backgroundImage: ENDINGS.death.backgroundImage,
+      mobileBackgroundImage: ENDINGS.death.mobileBackgroundImage
     })
   })
 
@@ -189,6 +202,7 @@ describe('game contract', () => {
       emotionType: null
     })
     expect(resolveWaitingBackground(guardedState)).toBe(SCENE_BACKGROUNDS.smoke)
+    expect(resolveWaitingMobileBackground(guardedState)).toBe(SCENE_MOBILE_BACKGROUNDS.smoke)
 
     const turnBackState = resolveVisualState({
       roundCount: 4,
@@ -199,6 +213,7 @@ describe('game contract', () => {
       emotionType: EMOTIONS.soft.type
     })
     expect(resolveWaitingBackground(turnBackState)).toBe(AI_STATES.turnBack.backgroundImage)
+    expect(resolveWaitingMobileBackground(turnBackState)).toBe(AI_STATES.turnBack.mobileBackgroundImage)
 
     const edgeState = resolveVisualState({
       roundCount: 1,
@@ -209,6 +224,7 @@ describe('game contract', () => {
       emotionType: EMOTIONS.soft.type
     })
     expect(resolveWaitingBackground(edgeState)).toBe(AI_STATES.edge.backgroundImage)
+    expect(resolveWaitingMobileBackground(edgeState)).toBe(AI_STATES.edge.mobileBackgroundImage)
   })
 
   it('resolves local fallback endings with death as the default failure', () => {

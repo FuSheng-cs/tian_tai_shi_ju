@@ -2,12 +2,16 @@
   <div class="game-view min-h-screen w-full relative flex flex-col bg-black text-gray-100 overflow-hidden">
     <!-- Background (now using the character images directly as they contain the full scene) -->
     <div class="absolute inset-0 z-0">
-      <img 
-        :src="currentBg" 
-        class="w-full h-full object-cover transition-opacity duration-1000"
-        :class="gameStore.isEnding ? 'opacity-100' : 'opacity-80'"
-        alt="Background"
-      />
+      <picture class="block h-full w-full">
+        <source :srcset="currentBg.mobile" media="(max-width: 768px)" />
+        <img
+          :src="currentBg.desktop"
+          class="w-full h-full object-cover transition-opacity duration-1000"
+          :class="gameStore.isEnding ? 'opacity-100' : 'opacity-80'"
+          alt="Background"
+          decoding="async"
+        />
+      </picture>
     </div>
 
     <OpeningSequenceOverlay
@@ -196,9 +200,11 @@ import {
   GAME_ENTRY_TYPES,
   GAME_ROLE,
   GAME_RULES,
+  GAMEPLAY_PRELOAD_IMAGES,
   OPENING_SEQUENCE_FRAMES,
-  ROOFTOP_BGM_SRC,
+  ROOFTOP_BGM_SRCS,
   resolveWaitingBackground,
+  resolveWaitingMobileBackground,
   resolveVisualState
 } from '@/domain/gameContract'
 import { useGameStore } from '@/store/gameStore'
@@ -221,6 +227,7 @@ const saveSlots = ref<SaveSlot[]>([])
 const isEndingSummaryLoading = ref(false)
 const isOpeningSequenceActive = ref(false)
 const hasStartedBgm = ref(false)
+const preloadedImages = new Set<string>()
 
 const latestMessage = computed(() => {
   if (gameStore.messages.length === 0) return null
@@ -244,14 +251,31 @@ const currentVisualState = computed(() => resolveVisualState({
 
 const currentBg = computed(() =>
   gameStore.isWaiting
-    ? resolveWaitingBackground(currentVisualState.value)
-    : currentVisualState.value.backgroundImage
+    ? {
+        desktop: resolveWaitingBackground(currentVisualState.value),
+        mobile: resolveWaitingMobileBackground(currentVisualState.value)
+      }
+    : {
+        desktop: currentVisualState.value.backgroundImage,
+        mobile: currentVisualState.value.mobileBackgroundImage
+      }
 )
+
+const preloadImages = (sources: readonly string[]) => {
+  sources.forEach((src) => {
+    if (!src || preloadedImages.has(src)) return
+
+    preloadedImages.add(src)
+    const image = new Image()
+    image.decoding = 'async'
+    image.src = src
+  })
+}
 
 const startRooftopBgm = () => {
   if (hasStartedBgm.value) return
   hasStartedBgm.value = true
-  audioManager.playBgm(ROOFTOP_BGM_SRC)
+  audioManager.playBgm(ROOFTOP_BGM_SRCS)
 }
 
 const completeOpeningSequence = () => {
@@ -369,6 +393,7 @@ const goToChatAfter = () => {
 
 onMounted(() => {
   AchievementTracker.unlock('first_try')
+  preloadImages(GAMEPLAY_PRELOAD_IMAGES)
   startRooftopBgm()
 
   const entryType = sessionStorage.getItem(GAME_ENTRY_SESSION_KEY)

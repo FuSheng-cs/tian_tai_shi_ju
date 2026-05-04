@@ -8,10 +8,26 @@ import (
 	"testing"
 )
 
-func TestBuildMainSystemPromptContainsGameplayMechanics(t *testing.T) {
-	prompt := buildMainSystemPrompt(3, 25, 5, 7, AiStateWaveringTag)
+func writeOpenAIContent(t *testing.T, w http.ResponseWriter, content string) {
+	t.Helper()
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		"choices": []map[string]interface{}{
+			{
+				"message": map[string]string{
+					"content": content,
+				},
+			},
+		},
+	}); err != nil {
+		t.Fatalf("failed to write OpenAI response: %v", err)
+	}
+}
 
-	required := []string{
+func TestBuildMainSystemPromptDoesNotAskForMechanicTags(t *testing.T) {
+	prompt := buildMainSystemPrompt(3, 25, 5, 7, EvaluationAiStateWavering)
+
+	forbidden := []string{
 		AffectionBoostTag,
 		EmotionStingTag,
 		EmotionSurpriseTag,
@@ -22,139 +38,238 @@ func TestBuildMainSystemPromptContainsGameplayMechanics(t *testing.T) {
 		AiStateWaveringTag,
 		AiStateTurnBackTag,
 		AiStateEdgeTag,
-		"状态标签代表持续场面",
-		"情绪标签只代表本轮瞬时视觉反馈",
-		"一只脚在栏杆内、一只脚在栏杆外",
-		"必须先输出 [状态:回身]",
-		"好感度 >= 20",
-		"好感触发次数 >= 4",
-		"好感度 >= 25",
-		"好感触发次数 >= 5",
-		"玩家至少已发言 7 次",
-		"前 5 句内不得触发最终结局",
-		"情绪标签只代表视觉反馈",
-		"普通友善但平庸",
-		"标签一致性是硬性规则",
-		"递手机、存联系方式、明天九点",
+		EndingDeathTag,
+		EndingDisappearTag,
+		EndingAcquaintanceTag,
+	}
+
+	for _, item := range forbidden {
+		if strings.Contains(prompt, item) {
+			t.Fatalf("main prompt should not contain mechanic tag %q", item)
+		}
+	}
+	if !strings.Contains(prompt, CharacterName) {
+		t.Fatal("main prompt should keep the character name")
+	}
+	if !strings.Contains(prompt, "JSON") {
+		t.Fatal("main prompt should explicitly forbid JSON output")
+	}
+}
+
+func TestTurnEvaluationPromptDefinesStructuredJudgeOnly(t *testing.T) {
+	prompt := buildTurnEvaluationSystemPrompt()
+
+	required := []string{
+		`"emotion"`,
+		`"ai_state"`,
+		`"affection_delta"`,
+		`"pressure_delta"`,
+		`"ending_type"`,
+		EvaluationEmotionNormal,
+		EvaluationEmotionSting,
+		EvaluationEmotionSurprise,
+		EvaluationEmotionSoft,
+		EvaluationEmotionCuriosity,
+		EvaluationAiStateGuarded,
+		EvaluationAiStateWatching,
+		EvaluationAiStateWavering,
+		EvaluationAiStateTurnBack,
+		EvaluationAiStateEdge,
 	}
 
 	for _, item := range required {
 		if !strings.Contains(prompt, item) {
-			t.Fatalf("prompt missing required gameplay rule: %s", item)
+			t.Fatalf("evaluation prompt missing %q", item)
 		}
 	}
 }
 
-func TestNormalizeFinalMechanicTagsInfersMissingEndingTags(t *testing.T) {
-	tests := []struct {
-		name string
-		text string
-		want string
-	}{
-		{
-			name: "acquaintance",
-			text: "她把手机递过来，说：存个艾就行。明天九点，别迟到。",
-			want: EndingAcquaintanceTag,
-		},
-		{
-			name: "disappear",
-			text: "她走进消防通道，没有回头，脚步声逐渐消失。",
-			want: EndingDisappearTag,
-		},
-		{
-			name: "death",
-			text: "她轻轻呼出最后一缕烟，身体向后倾去。",
-			want: EndingDeathTag,
-		},
+func TestParseTurnEvaluationClampsInvalidFields(t *testing.T) {
+	ending := EndingAcquaintanceType
+	got, err := parseTurnEvaluation(`{
+		"emotion":"angry",
+		"ai_state":"bad-state",
+		"affection_delta":7,
+		"pressure_delta":9,
+		"ending_type":"`+ending+`",
+		"confidence":2
+	}`, EvaluationAiStateWavering, 0, 0, 2)
+	if err != nil {
+		t.Fatalf("parseTurnEvaluation returned error: %v", err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := normalizeFinalMechanicTags(tt.text, 0, 25, 5, 7)
-			if !strings.Contains(got, tt.want) {
-				t.Fatalf("expected inferred tag %s in %q", tt.want, got)
-			}
-		})
+	if got.Emotion != EvaluationEmotionNormal {
+		t.Fatalf("unexpected emotion: %s", got.Emotion)
 	}
-}
-
-func TestNormalizeFinalMechanicTagsAddsDeathNarrativeForDefaultFailure(t *testing.T) {
-	got := normalizeFinalMechanicTags("嗯。注意安全。", 0, 0, 0, 10)
-
-	if !strings.Contains(got, EndingDeathTag) {
-		t.Fatalf("expected death tag in %q", got)
+	if got.AiState != EvaluationAiStateWavering {
+		t.Fatalf("unexpected ai state: %s", got.AiState)
 	}
-	if !strings.Contains(got, "越过栏杆") || !strings.Contains(got, "楼下只剩一片空白") {
-		t.Fatalf("expected explicit death narrative in %q", got)
+	if got.AffectionDelta != AffectionBoostValue {
+		t.Fatalf("unexpected affection delta: %d", got.AffectionDelta)
+	}
+	if got.PressureDelta != 2 {
+		t.Fatalf("unexpected pressure delta: %d", got.PressureDelta)
+	}
+	if got.EndingType != nil {
+		t.Fatalf("ending should be rejected below thresholds, got %v", *got.EndingType)
+	}
+	if got.Confidence != 1 {
+		t.Fatalf("unexpected confidence: %f", got.Confidence)
 	}
 }
 
-func TestNormalizeFinalMechanicTagsDropsQuestionMarkNoise(t *testing.T) {
-	got := normalizeFinalMechanicTags("????,????\n", 0, 0, 0, 10)
+func TestParseTurnEvaluationAllowsThresholdEndingAfterAffectionDelta(t *testing.T) {
+	got, err := parseTurnEvaluation(`{
+		"emotion":"soft",
+		"ai_state":"turnBack",
+		"affection_delta":5,
+		"pressure_delta":0,
+		"ending_type":"end_acquaintance",
+		"confidence":0.9
+	}`, EvaluationAiStateWatching, 20, 4, 7)
+	if err != nil {
+		t.Fatalf("parseTurnEvaluation returned error: %v", err)
+	}
 
-	if strings.Contains(got, "????") {
-		t.Fatalf("should remove question mark noise, got %q", got)
+	if got.EndingType == nil || *got.EndingType != EndingAcquaintanceType {
+		t.Fatalf("expected acquaintance ending, got %#v", got.EndingType)
 	}
-	if !strings.Contains(got, "越过栏杆") || !strings.Contains(got, EndingDeathTag) {
-		t.Fatalf("should preserve deterministic death ending, got %q", got)
-	}
-}
-
-func TestNormalizeFinalMechanicTagsRejectsUnmetRescueTag(t *testing.T) {
-	text := "她终于从栏杆上下来，走进消防通道，没有回头。\n" + EndingDisappearTag
-	got := normalizeFinalMechanicTags(text, 0, 0, 0, 10)
-
-	if !strings.Contains(got, EndingDeathTag) {
-		t.Fatalf("expected unmet rescue to fall back to death, got %q", got)
-	}
-	if strings.Contains(got, EndingDisappearTag) {
-		t.Fatalf("should remove disallowed rescue tag, got %q", got)
-	}
-	if strings.Contains(got, "消防通道") || strings.Contains(got, "没有回头") {
-		t.Fatalf("should remove disallowed rescue narrative, got %q", got)
+	if got.Emotion != EvaluationEmotionSoft || got.AiState != EvaluationAiStateTurnBack {
+		t.Fatalf("unexpected evaluation: %#v", got)
 	}
 }
 
-func TestNormalizeFinalMechanicTagsDoesNotEndEarly(t *testing.T) {
-	text := "她把手机递过来，说：存个艾就行。明天九点，别迟到。"
-	got := normalizeFinalMechanicTags(text, 1, 25, 5, 7)
-	if got != text {
-		t.Fatalf("should not add ending tags before final pressure turn, got %q", got)
+func TestParseTurnEvaluationFallsBackOnMalformedJSON(t *testing.T) {
+	got, err := parseTurnEvaluation("not json", EvaluationAiStateEdge, 0, 0, 1)
+	if err == nil {
+		t.Fatal("expected parse error")
+	}
+	if got.Emotion != EvaluationEmotionNormal || got.AiState != EvaluationAiStateEdge || got.PressureDelta != 0 {
+		t.Fatalf("unexpected fallback evaluation: %#v", got)
 	}
 }
 
-func TestBuildMainSystemPromptKeepsCharacterCore(t *testing.T) {
-	prompt := buildMainSystemPrompt(10, 0, 0, 0, AiStateGuardedTag)
-
-	required := []string{
-		"你是\"艾\"，一个紫色内染发的女孩",
-		"你的职业是独立摄影师",
-		"你的精神内核极度虚无",
-		"被看见悖论",
-		"你一直努力看见别人，却长期无人真正看见你",
-		"绝望的生命不容易被拯救",
-		"此时此刻，你正坐在天台的栏杆上抽烟",
-	}
-
-	for _, item := range required {
-		if !strings.Contains(prompt, item) {
-			t.Fatalf("prompt changed or removed character core: %s", item)
+func TestChatReturnsNaturalReplyAndStructuredEvaluation(t *testing.T) {
+	callCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/chat/completions" {
+			t.Fatalf("unexpected endpoint: %s", r.URL.Path)
 		}
+		callCount++
+
+		switch callCount {
+		case 1:
+			writeOpenAIContent(t, w, AffectionBoostTag+"natural reply")
+		case 2:
+			writeOpenAIContent(t, w, `{
+				"emotion":"soft",
+				"ai_state":"watching",
+				"affection_delta":5,
+				"pressure_delta":1,
+				"ending_type":null,
+				"confidence":0.8
+			}`)
+		default:
+			t.Fatalf("unexpected LLM call #%d", callCount)
+		}
+	}))
+	defer server.Close()
+
+	oldClient := httpClient
+	httpClient = server.Client()
+	defer func() {
+		httpClient = oldClient
+	}()
+
+	result, err := Chat(ClientConfig{
+		Provider: "custom",
+		APIKey:   "test-key",
+		Model:    "test-model",
+		BaseURL:  server.URL,
+	}, "hello", []Message{{Role: "assistant", Content: "opening"}}, 8, 0, 0, 1, EvaluationAiStateGuarded)
+	if err != nil {
+		t.Fatalf("Chat returned error: %v", err)
+	}
+
+	if result.Reply != "natural reply" {
+		t.Fatalf("expected mechanic tags stripped, got %q", result.Reply)
+	}
+	if result.Evaluation.Emotion != EvaluationEmotionSoft ||
+		result.Evaluation.AiState != EvaluationAiStateWatching ||
+		result.Evaluation.AffectionDelta != AffectionBoostValue ||
+		result.Evaluation.PressureDelta != 1 {
+		t.Fatalf("unexpected evaluation: %#v", result.Evaluation)
+	}
+	if callCount != 2 {
+		t.Fatalf("expected chat and evaluation calls, got %d", callCount)
 	}
 }
 
-func TestAfterStoryPromptKeepsTemporarySurvivalFraming(t *testing.T) {
-	prompt := buildAfterStorySystemPrompt()
+func TestChatFallsBackWhenEvaluatorFails(t *testing.T) {
+	callCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		if callCount == 1 {
+			writeOpenAIContent(t, w, "natural reply")
+			return
+		}
+		writeOpenAIContent(t, w, "not json")
+	}))
+	defer server.Close()
+
+	oldClient := httpClient
+	httpClient = server.Client()
+	defer func() {
+		httpClient = oldClient
+	}()
+
+	result, err := Chat(ClientConfig{
+		Provider: "custom",
+		APIKey:   "test-key",
+		Model:    "test-model",
+		BaseURL:  server.URL,
+	}, "hello", nil, 8, 0, 0, 1, EvaluationAiStateWatching)
+	if err != nil {
+		t.Fatalf("Chat should keep natural reply when evaluator fails, got error: %v", err)
+	}
+
+	if result.Reply != "natural reply" {
+		t.Fatalf("unexpected reply: %s", result.Reply)
+	}
+	if result.Evaluation.Emotion != EvaluationEmotionNormal ||
+		result.Evaluation.AiState != EvaluationAiStateWatching ||
+		result.Evaluation.PressureDelta != 0 ||
+		result.Evaluation.EndingType != nil {
+		t.Fatalf("unexpected fallback evaluation: %#v", result.Evaluation)
+	}
+}
+
+func TestAfterStoryPromptIncludesResolvedEndingContext(t *testing.T) {
+	prompt := buildAfterStorySystemPrompt(AfterStoryContext{
+		EndingType:          EndingAcquaintanceType,
+		LastPlayerLine:      "last line",
+		EndingReply:         "ending reply",
+		TurningLine:         "turning line",
+		EndingComment:       "ending comment",
+		RoundsUsed:          9,
+		AffectionBoostCount: 5,
+		Affection:           26,
+	})
 
 	required := []string{
-		"暂时离开了栏杆",
-		"你没有被治好",
-		"愿意继续和他说话",
+		EndingAcquaintanceType,
+		"last line",
+		"ending reply",
+		"turning line",
+		"ending comment",
+		"9",
+		"5",
+		"26",
 	}
 
 	for _, item := range required {
 		if !strings.Contains(prompt, item) {
-			t.Fatalf("after story prompt missing temporary survival framing: %s", item)
+			t.Fatalf("expected after-story prompt to contain %q", item)
 		}
 	}
 }

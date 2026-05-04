@@ -1,4 +1,19 @@
-import type { EndingSummaryContext, LLMConversationContext, Message } from '@/domain/gameState'
+import {
+  AI_STATE_BY_TYPE,
+  AI_STATES,
+  EMOTION_BY_TYPE,
+  ENDING_BY_TYPE
+} from '@/domain/gameContract'
+import type { AiStateType, EndingType } from '@/domain/gameContract'
+import type {
+  AfterStoryContext,
+  ChatTurnResult,
+  EndingSummaryContext,
+  LLMConversationContext,
+  Message,
+  TurnEvaluation,
+  TurnEmotionType
+} from '@/domain/gameState'
 
 const LS_KEYS = {
   PROVIDER: 'damo_llm_provider',
@@ -230,6 +245,89 @@ async function callBackendJson<T>(endpoint: string, body: object): Promise<T | n
   }
 }
 
+const normalizeAiStateType = (value: unknown, fallback: AiStateType = AI_STATES.guarded.type): AiStateType =>
+  typeof value === 'string' && value in AI_STATE_BY_TYPE ? value as AiStateType : fallback
+
+const normalizeEmotionType = (value: unknown): TurnEmotionType =>
+  value === 'normal' || (typeof value === 'string' && value in EMOTION_BY_TYPE)
+    ? value as TurnEmotionType
+    : 'normal'
+
+const normalizeEndingType = (value: unknown): EndingType | null =>
+  typeof value === 'string' && value in ENDING_BY_TYPE ? value as EndingType : null
+
+const normalizeAffectionDelta = (value: unknown): 0 | 5 =>
+  Number(value) >= 5 ? 5 : 0
+
+const normalizePressureDelta = (value: unknown): 0 | 1 | 2 => {
+  const numeric = Number(value)
+  if (numeric <= 0 || Number.isNaN(numeric)) return 0
+  if (numeric === 1) return 1
+  return 2
+}
+
+const normalizeConfidence = (value: unknown) => {
+  const numeric = Number(value)
+  if (Number.isNaN(numeric)) return 0
+  return Math.min(1, Math.max(0, numeric))
+}
+
+const createDefaultTurnEvaluation = (aiState?: AiStateType | null): TurnEvaluation => ({
+  emotion: 'normal',
+  aiState: aiState ?? AI_STATES.guarded.type,
+  affectionDelta: 0,
+  pressureDelta: 0,
+  endingType: null,
+  confidence: 0
+})
+
+const readEvaluationField = (raw: Record<string, unknown>, snakeKey: string, camelKey: string) =>
+  raw[snakeKey] ?? raw[camelKey]
+
+const normalizeTurnEvaluation = (raw: unknown, fallbackAiState?: AiStateType | null): TurnEvaluation => {
+  const defaultEvaluation = createDefaultTurnEvaluation(fallbackAiState)
+  if (!raw || typeof raw !== 'object') return defaultEvaluation
+
+  const record = raw as Record<string, unknown>
+  return {
+    emotion: normalizeEmotionType(readEvaluationField(record, 'emotion', 'emotion')),
+    aiState: normalizeAiStateType(readEvaluationField(record, 'ai_state', 'aiState'), defaultEvaluation.aiState),
+    affectionDelta: normalizeAffectionDelta(readEvaluationField(record, 'affection_delta', 'affectionDelta')),
+    pressureDelta: normalizePressureDelta(readEvaluationField(record, 'pressure_delta', 'pressureDelta')),
+    endingType: normalizeEndingType(readEvaluationField(record, 'ending_type', 'endingType')),
+    confidence: normalizeConfidence(readEvaluationField(record, 'confidence', 'confidence'))
+  }
+}
+
+async function callBackendTurn(endpoint: string, body: object, fallbackAiState?: AiStateType | null): Promise<ChatTurnResult> {
+  const url = `${BACKEND_URL}/api/${endpoint}`
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+
+    const data = await response.json()
+
+    if (data.error) {
+      console.error(`[LLMService] Backend error on /${endpoint}:`, data.error)
+    }
+
+    return {
+      reply: typeof data.reply === 'string' ? data.reply : (data.error ?? ''),
+      evaluation: normalizeTurnEvaluation(data.evaluation, fallbackAiState)
+    }
+  } catch (e) {
+    console.error(`[LLMService] Network error on /${endpoint}:`, e)
+    return {
+      reply: '网络连接失败，请检查后端服务是否启动。',
+      evaluation: createDefaultTurnEvaluation(fallbackAiState)
+    }
+  }
+}
+
 const getRequestConfig = () => {
   const cfg = loadLLMConfig()
   return {
@@ -240,9 +338,22 @@ const getRequestConfig = () => {
   }
 }
 
+const serializeAfterStoryContext = (context?: AfterStoryContext) => context
+  ? {
+      ending_type: context.endingType,
+      last_player_line: context.lastPlayerLine,
+      ending_reply: context.endingReply,
+      turning_line: context.turningLine,
+      ending_comment: context.endingComment,
+      rounds_used: context.roundsUsed,
+      affection_boost_count: context.affectionBoostCount,
+      affection: context.affection
+    }
+  : undefined
+
 export class LLMService {
-  static async chat(userMessage: string, history: Message[], loopContext: LLMConversationContext): Promise<string> {
-    return callBackend('chat', {
+  static async chat(userMessage: string, history: Message[], loopContext: LLMConversationContext): Promise<ChatTurnResult> {
+    return callBackendTurn('chat', {
       history: history,
       user_message: userMessage,
       rounds_left: loopContext.roundsLeft,
@@ -251,13 +362,14 @@ export class LLMService {
       turns_used: loopContext.turnsUsed,
       ai_state: loopContext.aiState,
       ...getRequestConfig()
-    })
+    }, loopContext.aiState)
   }
 
-  static async chatAfterStory(userMessage: string, history: Message[]): Promise<string> {
+  static async chatAfterStory(userMessage: string, history: Message[], afterStoryContext?: AfterStoryContext): Promise<string> {
     return callBackend('chat-after', {
       history: history,
       user_message: userMessage,
+      after_story_context: serializeAfterStoryContext(afterStoryContext),
       ...getRequestConfig()
     })
   }

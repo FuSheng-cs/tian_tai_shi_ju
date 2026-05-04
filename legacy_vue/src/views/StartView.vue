@@ -228,7 +228,11 @@ const goToAchievements = () => {
 
 .menu-bg {
   z-index: 0;
-  background-image: url('/assets/images/menu_bg_rooftop.png');
+  background-image: url('/assets/images/menu_bg_rooftop_1600.webp');
+  background-image: image-set(
+    url('/assets/images/menu_bg_rooftop_1600.webp') type('image/webp'),
+    url('/assets/images/menu_bg_rooftop.png') type('image/png')
+  );
   background-position: center;
   background-size: cover;
   filter: saturate(0.9) contrast(1.08) brightness(0.78);
@@ -238,7 +242,11 @@ const goToAchievements = () => {
 
 .character-layer {
   z-index: 4;
-  background-image: url('/assets/images/char_girl_smoke.png');
+  background-image: url('/assets/images/char_girl_smoke_1600.webp');
+  background-image: image-set(
+    url('/assets/images/char_girl_smoke_1600.webp') type('image/webp'),
+    url('/assets/images/char_girl_smoke.png') type('image/png')
+  );
   background-position: center 52%;
   background-size: cover;
   opacity: 0.42;
@@ -719,11 +727,21 @@ const goToAchievements = () => {
   }
 
   .menu-bg {
+    background-image: url('/assets/images/menu_bg_rooftop_900.webp');
+    background-image: image-set(
+      url('/assets/images/menu_bg_rooftop_900.webp') type('image/webp'),
+      url('/assets/images/menu_bg_rooftop.png') type('image/png')
+    );
     background-position: center;
   }
 
   .character-layer {
     opacity: 0.28;
+    background-image: url('/assets/images/char_girl_smoke_900.webp');
+    background-image: image-set(
+      url('/assets/images/char_girl_smoke_900.webp') type('image/webp'),
+      url('/assets/images/char_girl_smoke.png') type('image/png')
+    );
     background-position: center;
     -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 20%, black 70%, transparent 100%);
     mask-image: linear-gradient(180deg, transparent 0%, black 20%, black 70%, transparent 100%);

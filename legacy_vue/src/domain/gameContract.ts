@@ -8,7 +8,11 @@ export const GAME_RULES = {
 } as const
 
 export const GAME_ENTRY_SESSION_KEY = 'damo_game_entry'
-export const ROOFTOP_BGM_SRC = '/assets/audio/bgm_rooftop.mp3'
+export const ROOFTOP_BGM_SRCS = [
+  '/assets/audio/bgm_rooftop_96k.ogg',
+  '/assets/audio/bgm_rooftop_96k.mp3'
+] as const
+export const ROOFTOP_BGM_SRC = ROOFTOP_BGM_SRCS[0]
 export const STAIR_STEP_SFX_SRCS = [
   '/assets/audio/sfx_stair_step.mp3',
   '/assets/audio/sfx_stair_step_02.mp3',
@@ -72,12 +76,33 @@ export const WAITING_TEXTS = [
 ] as const
 
 export const SCENE_BACKGROUNDS = {
-  smoke: '/assets/images/char_girl_smoke.png',
-  normal: '/assets/images/char_girl_normal.png',
-  sad: '/assets/images/char_girl_sad.png',
+  smoke: '/assets/images/char_girl_smoke_1600.webp',
+  normal: '/assets/images/char_girl_normal_1600.webp',
+  sad: '/assets/images/char_girl_sad_1600.webp',
   turnBack: '/assets/images/cg_pressure_turn_back_16_9.webp',
   nearJump: '/assets/images/cg_pressure_near_jump_16_9.webp'
 } as const
+
+export const SCENE_MOBILE_BACKGROUNDS = {
+  smoke: '/assets/images/char_girl_smoke_900.webp',
+  normal: '/assets/images/char_girl_normal_900.webp',
+  sad: '/assets/images/char_girl_sad_900.webp',
+  turnBack: SCENE_BACKGROUNDS.turnBack,
+  nearJump: SCENE_BACKGROUNDS.nearJump
+} as const
+
+export const CHAT_AVATAR_IMAGE = '/assets/images/char_girl_sneer_480.webp'
+
+export const GAMEPLAY_PRELOAD_IMAGES = [
+  SCENE_BACKGROUNDS.smoke,
+  SCENE_MOBILE_BACKGROUNDS.smoke,
+  SCENE_BACKGROUNDS.normal,
+  SCENE_MOBILE_BACKGROUNDS.normal,
+  SCENE_BACKGROUNDS.sad,
+  SCENE_MOBILE_BACKGROUNDS.sad,
+  SCENE_BACKGROUNDS.turnBack,
+  SCENE_BACKGROUNDS.nearJump
+] as const
 
 export const MECHANIC_TAGS = {
   affectionBoost: `[好感度+${GAME_RULES.affectionBoostValue}]`,
@@ -92,31 +117,36 @@ export const AI_STATES = {
     type: 'guarded',
     label: '戒备',
     tag: '[状态:戒备]',
-    backgroundImage: SCENE_BACKGROUNDS.normal
+    backgroundImage: SCENE_BACKGROUNDS.normal,
+    mobileBackgroundImage: SCENE_MOBILE_BACKGROUNDS.normal
   },
   watching: {
     type: 'watching',
     label: '观察',
     tag: '[状态:观察]',
-    backgroundImage: SCENE_BACKGROUNDS.normal
+    backgroundImage: SCENE_BACKGROUNDS.normal,
+    mobileBackgroundImage: SCENE_MOBILE_BACKGROUNDS.normal
   },
   wavering: {
     type: 'wavering',
     label: '动摇',
     tag: '[状态:动摇]',
-    backgroundImage: SCENE_BACKGROUNDS.sad
+    backgroundImage: SCENE_BACKGROUNDS.sad,
+    mobileBackgroundImage: SCENE_MOBILE_BACKGROUNDS.sad
   },
   turnBack: {
     type: 'turnBack',
     label: '回身',
     tag: '[状态:回身]',
-    backgroundImage: SCENE_BACKGROUNDS.turnBack
+    backgroundImage: SCENE_BACKGROUNDS.turnBack,
+    mobileBackgroundImage: SCENE_MOBILE_BACKGROUNDS.turnBack
   },
   edge: {
     type: 'edge',
     label: '临界',
     tag: '[状态:临界]',
-    backgroundImage: SCENE_BACKGROUNDS.nearJump
+    backgroundImage: SCENE_BACKGROUNDS.nearJump,
+    mobileBackgroundImage: SCENE_MOBILE_BACKGROUNDS.nearJump
   }
 } as const
 
@@ -129,25 +159,29 @@ export const EMOTIONS = {
     type: 'sting',
     label: '刺痛',
     tag: '[情绪:刺痛]',
-    backgroundImage: '/assets/images/cg_emotion_sting_16_9.webp'
+    backgroundImage: '/assets/images/cg_emotion_sting_16_9.webp',
+    mobileBackgroundImage: '/assets/images/cg_emotion_sting_16_9.webp'
   },
   surprise: {
     type: 'surprise',
     label: '惊讶',
     tag: '[情绪:惊讶]',
-    backgroundImage: '/assets/images/cg_emotion_surprise_16_9.webp'
+    backgroundImage: '/assets/images/cg_emotion_surprise_16_9.webp',
+    mobileBackgroundImage: '/assets/images/cg_emotion_surprise_16_9.webp'
   },
   soft: {
     type: 'soft',
     label: '柔软',
     tag: '[情绪:柔软]',
-    backgroundImage: '/assets/images/cg_emotion_soft_16_9.webp'
+    backgroundImage: '/assets/images/cg_emotion_soft_16_9.webp',
+    mobileBackgroundImage: '/assets/images/cg_emotion_soft_16_9.webp'
   },
   curiosity: {
     type: 'curiosity',
     label: '好奇',
     tag: '[情绪:好奇]',
-    backgroundImage: '/assets/images/cg_emotion_curiosity_16_9.webp'
+    backgroundImage: '/assets/images/cg_emotion_curiosity_16_9.webp',
+    mobileBackgroundImage: '/assets/images/cg_emotion_curiosity_16_9.webp'
   }
 } as const
 
@@ -161,21 +195,24 @@ export const ENDINGS = {
     label: '死亡',
     tag: '[结局:死亡]',
     achievementName: '坠落',
-    backgroundImage: '/assets/images/cg_end_fall.png'
+    backgroundImage: '/assets/images/cg_end_fall_1600.webp',
+    mobileBackgroundImage: '/assets/images/cg_end_fall_900.webp'
   },
   disappear: {
     type: 'end_disappear',
     label: '消失',
     tag: '[结局:消失]',
     achievementName: '消失',
-    backgroundImage: '/assets/images/cg_end_disappear.png'
+    backgroundImage: '/assets/images/cg_end_disappear_1600.webp',
+    mobileBackgroundImage: '/assets/images/cg_end_disappear_900.webp'
   },
   acquaintance: {
     type: 'end_acquaintance',
     label: '相识',
     tag: '[结局:相识]',
     achievementName: '相识',
-    backgroundImage: '/assets/images/cg_acquaintance_16_9.webp'
+    backgroundImage: '/assets/images/cg_acquaintance_16_9.webp',
+    mobileBackgroundImage: '/assets/images/cg_acquaintance_16_9.webp'
   }
 } as const
 
@@ -354,6 +391,7 @@ export interface VisualStateSnapshot {
 export interface ResolvedVisualState {
   source: VisualStateSource;
   backgroundImage: string;
+  mobileBackgroundImage: string;
   label: string;
   aiStateType: AiStateType | null;
 }
@@ -366,6 +404,16 @@ export const resolveWaitingBackground = (visualState: ResolvedVisualState): stri
   }
 
   return SCENE_BACKGROUNDS.smoke
+}
+
+export const resolveWaitingMobileBackground = (visualState: ResolvedVisualState): string => {
+  const aiState = visualState.aiStateType ? AI_STATE_BY_TYPE[visualState.aiStateType] : null
+
+  if (aiState?.type === AI_STATES.edge.type || aiState?.type === AI_STATES.turnBack.type) {
+    return aiState.mobileBackgroundImage
+  }
+
+  return SCENE_MOBILE_BACKGROUNDS.smoke
 }
 
 export const deriveAiStateType = (snapshot: Pick<VisualStateSnapshot, 'roundCount' | 'affection'>): AiStateType => {
@@ -390,6 +438,7 @@ export const resolveVisualState = (snapshot: VisualStateSnapshot): ResolvedVisua
       return {
         source: 'ending',
         backgroundImage: ending.backgroundImage,
+        mobileBackgroundImage: ending.mobileBackgroundImage,
         label: ending.label,
         aiStateType: snapshot.aiStateType
       }
@@ -408,6 +457,7 @@ export const resolveVisualState = (snapshot: VisualStateSnapshot): ResolvedVisua
     return {
       source: 'emotion',
       backgroundImage: emotion.backgroundImage,
+      mobileBackgroundImage: emotion.mobileBackgroundImage,
       label: emotion.label,
       aiStateType: effectiveAiState
     }
@@ -417,6 +467,7 @@ export const resolveVisualState = (snapshot: VisualStateSnapshot): ResolvedVisua
     return {
       source: 'aiState',
       backgroundImage: aiState.backgroundImage,
+      mobileBackgroundImage: aiState.mobileBackgroundImage,
       label: aiState.label,
       aiStateType: effectiveAiState
     }
@@ -425,6 +476,7 @@ export const resolveVisualState = (snapshot: VisualStateSnapshot): ResolvedVisua
   return {
     source: 'aiState',
     backgroundImage: aiState.backgroundImage,
+    mobileBackgroundImage: aiState.mobileBackgroundImage,
     label: aiState.label,
     aiStateType: effectiveAiState
   }

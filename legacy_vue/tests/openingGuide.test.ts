@@ -8,7 +8,7 @@ import {
   GAME_ENTRY_SESSION_KEY,
   GAME_ENTRY_TYPES,
   OPENING_SEQUENCE_FRAMES,
-  ROOFTOP_BGM_SRC,
+  ROOFTOP_BGM_SRCS,
   SCENE_BACKGROUNDS
 } from '../src/domain/gameContract'
 import { useGameStore } from '../src/store/gameStore'
@@ -137,7 +137,7 @@ describe('opening guide flow', () => {
     const opening = wrapper.find('[data-test="opening-sequence"]')
     expect(opening.exists()).toBe(true)
     expect(opening.attributes('data-frame-count')).toBe('5')
-    expect(mocks.playBgm).toHaveBeenCalledWith(ROOFTOP_BGM_SRC)
+    expect(mocks.playBgm).toHaveBeenCalledWith(ROOFTOP_BGM_SRCS)
 
     await wrapper.find('[data-test="opening-sequence"]').trigger('click')
     await nextTick()
@@ -150,7 +150,7 @@ describe('opening guide flow', () => {
     const wrapper = mountGameView()
 
     expect(wrapper.find('[data-test="opening-sequence"]').exists()).toBe(false)
-    expect(mocks.playBgm).toHaveBeenCalledWith(ROOFTOP_BGM_SRC)
+    expect(mocks.playBgm).toHaveBeenCalledWith(ROOFTOP_BGM_SRCS)
   })
 
   it('unlocks the first encounter when entering the game', () => {

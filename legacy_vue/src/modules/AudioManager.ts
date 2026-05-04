@@ -1,8 +1,12 @@
 import { Howl, Howler } from 'howler'
 import { useSettingsStore } from '@/store/settingsStore'
-import { ROOFTOP_BGM_SRC, STAIR_STEP_SFX_SRCS } from '@/domain/gameContract'
+import { ROOFTOP_BGM_SRCS, STAIR_STEP_SFX_SRCS } from '@/domain/gameContract'
 
 const STAIR_STEP_VOLUME_SCALE = 0.48
+type AudioSource = string | readonly string[]
+
+const normalizeAudioSources = (src: AudioSource) => Array.isArray(src) ? [...src] : [src]
+const getAudioSourceKey = (src: AudioSource) => normalizeAudioSources(src).join('|')
 
 class AudioManager {
   private bgm: Howl | null = null
@@ -41,25 +45,27 @@ class AudioManager {
       return key
     })
 
-    this.preloadBgm(ROOFTOP_BGM_SRC)
+    this.preloadBgm(ROOFTOP_BGM_SRCS)
   }
 
-  preloadBgm(src: string) {
-    if (this.bgmMap[src]) return
+  preloadBgm(src: AudioSource) {
+    const key = getAudioSourceKey(src)
+    if (this.bgmMap[key]) return
 
     const settingsStore = useSettingsStore()
-    this.bgmMap[src] = new Howl({
-      src: [src],
+    this.bgmMap[key] = new Howl({
+      src: normalizeAudioSources(src),
       loop: true,
       preload: true,
       volume: settingsStore.bgmVolume
     })
   }
 
-  playBgm(src: string) {
+  playBgm(src: AudioSource) {
     const settingsStore = useSettingsStore()
+    const key = getAudioSourceKey(src)
 
-    if (this.bgm && this.bgmSrc === src) {
+    if (this.bgm && this.bgmSrc === key) {
       this.bgm.volume(settingsStore.bgmVolume)
       if (!this.bgm.playing()) {
         this.bgm.play()
@@ -67,13 +73,13 @@ class AudioManager {
       return
     }
 
-    if (this.bgm && this.bgmSrc !== src) {
+    if (this.bgm && this.bgmSrc !== key) {
       this.bgm.stop()
     }
 
     this.preloadBgm(src)
-    this.bgm = this.bgmMap[src]
-    this.bgmSrc = src
+    this.bgm = this.bgmMap[key]
+    this.bgmSrc = key
     this.bgm.loop(true)
     this.bgm.volume(settingsStore.bgmVolume)
     this.bgm.play()
