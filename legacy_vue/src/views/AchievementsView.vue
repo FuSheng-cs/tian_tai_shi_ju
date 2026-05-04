@@ -19,7 +19,7 @@
           <p class="text-xs uppercase tracking-[0.28em] text-purple-200/70">Rain Night Archive</p>
           <h1 class="mt-2 text-3xl font-bold tracking-wide text-white md:text-4xl">雨夜档案</h1>
           <p class="mt-3 max-w-2xl text-sm leading-6 text-gray-300">
-            被点亮的不是奖杯，是这一夜里你真正留下过的痕迹。
+            “永恒，是由一个个此刻组成的。”
           </p>
         </div>
 

@@ -22,6 +22,7 @@ const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   playBgm: vi.fn(),
   preloadBgm: vi.fn(),
+  stopBgm: vi.fn(),
   playSfx: vi.fn(),
   playStairStep: vi.fn(),
   chat: vi.fn(),
@@ -38,12 +39,13 @@ vi.mock('vue-router', () => ({
 }))
 
 vi.mock('../src/modules/AudioManager', () => ({
-  audioManager: {
-    preloadBgm: mocks.preloadBgm,
-    playSfx: mocks.playSfx,
-    playBgm: mocks.playBgm,
-    playStairStep: mocks.playStairStep
-  }
+    audioManager: {
+      preloadBgm: mocks.preloadBgm,
+      playSfx: mocks.playSfx,
+      playBgm: mocks.playBgm,
+      stopBgm: mocks.stopBgm,
+      playStairStep: mocks.playStairStep
+    }
 }))
 
 vi.mock('../src/modules/SaveSystem', () => ({
@@ -100,6 +102,7 @@ describe('opening guide flow', () => {
     mocks.push.mockClear()
     mocks.playBgm.mockClear()
     mocks.preloadBgm.mockClear()
+    mocks.stopBgm.mockClear()
     mocks.playSfx.mockClear()
     mocks.playStairStep.mockClear()
     mocks.chat.mockReset()
@@ -223,6 +226,11 @@ describe('opening guide flow', () => {
     await wrapper.find('input').setValue('ordinary line')
     await wrapper.find('input').trigger('keyup.enter')
     await flushPromises()
+
+    expect(wrapper.find('img[alt="Background"]').attributes('src')).toBe(AI_STATES.edge.backgroundImage)
+    expect(wrapper.find('img[alt="Background"]').attributes('src')).not.toBe(ENDINGS.death.backgroundImage)
+    expect(wrapper.find('img[alt="Background"]').classes()).toContain('death-cinematic-background')
+
     await wrapper.find('.typewriter-text').trigger('click')
     await nextTick()
 
@@ -230,12 +238,14 @@ describe('opening guide flow', () => {
     expect(sequence.exists()).toBe(true)
     expect(sequence.attributes('data-frame-count')).toBe('5')
     expect(wrapper.find('[data-test="ending-settlement"]').exists()).toBe(false)
+    expect(mocks.stopBgm).toHaveBeenCalledTimes(1)
 
     await sequence.trigger('click')
     await nextTick()
 
     expect(wrapper.find('[data-test="death-ending-sequence"]').exists()).toBe(false)
     expect(wrapper.find('[data-test="ending-settlement"]').exists()).toBe(true)
+    expect(wrapper.find('img[alt="Background"]').attributes('src')).toBe(DEATH_ENDING_SEQUENCE_FRAMES[4].image)
   })
 
   it('does not replay the death sequence for an already loaded death ending', async () => {
@@ -346,6 +356,9 @@ describe('opening guide flow', () => {
       await wrapper.find('.ending-sequence-continue').trigger('click')
     }
     expect(wrapper.find('.ending-sequence-caption').text()).toBe(DEATH_ENDING_SEQUENCE_FRAMES[DEATH_ENDING_SEQUENCE_FRAMES.length - 1].caption)
+    expect(mocks.playSfx).toHaveBeenCalledWith('fall_impact')
+    expect(mocks.playSfx.mock.calls.filter(([name]) => name === 'fall_impact')).toHaveLength(1)
+    expect(wrapper.find('.ending-sequence-red-impact').classes()).toContain('ending-sequence-red-impact-active')
 
     await wrapper.find('.ending-sequence-continue').trigger('click')
     await vi.advanceTimersByTimeAsync(420)

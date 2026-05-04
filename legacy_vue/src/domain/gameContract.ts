@@ -19,6 +19,7 @@ export const STAIR_STEP_SFX_SRCS = [
   '/assets/audio/sfx_stair_step_03.mp3',
   '/assets/audio/sfx_stair_step_04.mp3'
 ] as const
+export const FALL_IMPACT_SFX_SRC = '/assets/audio/sfx_fall_impact.wav'
 
 export const GAME_ENTRY_TYPES = {
   newGame: 'new',
@@ -231,8 +232,8 @@ export const ENDINGS = {
     label: '死亡',
     tag: '[结局:死亡]',
     achievementName: '坠落',
-    backgroundImage: '/assets/images/cg_end_fall_1600.webp',
-    mobileBackgroundImage: '/assets/images/cg_end_fall_900.webp'
+    backgroundImage: DEATH_ENDING_SEQUENCE_FRAMES[4].image,
+    mobileBackgroundImage: DEATH_ENDING_SEQUENCE_FRAMES[4].mobileImage
   },
   disappear: {
     type: 'end_disappear',
@@ -413,6 +414,9 @@ const AI_STATE_ORDER: Record<AiStateType, number> = {
   edge: 4
 }
 
+const isCriticalAiStateType = (aiStateType: AiStateType) =>
+  aiStateType === AI_STATES.edge.type || aiStateType === AI_STATES.turnBack.type
+
 export type VisualStateSource = 'ending' | 'aiState' | 'emotion'
 
 export interface VisualStateSnapshot {
@@ -462,7 +466,9 @@ export const deriveAiStateType = (snapshot: Pick<VisualStateSnapshot, 'roundCoun
 
 const chooseEffectiveAiState = (explicitState: AiStateType | null, derivedState: AiStateType): AiStateType => {
   if (!explicitState) return derivedState
-  if (explicitState === AI_STATES.turnBack.type) return explicitState
+  if (explicitState === AI_STATES.turnBack.type) {
+    return derivedState === AI_STATES.edge.type ? explicitState : derivedState
+  }
   if (AI_STATE_ORDER[derivedState] >= AI_STATE_ORDER[AI_STATES.edge.type]) return derivedState
   return explicitState
 }
@@ -487,9 +493,10 @@ export const resolveVisualState = (snapshot: VisualStateSnapshot): ResolvedVisua
     : null
   const effectiveAiState = chooseEffectiveAiState(explicitAiState, derivedAiState)
   const aiState = AI_STATE_BY_TYPE[effectiveAiState]
+  const aiStateLabel = effectiveAiState === AI_STATES.turnBack.type ? AI_STATES.edge.label : aiState.label
 
   const emotion = snapshot.emotionType ? EMOTION_BY_TYPE[snapshot.emotionType] : null
-  if (emotion && effectiveAiState !== AI_STATES.edge.type) {
+  if (emotion && !isCriticalAiStateType(effectiveAiState)) {
     return {
       source: 'emotion',
       backgroundImage: emotion.backgroundImage,
@@ -499,12 +506,12 @@ export const resolveVisualState = (snapshot: VisualStateSnapshot): ResolvedVisua
     }
   }
 
-  if (effectiveAiState === AI_STATES.edge.type || effectiveAiState === AI_STATES.turnBack.type) {
+  if (isCriticalAiStateType(effectiveAiState)) {
     return {
       source: 'aiState',
       backgroundImage: aiState.backgroundImage,
       mobileBackgroundImage: aiState.mobileBackgroundImage,
-      label: aiState.label,
+      label: aiStateLabel,
       aiStateType: effectiveAiState
     }
   }
@@ -513,7 +520,7 @@ export const resolveVisualState = (snapshot: VisualStateSnapshot): ResolvedVisua
     source: 'aiState',
     backgroundImage: aiState.backgroundImage,
     mobileBackgroundImage: aiState.mobileBackgroundImage,
-    label: aiState.label,
+    label: aiStateLabel,
     aiStateType: effectiveAiState
   }
 }

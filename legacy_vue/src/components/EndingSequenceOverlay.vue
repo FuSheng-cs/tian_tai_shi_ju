@@ -23,6 +23,11 @@
     <div class="ending-sequence-vignette" aria-hidden="true"></div>
     <div class="ending-sequence-rain" aria-hidden="true"></div>
     <div class="ending-sequence-flash" :key="currentIndex" aria-hidden="true"></div>
+    <div
+      class="ending-sequence-red-impact"
+      :class="{ 'ending-sequence-red-impact-active': isFinalImpactActive }"
+      aria-hidden="true"
+    ></div>
 
     <div v-if="activeFrame.chapterTitle" :key="`chapter-${activeFrame.id}`" class="ending-sequence-chapter">
       <span>{{ activeFrame.chapterTitle }}</span>
@@ -67,6 +72,7 @@ const props = withDefaults(defineProps<{
   nextLabel?: string;
   completeLabel?: string;
   skipLabel?: string;
+  finalFrameSfxName?: string;
 }>(), {
   ariaLabel: '结局镜头',
   nextLabel: '继续',
@@ -80,10 +86,13 @@ const emit = defineEmits<{
 
 const currentIndex = ref(0)
 const isExiting = ref(false)
+const isFinalImpactActive = ref(false)
 const fallbackFrame: EndingFrame = { id: 'ending-fallback', image: '', caption: '' }
 let exitTimer: ReturnType<typeof window.setTimeout> | null = null
 let fadeTimer: ReturnType<typeof window.setTimeout> | null = null
+let impactTimer: ReturnType<typeof window.setTimeout> | null = null
 let completed = false
+let hasPlayedFinalImpact = false
 
 const activeFrame = computed(() => props.frames[currentIndex.value] ?? props.frames[0] ?? fallbackFrame)
 const activeCaption = computed(() => activeFrame.value?.caption || '')
@@ -98,6 +107,22 @@ const clearManagedTimers = () => {
     window.clearTimeout(fadeTimer)
     fadeTimer = null
   }
+  if (impactTimer) {
+    window.clearTimeout(impactTimer)
+    impactTimer = null
+  }
+}
+
+const playFinalImpact = () => {
+  if (hasPlayedFinalImpact) return
+
+  hasPlayedFinalImpact = true
+  isFinalImpactActive.value = true
+  audioManager.playSfx(props.finalFrameSfxName ?? 'fall_impact')
+  impactTimer = window.setTimeout(() => {
+    isFinalImpactActive.value = false
+    impactTimer = null
+  }, 880)
 }
 
 const finish = () => {
@@ -118,14 +143,18 @@ const scheduleExit = (delayMs = 0) => {
 const advance = () => {
   if (completed || isExiting.value) return
 
-  audioManager.playSfx('click')
-
   if (isLastFrame.value) {
+    audioManager.playSfx('click')
     scheduleExit()
     return
   }
 
   currentIndex.value += 1
+  if (isLastFrame.value) {
+    playFinalImpact()
+  } else {
+    audioManager.playSfx('click')
+  }
 }
 
 const skip = () => {
@@ -133,7 +162,8 @@ const skip = () => {
   clearManagedTimers()
   audioManager.playSfx('click')
   currentIndex.value = props.frames.length - 1
-  scheduleExit(220)
+  playFinalImpact()
+  scheduleExit(900)
 }
 
 onMounted(() => {
@@ -236,10 +266,24 @@ onUnmounted(() => {
   inset: 0;
   z-index: 4;
   pointer-events: none;
-  background:
-    radial-gradient(ellipse at center, rgba(255, 255, 255, 0.12), transparent 54%),
-    rgba(0, 0, 0, 0.36);
+  background: rgba(0, 0, 0, 0.58);
   animation: ending-frame-flash 560ms ease-out forwards;
+}
+
+.ending-sequence-red-impact {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(ellipse at 50% 48%, rgba(94, 0, 18, 0.34), transparent 62%),
+    linear-gradient(180deg, rgba(42, 0, 8, 0.2), rgba(0, 0, 0, 0.18));
+  box-shadow: inset 0 0 120px rgba(94, 0, 18, 0.34);
+}
+
+.ending-sequence-red-impact-active {
+  animation: ending-red-impact 880ms ease-out forwards;
 }
 
 .ending-sequence-chapter {
@@ -342,6 +386,21 @@ onUnmounted(() => {
   }
 }
 
+@keyframes ending-red-impact {
+  0% {
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.9;
+  }
+  46% {
+    opacity: 0.32;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 @keyframes ending-chapter-enter {
   0% {
     opacity: 0;
@@ -394,7 +453,8 @@ onUnmounted(() => {
 @media (prefers-reduced-motion: reduce) {
   .ending-sequence-frame,
   .ending-sequence-rain,
-  .ending-sequence-flash {
+  .ending-sequence-flash,
+  .ending-sequence-red-impact-active {
     animation: none;
     transition: none;
     transform: none;

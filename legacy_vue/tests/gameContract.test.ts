@@ -8,6 +8,7 @@ import {
   ENDING_THRESHOLDS,
   EMOTIONS,
   ENDINGS,
+  FALL_IMPACT_SFX_SRC,
   GAME_ROLE,
   GAME_RULES,
   MECHANIC_TAGS,
@@ -127,6 +128,8 @@ describe('game contract', () => {
   it('maps the death ending cinematic sequence frames to existing desktop and mobile assets', () => {
     expect(DEATH_ENDING_SEQUENCE_FRAMES).toHaveLength(5)
     expect(DEATH_ENDING_SEQUENCE_FRAMES[0].id).toBe('fall-01-silence')
+    expect(ENDINGS.death.backgroundImage).toBe(DEATH_ENDING_SEQUENCE_FRAMES[4].image)
+    expect(ENDINGS.death.mobileBackgroundImage).toBe(DEATH_ENDING_SEQUENCE_FRAMES[4].mobileImage)
 
     for (const frame of DEATH_ENDING_SEQUENCE_FRAMES) {
       const desktopAssetPath = frame.image.replace('/assets/', 'legacy_vue/public/assets/')
@@ -144,6 +147,8 @@ describe('game contract', () => {
       const fallbackAssetPath = bgmSrc.replace('/assets/', 'legacy_vue/public/assets/')
       expect(existsSync(resolve(cwd(), '..', fallbackAssetPath))).toBe(true)
     }
+    const fallImpactAssetPath = FALL_IMPACT_SFX_SRC.replace('/assets/', 'legacy_vue/public/assets/')
+    expect(existsSync(resolve(cwd(), '..', fallImpactAssetPath))).toBe(true)
   })
 
   it('keeps the opening sequence written as player inner monologue', () => {
@@ -188,8 +193,21 @@ describe('game contract', () => {
       aiStateType: AI_STATES.turnBack.type,
       emotionType: EMOTIONS.soft.type
     })).toMatchObject({
-      source: 'emotion',
-      backgroundImage: EMOTIONS.soft.backgroundImage
+      source: 'aiState',
+      label: AI_STATES.edge.label,
+      backgroundImage: AI_STATES.turnBack.backgroundImage
+    })
+
+    expect(resolveVisualState({
+      roundCount: 4,
+      affection: 15,
+      isEnding: false,
+      endingType: null,
+      aiStateType: AI_STATES.turnBack.type,
+      emotionType: null
+    })).toMatchObject({
+      source: 'aiState',
+      backgroundImage: AI_STATES.wavering.backgroundImage
     })
 
     expect(resolveVisualState({
@@ -219,8 +237,8 @@ describe('game contract', () => {
     expect(resolveWaitingMobileBackground(guardedState)).toBe(SCENE_MOBILE_BACKGROUNDS.smoke)
 
     const turnBackState = resolveVisualState({
-      roundCount: 4,
-      affection: 15,
+      roundCount: 1,
+      affection: 0,
       isEnding: false,
       endingType: null,
       aiStateType: AI_STATES.turnBack.type,

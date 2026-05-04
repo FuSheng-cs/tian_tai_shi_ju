@@ -7,7 +7,7 @@
         <img
           :src="currentBg.desktop"
           class="w-full h-full object-cover transition-opacity duration-1000"
-          :class="gameStore.isEnding ? 'opacity-100' : 'opacity-80'"
+          :class="backgroundImageClass"
           alt="Background"
           decoding="async"
         />
@@ -235,7 +235,7 @@ const saveSlots = ref<SaveSlot[]>([])
 const isEndingSummaryLoading = ref(false)
 const isOpeningSequenceActive = ref(false)
 const isDeathEndingSequenceActive = ref(false)
-const hasPlayedDeathEndingSequence = ref(false)
+const hasPlayedDeathEndingSequence = ref(gameStore.isEnding && gameStore.endingType === ENDINGS.death.type)
 const hasStartedBgm = ref(false)
 const preloadedImages = new Set<string>()
 
@@ -250,15 +250,20 @@ const endingDefinition = computed(() =>
   gameStore.endingType ? ENDING_BY_TYPE[gameStore.endingType] : null
 )
 const isCinematicOverlayActive = computed(() => isOpeningSequenceActive.value || isDeathEndingSequenceActive.value)
+const isDeathEndingSequencePending = computed(() =>
+  gameStore.isEnding &&
+  gameStore.endingType === ENDINGS.death.type &&
+  !hasPlayedDeathEndingSequence.value
+)
 const canShowEndingSettlement = computed(() =>
   gameStore.isEnding && textCompleted.value && !isDeathEndingSequenceActive.value
 )
 
 const currentVisualState = computed(() => resolveVisualState({
-  roundCount: gameStore.roundCount,
+  roundCount: isDeathEndingSequencePending.value ? Math.min(gameStore.roundCount, 1) : gameStore.roundCount,
   affection: gameStore.affection,
-  isEnding: gameStore.isEnding,
-  endingType: gameStore.endingType,
+  isEnding: gameStore.isEnding && !isDeathEndingSequencePending.value,
+  endingType: isDeathEndingSequencePending.value ? null : gameStore.endingType,
   aiStateType: gameStore.lastAiStateTag,
   emotionType: gameStore.lastEmotionTag
 }))
@@ -275,6 +280,14 @@ const currentBg = computed(() =>
       }
 )
 
+const backgroundImageClass = computed(() =>
+  isDeathEndingSequencePending.value
+    ? 'death-cinematic-background'
+    : gameStore.isEnding
+      ? 'opacity-100'
+      : 'opacity-80'
+)
+
 const preloadImages = (sources: readonly string[]) => {
   sources.forEach((src) => {
     if (!src || preloadedImages.has(src)) return
@@ -288,6 +301,7 @@ const preloadImages = (sources: readonly string[]) => {
 
 const startRooftopBgm = () => {
   if (hasStartedBgm.value) return
+  if (gameStore.isEnding && gameStore.endingType === ENDINGS.death.type) return
   hasStartedBgm.value = true
   audioManager.playBgm(ROOFTOP_BGM_SRCS)
 }
@@ -314,6 +328,7 @@ const onTextComplete = () => {
     void ensureEndingSummary()
     if (shouldStartDeathEndingSequence()) {
       hasPlayedDeathEndingSequence.value = true
+      audioManager.stopBgm()
       isDeathEndingSequenceActive.value = true
     }
   }
@@ -438,3 +453,13 @@ onMounted(() => {
 
 })
 </script>
+
+<style scoped>
+.death-cinematic-background {
+  opacity: 0.78;
+  filter: brightness(0.82) contrast(1.05);
+  transition:
+    opacity 1000ms ease,
+    filter 1000ms ease;
+}
+</style>
