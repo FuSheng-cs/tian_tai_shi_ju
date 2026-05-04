@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import {
   AI_STATES,
+  DEATH_ENDING_SEQUENCE_FRAMES,
   ENDINGS,
   GAME_ENTRY_SESSION_KEY,
   GAME_ENTRY_TYPES,
@@ -12,6 +13,7 @@ import {
   SCENE_BACKGROUNDS
 } from '../src/domain/gameContract'
 import { useGameStore } from '../src/store/gameStore'
+import EndingSequenceOverlay from '../src/components/EndingSequenceOverlay.vue'
 import OpeningSequenceOverlay from '../src/components/OpeningSequenceOverlay.vue'
 import GameView from '../src/views/GameView.vue'
 import StartView from '../src/views/StartView.vue'
@@ -20,6 +22,7 @@ const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   playBgm: vi.fn(),
   preloadBgm: vi.fn(),
+  playSfx: vi.fn(),
   playStairStep: vi.fn(),
   chat: vi.fn(),
   getSlots: vi.fn(() => [{ id: 1, timestamp: 1710000000000, data: 'slot' }]),
@@ -37,7 +40,7 @@ vi.mock('vue-router', () => ({
 vi.mock('../src/modules/AudioManager', () => ({
   audioManager: {
     preloadBgm: mocks.preloadBgm,
-    playSfx: vi.fn(),
+    playSfx: mocks.playSfx,
     playBgm: mocks.playBgm,
     playStairStep: mocks.playStairStep
   }
@@ -75,6 +78,11 @@ const mountGameView = () => mount(GameView, {
         props: ['frames'],
         template: '<button data-test="opening-sequence" :data-frame-count="frames.length" @click="$emit(\'complete\')">opening</button>'
       },
+      EndingSequenceOverlay: {
+        name: 'EndingSequenceOverlay',
+        props: ['frames'],
+        template: '<button data-test="death-ending-sequence" :data-frame-count="frames.length" @click="$emit(\'complete\')">death</button>'
+      },
       TypewriterText: {
         props: ['text'],
         template: '<div class="typewriter-text" @click="$emit(\'complete\')">{{ text }}</div>'
@@ -92,6 +100,7 @@ describe('opening guide flow', () => {
     mocks.push.mockClear()
     mocks.playBgm.mockClear()
     mocks.preloadBgm.mockClear()
+    mocks.playSfx.mockClear()
     mocks.playStairStep.mockClear()
     mocks.chat.mockReset()
     mocks.chat.mockResolvedValue('她沉默了一会儿。')
@@ -192,6 +201,55 @@ describe('opening guide flow', () => {
 
     expect(mocks.unlock).toHaveBeenCalledWith(ENDINGS.acquaintance.type)
     expect(mocks.evaluateFromState).toHaveBeenCalled()
+    expect(wrapper.find('[data-test="death-ending-sequence"]').exists()).toBe(false)
+  })
+
+  it('plays the death ending sequence before showing settlement for a new death ending', async () => {
+    mocks.chat.mockResolvedValueOnce({
+      reply: 'death reply',
+      evaluation: {
+        emotion: 'normal',
+        aiState: AI_STATES.edge.type,
+        affectionDelta: 0,
+        pressureDelta: 0,
+        endingType: ENDINGS.death.type,
+        confidence: 1
+      }
+    })
+    const wrapper = mountGameView()
+
+    await wrapper.find('.typewriter-text').trigger('click')
+    await nextTick()
+    await wrapper.find('input').setValue('ordinary line')
+    await wrapper.find('input').trigger('keyup.enter')
+    await flushPromises()
+    await wrapper.find('.typewriter-text').trigger('click')
+    await nextTick()
+
+    const sequence = wrapper.find('[data-test="death-ending-sequence"]')
+    expect(sequence.exists()).toBe(true)
+    expect(sequence.attributes('data-frame-count')).toBe('5')
+    expect(wrapper.find('[data-test="ending-settlement"]').exists()).toBe(false)
+
+    await sequence.trigger('click')
+    await nextTick()
+
+    expect(wrapper.find('[data-test="death-ending-sequence"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="ending-settlement"]').exists()).toBe(true)
+  })
+
+  it('does not replay the death sequence for an already loaded death ending', async () => {
+    const store = useGameStore()
+    store.isEnding = true
+    store.endingType = ENDINGS.death.type
+    store.messages = [{ role: 'assistant', content: 'death reply' }]
+
+    const wrapper = mountGameView()
+    await wrapper.find('.typewriter-text').trigger('click')
+    await nextTick()
+
+    expect(wrapper.find('[data-test="death-ending-sequence"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="ending-settlement"]').exists()).toBe(true)
   })
 
   it('evaluates save achievements after a successful save', async () => {
@@ -265,6 +323,33 @@ describe('opening guide flow', () => {
     expect(mocks.playStairStep).toHaveBeenLastCalledWith(OPENING_SEQUENCE_FRAMES.length - 1)
 
     await vi.advanceTimersByTimeAsync(640)
+    expect(wrapper.emitted('complete')).toHaveLength(1)
+  })
+
+  it('advances the death ending overlay by click, keyboard, and final completion', async () => {
+    vi.useFakeTimers()
+    const wrapper = mount(EndingSequenceOverlay, {
+      props: {
+        frames: DEATH_ENDING_SEQUENCE_FRAMES
+      }
+    })
+
+    expect(wrapper.find('.ending-sequence-caption').text()).toBe(DEATH_ENDING_SEQUENCE_FRAMES[0].caption)
+
+    await wrapper.find('.ending-sequence').trigger('keydown.enter')
+    expect(wrapper.find('.ending-sequence-caption').text()).toBe(DEATH_ENDING_SEQUENCE_FRAMES[1].caption)
+
+    await wrapper.find('.ending-sequence').trigger('keydown.space')
+    expect(wrapper.find('.ending-sequence-caption').text()).toBe(DEATH_ENDING_SEQUENCE_FRAMES[2].caption)
+
+    for (let index = 3; index < DEATH_ENDING_SEQUENCE_FRAMES.length; index += 1) {
+      await wrapper.find('.ending-sequence-continue').trigger('click')
+    }
+    expect(wrapper.find('.ending-sequence-caption').text()).toBe(DEATH_ENDING_SEQUENCE_FRAMES[DEATH_ENDING_SEQUENCE_FRAMES.length - 1].caption)
+
+    await wrapper.find('.ending-sequence-continue').trigger('click')
+    await vi.advanceTimersByTimeAsync(420)
+
     expect(wrapper.emitted('complete')).toHaveLength(1)
   })
 

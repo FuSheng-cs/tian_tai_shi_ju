@@ -20,6 +20,12 @@
       @complete="completeOpeningSequence"
     />
 
+    <EndingSequenceOverlay
+      v-if="isDeathEndingSequenceActive"
+      :frames="DEATH_ENDING_SEQUENCE_FRAMES"
+      @complete="completeDeathEndingSequence"
+    />
+
     <!-- Character layer removed since the new images are full-scene compositions -->
 
     <!-- Top UI -->
@@ -36,7 +42,7 @@
         <div v-if="gameStore.hintCount > 0 && !gameStore.isEnding" class="bg-[#0a0515]/90 px-3 py-2 rounded-xl border border-gray-800 shadow-lg backdrop-blur-md flex items-center md:px-4">
           <button 
             @click="handleHint" 
-            :disabled="gameStore.isWaiting || isOpeningSequenceActive"
+            :disabled="gameStore.isWaiting || isCinematicOverlayActive"
             class="text-xs text-yellow-500 hover:text-yellow-400 font-bold disabled:opacity-50 flex items-center gap-2 transition-colors sm:text-sm"
           >
             <span class="text-lg">💡</span> 寻找线索 ({{ gameStore.hintCount }})
@@ -47,7 +53,7 @@
       <div class="flex shrink-0 gap-2 md:gap-3">
         <button
           @click="openSaveSlots"
-          :disabled="gameStore.isWaiting || isOpeningSequenceActive"
+          :disabled="gameStore.isWaiting || isCinematicOverlayActive"
           class="bg-gray-800/80 hover:bg-gray-700 px-2.5 py-1.5 rounded text-sm border border-gray-600 backdrop-blur-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-800/80 md:px-3"
         >
           保存
@@ -91,7 +97,7 @@
     </div>
 
     <!-- Dialog Box -->
-    <div v-if="!isOpeningSequenceActive" class="absolute bottom-0 left-0 right-0 z-30 p-4 md:p-8 pointer-events-auto bg-gradient-to-t from-black via-black/80 to-transparent pt-24">
+    <div v-if="!isCinematicOverlayActive" class="absolute bottom-0 left-0 right-0 z-30 p-4 md:p-8 pointer-events-auto bg-gradient-to-t from-black via-black/80 to-transparent pt-24">
       <div class="max-w-4xl mx-auto">
         <div class="bg-black/60 border border-gray-700/50 rounded-xl p-6 shadow-2xl backdrop-blur-md min-h-[160px] flex flex-col justify-end transition-all duration-500">
           
@@ -131,7 +137,7 @@
             </div>
           </div>
 
-          <div v-if="gameStore.isEnding && textCompleted" class="mt-6 space-y-4">
+          <div v-if="canShowEndingSettlement" class="mt-6 space-y-4" data-test="ending-settlement">
             <div
               v-if="endingDefinition"
               class="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
@@ -194,6 +200,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
+  DEATH_ENDING_SEQUENCE_FRAMES,
   ENDING_BY_TYPE,
   ENDINGS,
   GAME_ENTRY_SESSION_KEY,
@@ -211,6 +218,7 @@ import { useGameStore } from '@/store/gameStore'
 import { audioManager } from '@/modules/AudioManager'
 import { SaveSystem, type SaveSlot } from '@/modules/SaveSystem'
 import { AchievementTracker } from '@/modules/AchievementTracker'
+import EndingSequenceOverlay from '@/components/EndingSequenceOverlay.vue'
 import OpeningSequenceOverlay from '@/components/OpeningSequenceOverlay.vue'
 import TypewriterText from '@/components/TypewriterText.vue'
 import ProgressBar from '@/components/ProgressBar.vue'
@@ -226,6 +234,8 @@ const showSaveSlots = ref(false)
 const saveSlots = ref<SaveSlot[]>([])
 const isEndingSummaryLoading = ref(false)
 const isOpeningSequenceActive = ref(false)
+const isDeathEndingSequenceActive = ref(false)
+const hasPlayedDeathEndingSequence = ref(false)
 const hasStartedBgm = ref(false)
 const preloadedImages = new Set<string>()
 
@@ -238,6 +248,10 @@ const saveSlotMap = computed(() => new Map(saveSlots.value.map((slot) => [slot.i
 const hasPlayerMessages = computed(() => gameStore.messages.some((message) => message.role === 'user'))
 const endingDefinition = computed(() =>
   gameStore.endingType ? ENDING_BY_TYPE[gameStore.endingType] : null
+)
+const isCinematicOverlayActive = computed(() => isOpeningSequenceActive.value || isDeathEndingSequenceActive.value)
+const canShowEndingSettlement = computed(() =>
+  gameStore.isEnding && textCompleted.value && !isDeathEndingSequenceActive.value
 )
 
 const currentVisualState = computed(() => resolveVisualState({
@@ -283,12 +297,25 @@ const completeOpeningSequence = () => {
   startRooftopBgm()
 }
 
+const shouldStartDeathEndingSequence = () =>
+  gameStore.endingType === ENDINGS.death.type &&
+  !hasPlayedDeathEndingSequence.value &&
+  !isDeathEndingSequenceActive.value
+
+const completeDeathEndingSequence = () => {
+  isDeathEndingSequenceActive.value = false
+}
+
 const onTextComplete = () => {
   textCompleted.value = true
   if (gameStore.isEnding && gameStore.endingType) {
     AchievementTracker.unlock(gameStore.endingType)
     AchievementTracker.evaluateFromState(gameStore.$state)
     void ensureEndingSummary()
+    if (shouldStartDeathEndingSequence()) {
+      hasPlayedDeathEndingSequence.value = true
+      isDeathEndingSequenceActive.value = true
+    }
   }
 }
 
@@ -305,7 +332,7 @@ const ensureEndingSummary = async () => {
 
 const handleSend = async () => {
   const text = inputText.value.trim()
-  if (!text || gameStore.isWaiting || gameStore.isEnding || isOpeningSequenceActive.value) return
+  if (!text || gameStore.isWaiting || gameStore.isEnding || isCinematicOverlayActive.value) return
   
   audioManager.playSfx('click')
   inputText.value = ''
@@ -319,7 +346,7 @@ const handleSend = async () => {
 }
 
 const handleHint = async () => {
-  if (gameStore.hintCount <= 0 || gameStore.isWaiting || isOpeningSequenceActive.value) return
+  if (gameStore.hintCount <= 0 || gameStore.isWaiting || isCinematicOverlayActive.value) return
   audioManager.playSfx('click')
   textCompleted.value = false
   const hint = await gameStore.requestHint()
@@ -353,7 +380,7 @@ const refreshSaveSlots = () => {
 
 const openSaveSlots = () => {
   audioManager.playSfx('click')
-  if (gameStore.isWaiting || isOpeningSequenceActive.value) {
+  if (gameStore.isWaiting || isCinematicOverlayActive.value) {
     alert('正在等待回应，暂时不能保存。')
     return
   }
@@ -395,6 +422,10 @@ onMounted(() => {
   AchievementTracker.unlock('first_try')
   preloadImages(GAMEPLAY_PRELOAD_IMAGES)
   startRooftopBgm()
+
+  if (gameStore.isEnding && gameStore.endingType === ENDINGS.death.type) {
+    hasPlayedDeathEndingSequence.value = true
+  }
 
   const entryType = sessionStorage.getItem(GAME_ENTRY_SESSION_KEY)
   sessionStorage.removeItem(GAME_ENTRY_SESSION_KEY)

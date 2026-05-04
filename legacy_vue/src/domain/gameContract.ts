@@ -55,6 +55,41 @@ export const OPENING_SEQUENCE_FRAMES = [
   }
 ] as const
 
+export const DEATH_ENDING_SEQUENCE_FRAMES = [
+  {
+    id: 'fall-01-silence',
+    image: '/assets/images/cg_end_fall_seq_01_1600.webp',
+    mobileImage: '/assets/images/cg_end_fall_seq_01_900.webp',
+    caption: '她的手从栏杆上松开，烟先一步落进雨里。',
+    chapterTitle: '结局',
+    chapterMeta: '坠落'
+  },
+  {
+    id: 'fall-02-step-back',
+    image: '/assets/images/cg_end_fall_seq_02_1600.webp',
+    mobileImage: '/assets/images/cg_end_fall_seq_02_900.webp',
+    caption: '栏杆湿得发亮，她的重心越过了最后一点边界。'
+  },
+  {
+    id: 'fall-03-drop',
+    image: '/assets/images/cg_end_fall_seq_03_1600.webp',
+    mobileImage: '/assets/images/cg_end_fall_seq_03_900.webp',
+    caption: '风把她的外套和头发一起托起，城市忽然远得没有尽头。'
+  },
+  {
+    id: 'fall-04-falling-wide',
+    image: '/assets/images/cg_end_fall_seq_04_1600.webp',
+    mobileImage: '/assets/images/cg_end_fall_seq_04_900.webp',
+    caption: '高楼的灯一层层掠过去，她变成雨夜里无法抓住的一点。'
+  },
+  {
+    id: 'fall-05-empty-rooftop',
+    image: '/assets/images/cg_end_fall_seq_05_1600.webp',
+    mobileImage: '/assets/images/cg_end_fall_seq_05_900.webp',
+    caption: '天台又安静下来，只剩栏杆、雨和没有人接住的烟。'
+  }
+] as const
+
 export const GAME_ROLE = {
   gameTitle: '天台十句',
   characterName: '艾',
@@ -101,7 +136,8 @@ export const GAMEPLAY_PRELOAD_IMAGES = [
   SCENE_BACKGROUNDS.sad,
   SCENE_MOBILE_BACKGROUNDS.sad,
   SCENE_BACKGROUNDS.turnBack,
-  SCENE_BACKGROUNDS.nearJump
+  SCENE_BACKGROUNDS.nearJump,
+  ...DEATH_ENDING_SEQUENCE_FRAMES.flatMap((frame) => [frame.image, frame.mobileImage])
 ] as const
 
 export const MECHANIC_TAGS = {

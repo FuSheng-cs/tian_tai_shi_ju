@@ -4,6 +4,7 @@ import { cwd } from 'node:process'
 import { describe, expect, it } from 'vitest'
 import {
   AI_STATES,
+  DEATH_ENDING_SEQUENCE_FRAMES,
   ENDING_THRESHOLDS,
   EMOTIONS,
   ENDINGS,
@@ -120,6 +121,19 @@ describe('game contract', () => {
     for (const sfxSrc of STAIR_STEP_SFX_SRCS) {
       const assetPath = sfxSrc.replace('/assets/', 'legacy_vue/public/assets/')
       expect(existsSync(resolve(cwd(), '..', assetPath))).toBe(true)
+    }
+  })
+
+  it('maps the death ending cinematic sequence frames to existing desktop and mobile assets', () => {
+    expect(DEATH_ENDING_SEQUENCE_FRAMES).toHaveLength(5)
+    expect(DEATH_ENDING_SEQUENCE_FRAMES[0].id).toBe('fall-01-silence')
+
+    for (const frame of DEATH_ENDING_SEQUENCE_FRAMES) {
+      const desktopAssetPath = frame.image.replace('/assets/', 'legacy_vue/public/assets/')
+      const mobileAssetPath = frame.mobileImage.replace('/assets/', 'legacy_vue/public/assets/')
+      expect(existsSync(resolve(cwd(), '..', desktopAssetPath))).toBe(true)
+      expect(existsSync(resolve(cwd(), '..', mobileAssetPath))).toBe(true)
+      expect(frame.caption.length).toBeGreaterThan(0)
     }
   })
 
