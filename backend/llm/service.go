@@ -483,6 +483,63 @@ func parseTurnEvaluation(raw string, fallbackAiState string, affection, affectio
 	return clampTurnEvaluation(evaluation, fallbackAiState, affection, affectionBoostCount, turnsUsed), nil
 }
 
+func hasTurnBackNarrative(reply string) bool {
+	normalized := strings.Join(strings.Fields(reply), "")
+	if normalized == "" {
+		return false
+	}
+
+	negations := []string{
+		"没把脚收回",
+		"没把腿收回",
+		"没有把脚收回",
+		"没有把腿收回",
+		"并没有把脚收回",
+		"并没有把腿收回",
+		"不肯把脚收回",
+		"不肯把腿收回",
+		"没有下来",
+		"没下来",
+		"不肯下来",
+	}
+	if countNarrativeMatches(normalized, negations) > 0 {
+		return false
+	}
+
+	return countNarrativeMatches(normalized, []string{
+		"脚收回",
+		"腿收回",
+		"脚收回来",
+		"腿收回来",
+		"收回脚",
+		"收回腿",
+		"收回栏杆内",
+		"收进栏杆内",
+		"转回天台",
+		"身体转回",
+		"半转回",
+		"回到天台内侧",
+		"坐回天台",
+		"站回天台",
+		"脚踩到天台",
+		"从栏杆上下来",
+		"离开栏杆",
+	}) > 0
+}
+
+func applyNarrativeStateOverrides(evaluation TurnEvaluation, assistantReply string) TurnEvaluation {
+	if evaluation.EndingType != nil {
+		return evaluation
+	}
+	if hasTurnBackNarrative(assistantReply) {
+		evaluation.AiState = EvaluationAiStateTurnBack
+		if evaluation.Confidence < 0.8 {
+			evaluation.Confidence = 0.8
+		}
+	}
+	return evaluation
+}
+
 func stripKnownMechanicTags(reply string) string {
 	cleaned := reply
 	for _, tag := range []string{
@@ -526,6 +583,7 @@ func buildMainSystemPrompt(roundsLeft int, affection int, affectionBoostCount in
 - 只输出艾的自然回复，不输出任何系统标签、JSON、分数、结局标记或判定说明。
 - 保持 50 个汉字以内，日常、克制、具体，可以包含短动作描写。
 - 根据玩家刚才的话自然回应；如果被冒犯，可以变冷、刺痛、退后或沉默；如果被看见，可以迟疑、松动或反问。
+- 姿态边界：可以写抽烟、低头、沉默、看远处、声音变化；不要主动写“把脚/腿收回栏杆内”“转回天台”“从栏杆上下来”“离开栏杆”“越过栏杆/坠落”等改变生死位置的动作。姿态切换和结局由独立规则裁判决定。
 - 不要让玩家前 5 句内直接达成最终结局；除非已经接近最后机会，不要写出已经彻底安全或已经坠落的最终动作。`,
 		CharacterName,
 		InitialRoundCount,
@@ -670,6 +728,7 @@ func buildTurnEvaluationSystemPrompt() string {
 - wavering：明显动摇、沉默变久、开始认真听。
 - turnBack：她刚把栏杆外的脚收回，身体回到天台内侧，但仍不安全。
 - edge：临界危险，靠近坠落或明显被玩家伤害到。
+- 如果艾的自然回复已经写出“把腿/脚收回来”“身体转回天台”“从栏杆上下来”“离开栏杆”等物理姿态变化，ai_state 必须返回 turnBack，除非 ending_type 已经是最终结局。
 - affection_delta 只能是 0 或 5。只有玩家具体看见艾、回应她上一轮、尊重边界，并且不是泛泛安慰时才给 5。
 - pressure_delta 只能是 0、1、2。普通刺伤/说教/轻度冒犯给 1；辱骂、命令、威胁、调情物化、鼓励坠落、明确放弃她给 2；其他给 0。
 - ending_type 只能是 null、end_death、end_disappear、end_acquaintance。未到最终压力时一般返回 null；如果回复已经写出坠落则 end_death；如果写出离开但不交换联系方式则 end_disappear；如果写出交换联系方式/明天继续联系则 end_acquaintance。
@@ -999,7 +1058,11 @@ func EvaluateTurn(cfg ClientConfig, payload turnEvaluationPayload) (TurnEvaluati
 		return DefaultTurnEvaluation(payload.CurrentAiState), err
 	}
 
-	return parseTurnEvaluation(raw, payload.CurrentAiState, payload.Affection, payload.AffectionBoostCount, payload.TurnsUsed)
+	evaluation, err := parseTurnEvaluation(raw, payload.CurrentAiState, payload.Affection, payload.AffectionBoostCount, payload.TurnsUsed)
+	if err != nil {
+		return evaluation, err
+	}
+	return applyNarrativeStateOverrides(evaluation, payload.AssistantReply), nil
 }
 
 // --- 公开服务方法 ---
@@ -1034,6 +1097,7 @@ func Chat(cfg ClientConfig, userMessage string, history []Message, roundsLeft, a
 		log.Printf("[Chat] turn evaluation failed: %v", err)
 		evaluation = DefaultTurnEvaluation(aiState)
 	}
+	evaluation = applyNarrativeStateOverrides(evaluation, reply)
 
 	return ChatTurnResult{
 		Reply:      reply,

@@ -54,6 +54,9 @@ func TestBuildMainSystemPromptDoesNotAskForMechanicTags(t *testing.T) {
 	if !strings.Contains(prompt, "JSON") {
 		t.Fatal("main prompt should explicitly forbid JSON output")
 	}
+	if !strings.Contains(prompt, "姿态边界") || !strings.Contains(prompt, "把脚/腿收回栏杆内") {
+		t.Fatal("main prompt should keep physical posture changes out of the natural reply role")
+	}
 }
 
 func TestTurnEvaluationPromptDefinesStructuredJudgeOnly(t *testing.T) {
@@ -75,12 +78,48 @@ func TestTurnEvaluationPromptDefinesStructuredJudgeOnly(t *testing.T) {
 		EvaluationAiStateWavering,
 		EvaluationAiStateTurnBack,
 		EvaluationAiStateEdge,
+		"物理姿态变化",
+		"ai_state 必须返回 turnBack",
 	}
 
 	for _, item := range required {
 		if !strings.Contains(prompt, item) {
 			t.Fatalf("evaluation prompt missing %q", item)
 		}
+	}
+}
+
+func TestNarrativeStateOverrideForcesTurnBackOnRecoveryAction(t *testing.T) {
+	evaluation := TurnEvaluation{
+		Emotion:        EvaluationEmotionSoft,
+		AiState:        EvaluationAiStateWavering,
+		AffectionDelta: AffectionBoostValue,
+		PressureDelta:  0,
+		EndingType:     nil,
+		Confidence:     0.4,
+	}
+
+	got := applyNarrativeStateOverrides(evaluation, "（把腿收回来一些，但还坐在栏杆上）呵...这倒是新鲜。")
+
+	if got.AiState != EvaluationAiStateTurnBack {
+		t.Fatalf("expected recovery action to force turnBack, got %#v", got)
+	}
+	if got.Confidence < 0.8 {
+		t.Fatalf("expected confidence floor after deterministic override, got %f", got.Confidence)
+	}
+}
+
+func TestNarrativeStateOverrideKeepsStateWhenRecoveryActionIsNegated(t *testing.T) {
+	evaluation := TurnEvaluation{
+		Emotion:    EvaluationEmotionSting,
+		AiState:    EvaluationAiStateEdge,
+		Confidence: 0.7,
+	}
+
+	got := applyNarrativeStateOverrides(evaluation, "她没有把脚收回来，只是看着楼下。")
+
+	if got.AiState != EvaluationAiStateEdge {
+		t.Fatalf("negated recovery action should not force turnBack, got %#v", got)
 	}
 }
 
