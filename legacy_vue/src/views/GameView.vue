@@ -212,7 +212,8 @@ import {
   ROOFTOP_BGM_SRCS,
   resolveWaitingBackground,
   resolveWaitingMobileBackground,
-  resolveVisualState
+  resolveVisualState,
+  type ResolvedVisualState
 } from '@/domain/gameContract'
 import { useGameStore } from '@/store/gameStore'
 import { audioManager } from '@/modules/AudioManager'
@@ -237,6 +238,7 @@ const isOpeningSequenceActive = ref(false)
 const isDeathEndingSequenceActive = ref(false)
 const hasPlayedDeathEndingSequence = ref(gameStore.isEnding && gameStore.endingType === ENDINGS.death.type)
 const hasStartedBgm = ref(false)
+const waitingVisualState = ref<ResolvedVisualState | null>(null)
 const preloadedImages = new Set<string>()
 
 const latestMessage = computed(() => {
@@ -271,8 +273,8 @@ const currentVisualState = computed(() => resolveVisualState({
 const currentBg = computed(() =>
   gameStore.isWaiting
     ? {
-        desktop: resolveWaitingBackground(currentVisualState.value),
-        mobile: resolveWaitingMobileBackground(currentVisualState.value)
+        desktop: resolveWaitingBackground(waitingVisualState.value ?? currentVisualState.value),
+        mobile: resolveWaitingMobileBackground(waitingVisualState.value ?? currentVisualState.value)
       }
     : {
         desktop: currentVisualState.value.backgroundImage,
@@ -354,7 +356,12 @@ const handleSend = async () => {
   textCompleted.value = false
   latestHint.value = null
   
-  await gameStore.sendMessage(text)
+  waitingVisualState.value = currentVisualState.value
+  try {
+    await gameStore.sendMessage(text)
+  } finally {
+    waitingVisualState.value = null
+  }
   if (!gameStore.isEnding) {
     AchievementTracker.evaluateFromState(gameStore.$state)
   }
@@ -364,9 +371,14 @@ const handleHint = async () => {
   if (gameStore.hintCount <= 0 || gameStore.isWaiting || isCinematicOverlayActive.value) return
   audioManager.playSfx('click')
   textCompleted.value = false
-  const hint = await gameStore.requestHint()
-  if (hint) {
-    latestHint.value = hint
+  waitingVisualState.value = currentVisualState.value
+  try {
+    const hint = await gameStore.requestHint()
+    if (hint) {
+      latestHint.value = hint
+    }
+  } finally {
+    waitingVisualState.value = null
   }
 }
 

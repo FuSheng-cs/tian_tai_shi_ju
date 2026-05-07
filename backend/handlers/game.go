@@ -143,10 +143,10 @@ func HandleChat(c *gin.Context) {
 
 	clientCfg, ok := buildClientConfig(req.Provider, req.APIKey, req.Model, req.BaseURL)
 	if !ok {
-		// 无 API Key：返回模拟回复（与原来 mockChat 行为一致）
+		// 无 API Key：返回保守剧情内兜底，避免把技术状态写进对白。
 		evaluation := llm.DefaultTurnEvaluation(req.AiState)
 		c.JSON(http.StatusOK, ChatResponse{
-			Reply:      "过去就像昨天的雨水，早就干了。你问这些做什么？（此为模拟回复，请在设置中配置 API Key）",
+			Reply:      "过去就像昨天的雨水，早就干了。你问这些做什么？",
 			Evaluation: &evaluation,
 		})
 		return
@@ -159,7 +159,7 @@ func HandleChat(c *gin.Context) {
 		evaluation := llm.DefaultTurnEvaluation(req.AiState)
 		c.JSON(http.StatusOK, ChatResponse{
 			Error:      "LLM 调用失败: " + err.Error(),
-			Reply:      "（风太大了，我听不清你说什么... 请检查 API Key 或网络连接）",
+			Reply:      "（她沉默了一会儿，指尖的烟灰落进夜色里。）",
 			Evaluation: &evaluation,
 		})
 		return

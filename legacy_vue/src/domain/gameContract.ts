@@ -94,7 +94,7 @@ export const DEATH_ENDING_SEQUENCE_FRAMES = [
 export const GAME_ROLE = {
   gameTitle: '天台十句',
   characterName: '艾',
-  assistantSpeakerName: '神秘女孩',
+  assistantSpeakerName: '艾',
   narratorSpeakerName: '旁白',
   playerSpeakerName: '你',
   openingMessage:
@@ -105,7 +105,7 @@ export const GAME_ROLE = {
 
 export const WAITING_TEXTS = [
   '她吐了一口烟圈……',
-  '风太大了，她没听清……',
+  '她把烟灰弹进夜色里，沉默了一会儿……',
   '她在看着你的眼睛发呆……',
   '霓虹灯在她脸上闪烁……',
   '她轻轻弹了弹烟灰……'

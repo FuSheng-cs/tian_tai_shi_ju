@@ -181,6 +181,44 @@ describe('opening guide flow', () => {
     expect(wrapper.find('img[alt="Background"]').attributes('src')).toBe(SCENE_BACKGROUNDS.smoke)
   })
 
+  it('does not flash the critical CG while waiting on a provisional chance decrement', async () => {
+    const store = useGameStore()
+    store.roundCount = 3
+    store.lastAiStateTag = AI_STATES.guarded.type
+    let resolveChat!: (value: unknown) => void
+    mocks.chat.mockReturnValueOnce(new Promise((resolve) => {
+      resolveChat = resolve
+    }))
+    const wrapper = mountGameView()
+
+    await wrapper.find('.typewriter-text').trigger('click')
+    await nextTick()
+    await wrapper.find('input').setValue('我先坐在这里。')
+    await wrapper.find('input').trigger('keyup.enter')
+    await nextTick()
+
+    expect(store.roundCount).toBe(2)
+    expect(store.isWaiting).toBe(true)
+    expect(wrapper.find('img[alt="Background"]').attributes('src')).toBe(SCENE_BACKGROUNDS.smoke)
+    expect(wrapper.find('img[alt="Background"]').attributes('src')).not.toBe(AI_STATES.edge.backgroundImage)
+
+    resolveChat({
+      reply: '她沉默了一会儿。',
+      evaluation: {
+        emotion: 'normal',
+        aiState: AI_STATES.guarded.type,
+        affectionDelta: 5,
+        pressureDelta: 0,
+        endingType: null,
+        confidence: 1
+      }
+    })
+    await flushPromises()
+
+    expect(store.roundCount).toBe(3)
+    expect(store.isWaiting).toBe(false)
+  })
+
   it('evaluates achievements after the first player message', async () => {
     const wrapper = mountGameView()
 

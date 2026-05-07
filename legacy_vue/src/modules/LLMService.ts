@@ -322,7 +322,7 @@ async function callBackendTurn(endpoint: string, body: object, fallbackAiState?:
   } catch (e) {
     console.error(`[LLMService] Network error on /${endpoint}:`, e)
     return {
-      reply: '网络连接失败，请检查后端服务是否启动。',
+      reply: '（她没有接话，只是看向远处的灯。）',
       evaluation: createDefaultTurnEvaluation(fallbackAiState)
     }
   }
