@@ -47,4 +47,10 @@ describe('ChanceCigarettes', () => {
 
     expect(wrapper.text()).toContain('剩余次数')
   })
+
+  it('shows the numeric chance count in the bottom corner', () => {
+    const wrapper = mount(ChanceCigarettes, { props: { value: 4, max: 10 } })
+
+    expect(wrapper.find('[data-test="chance-cigarettes-count"]').text()).toBe('4/10')
+  })
 })

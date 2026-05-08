@@ -24,6 +24,9 @@
         />
       </span>
     </span>
+    <span class="chance-cigarettes__count" aria-hidden="true" data-test="chance-cigarettes-count">
+      {{ clampedValue }}/{{ clampedMax }}
+    </span>
   </div>
 </template>
 
@@ -50,9 +53,11 @@ const isLit = (index: number) => index <= clampedValue.value
 .chance-cigarettes {
   --cigarette-size: 21px;
 
+  position: relative;
   display: grid;
   max-width: min(58vw, 232px);
-  min-height: 40px;
+  min-height: 48px;
+  padding-bottom: 10px;
   align-items: center;
   gap: 3px;
   overflow: visible;
@@ -73,6 +78,18 @@ const isLit = (index: number) => index <= clampedValue.value
   align-items: center;
   gap: 1px;
   line-height: 0;
+}
+
+.chance-cigarettes__count {
+  position: absolute;
+  right: 1px;
+  bottom: 0;
+  color: rgba(229, 231, 235, 0.82);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.86);
 }
 
 .chance-cigarettes__slot {
@@ -113,11 +130,16 @@ const isLit = (index: number) => index <= clampedValue.value
     --cigarette-size: 16px;
 
     max-width: calc(100vw - 144px);
-    min-height: 34px;
+    min-height: 42px;
+    padding-bottom: 9px;
     gap: 2px;
   }
 
   .chance-cigarettes__label {
+    font-size: 10px;
+  }
+
+  .chance-cigarettes__count {
     font-size: 10px;
   }
 
