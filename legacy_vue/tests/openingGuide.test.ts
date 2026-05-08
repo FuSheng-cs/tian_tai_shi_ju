@@ -89,7 +89,7 @@ const mountGameView = () => mount(GameView, {
         props: ['text'],
         template: '<div class="typewriter-text" @click="$emit(\'complete\')">{{ text }}</div>'
       },
-      ProgressBar: true
+      ChanceCigarettes: true
     }
   }
 })

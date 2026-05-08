@@ -31,12 +31,8 @@
     <!-- Top UI -->
     <div class="absolute top-0 left-0 right-0 z-30 flex flex-wrap items-start justify-between gap-3 p-4 pointer-events-auto md:p-6">
       <div class="flex max-w-[calc(100%-112px)] flex-wrap gap-2 md:max-w-none md:gap-4">
-        <div class="w-40 bg-black/50 p-2 rounded backdrop-blur-sm border border-gray-700 md:w-48">
-          <div class="text-sm text-gray-300 mb-1 flex justify-between">
-            <span>剩余机会</span>
-            <span>{{ gameStore.roundCount }}/{{ GAME_RULES.initialRoundCount }}</span>
-          </div>
-          <ProgressBar :value="gameStore.roundCount" :max="GAME_RULES.initialRoundCount" color="#ef4444" />
+        <div class="rounded-md border border-white/10 bg-black/35 px-2 py-1.5 shadow-[0_0_18px_rgba(0,0,0,0.45)] backdrop-blur-[2px]">
+          <ChanceCigarettes :value="gameStore.roundCount" :max="GAME_RULES.initialRoundCount" />
         </div>
         
         <div v-if="gameStore.hintCount > 0 && !gameStore.isEnding" class="bg-[#0a0515]/90 px-3 py-2 rounded-xl border border-gray-800 shadow-lg backdrop-blur-md flex items-center md:px-4">
@@ -219,10 +215,10 @@ import { useGameStore } from '@/store/gameStore'
 import { audioManager } from '@/modules/AudioManager'
 import { SaveSystem, type SaveSlot } from '@/modules/SaveSystem'
 import { AchievementTracker } from '@/modules/AchievementTracker'
+import ChanceCigarettes from '@/components/ChanceCigarettes.vue'
 import EndingSequenceOverlay from '@/components/EndingSequenceOverlay.vue'
 import OpeningSequenceOverlay from '@/components/OpeningSequenceOverlay.vue'
 import TypewriterText from '@/components/TypewriterText.vue'
-import ProgressBar from '@/components/ProgressBar.vue'
 
 const router = useRouter()
 const gameStore = useGameStore()
