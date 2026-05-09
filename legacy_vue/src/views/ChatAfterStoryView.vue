@@ -1,5 +1,5 @@
 <template>
-  <div class="chat-after-story h-screen min-h-0 bg-gray-100 flex flex-col overflow-hidden">
+  <div class="chat-after-story relative h-screen min-h-0 bg-gray-100 flex flex-col overflow-hidden">
     <!-- Header -->
     <div class="bg-gray-100 border-b border-gray-300 px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
       <button @click="goHome" class="text-gray-600 hover:text-gray-900">
@@ -14,6 +14,52 @@
         <h1 class="font-bold text-gray-900">{{ GAME_ROLE.characterName }}</h1>
         <p class="text-xs text-gray-500">在线</p>
       </div>
+      <button
+        type="button"
+        class="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+        :disabled="isWaiting"
+        data-test="chat-after-save"
+        @click="openSaveSlots"
+      >
+        <Save :size="16" :stroke-width="1.9" aria-hidden="true" />
+        <span>保存</span>
+      </button>
+    </div>
+
+    <!-- Save Slots -->
+    <div
+      v-if="showSaveSlots"
+      class="absolute inset-0 z-30 flex items-center justify-center bg-black/45 px-4 backdrop-blur-sm"
+      data-test="chat-after-save-slots"
+      @click.self="closeSaveSlots"
+    >
+      <section class="w-full max-w-sm rounded-lg border border-gray-300 bg-gray-50 p-5 text-gray-900 shadow-2xl" aria-label="保存日后谈">
+        <header class="mb-4 flex items-center justify-between">
+          <h2 class="text-base font-bold">选择保存栏位</h2>
+          <button
+            type="button"
+            class="text-2xl leading-none text-gray-500 transition-colors hover:text-gray-900"
+            aria-label="关闭"
+            @click="closeSaveSlots"
+          >
+            ×
+          </button>
+        </header>
+
+        <div class="grid gap-3">
+          <button
+            v-for="slotId in SAVE_SLOT_IDS"
+            :key="slotId"
+            type="button"
+            class="rounded-lg border border-gray-300 bg-white px-4 py-3 text-left transition-colors hover:border-green-500 hover:bg-green-50"
+            data-test="chat-after-save-slot"
+            @click="saveToSlot(slotId)"
+          >
+            <span class="block text-sm font-bold">{{ getSlotTitle(slotId) }}</span>
+            <span class="mt-1 block text-xs text-gray-500">{{ getSlotStatus(slotId) }}</span>
+          </button>
+        </div>
+      </section>
     </div>
 
     <!-- Chat Messages -->
@@ -77,17 +123,22 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { CHAT_AVATAR_IMAGE, GAME_ROLE, GAME_RULES } from '@/domain/gameContract'
+import { CHAT_AFTER_SAVE_SLOT_SESSION_KEY, CHAT_AVATAR_IMAGE, GAME_ROLE, GAME_RULES } from '@/domain/gameContract'
 import type { AfterStoryContext, Message } from '@/domain/gameState'
 import { useGameStore } from '@/store/gameStore'
 import { LLMService } from '@/modules/LLMService'
+import { SAVE_SLOT_KINDS, SaveSystem, type SaveSlot } from '@/modules/SaveSystem'
 import { audioManager } from '@/modules/AudioManager'
+import { Save } from 'lucide-vue-next'
 
 const router = useRouter()
 const gameStore = useGameStore()
 const inputText = ref('')
 const isWaiting = ref(false)
 const chatContainer = ref<HTMLElement | null>(null)
+const showSaveSlots = ref(false)
+const saveSlots = ref<SaveSlot[]>([])
+const SAVE_SLOT_IDS = GAME_RULES.saveSlotIds
 
 const normalizeLine = (value: string | null | undefined, maxLength = 48) => {
   const text = (value ?? '').replace(/\s+/g, ' ').trim()
@@ -117,8 +168,7 @@ const buildAfterStoryContext = (): AfterStoryContext => {
   }
 }
 
-const buildInitialMessages = (): Message[] => {
-  const context = buildAfterStoryContext()
+const buildInitialMessages = (context: AfterStoryContext): Message[] => {
   const keyLine = normalizeLine(context.turningLine || context.lastPlayerLine, 34)
 
   return [
@@ -132,7 +182,21 @@ const buildInitialMessages = (): Message[] => {
   ]
 }
 
-const messages = ref<Message[]>(buildInitialMessages())
+const getLoadedSlotId = () => {
+  const slotId = Number(sessionStorage.getItem(CHAT_AFTER_SAVE_SLOT_SESSION_KEY))
+  return Number.isInteger(slotId) ? slotId : null
+}
+
+const loadSavedChatAfter = () => {
+  const slotId = getLoadedSlotId()
+  return slotId === null ? null : SaveSystem.loadChatAfter(slotId)
+}
+
+const savedChatAfter = loadSavedChatAfter()
+const currentAfterStoryContext = ref<AfterStoryContext>(savedChatAfter?.afterStoryContext ?? buildAfterStoryContext())
+const messages = ref<Message[]>(savedChatAfter?.messages ?? buildInitialMessages(currentAfterStoryContext.value))
+
+const saveSlotMap = () => new Map(saveSlots.value.map((slot) => [slot.id, slot]))
 
 const scrollToBottom = async () => {
   await nextTick()
@@ -150,11 +214,66 @@ const sendMessage = async () => {
   isWaiting.value = true
   scrollToBottom()
 
-  const reply = await LLMService.chatAfterStory(text, messages.value.slice(0, -1), buildAfterStoryContext())
+  const reply = await LLMService.chatAfterStory(text, messages.value.slice(0, -1), currentAfterStoryContext.value)
   
   isWaiting.value = false
   messages.value.push({ role: 'assistant', content: reply })
   scrollToBottom()
+}
+
+const refreshSaveSlots = () => {
+  saveSlots.value = SaveSystem.getSlots()
+}
+
+const formatSaveTime = (timestamp: number) =>
+  new Intl.DateTimeFormat('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(timestamp))
+
+const getSlotTitle = (slotId: number) => {
+  const slot = saveSlotMap().get(slotId)
+  return slot?.kind === SAVE_SLOT_KINDS.chatAfter ? `栏位 ${slotId}（日后谈）` : `栏位 ${slotId}`
+}
+
+const getSlotStatus = (slotId: number) => {
+  const slot = saveSlotMap().get(slotId)
+  return slot ? `已有存档：${formatSaveTime(slot.timestamp)}` : '空栏位'
+}
+
+const openSaveSlots = () => {
+  audioManager.playSfx('click')
+  if (isWaiting.value) {
+    alert('正在等待回应，暂时不能保存。')
+    return
+  }
+
+  refreshSaveSlots()
+  showSaveSlots.value = true
+}
+
+const closeSaveSlots = () => {
+  showSaveSlots.value = false
+}
+
+const saveToSlot = (slotId: number) => {
+  audioManager.playSfx('click')
+  const existingSlot = saveSlotMap().get(slotId)
+  if (existingSlot && !confirm(`栏位 ${slotId} 已有存档，是否覆盖？`)) return
+
+  if (SaveSystem.saveChatAfter(slotId, {
+    messages: messages.value,
+    afterStoryContext: currentAfterStoryContext.value
+  })) {
+    sessionStorage.setItem(CHAT_AFTER_SAVE_SLOT_SESSION_KEY, String(slotId))
+    refreshSaveSlots()
+    showSaveSlots.value = false
+    alert(`日后谈已保存至栏位 ${slotId}`)
+  } else {
+    alert('保存失败')
+  }
 }
 
 const goHome = () => {

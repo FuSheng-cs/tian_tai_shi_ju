@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AI_STATES, EMOTIONS, ENDINGS, GAME_RULES } from '../src/domain/gameContract'
 import type { GameState, Message } from '../src/domain/gameState'
 import { ACHIEVEMENTS, AchievementTracker } from '../src/modules/AchievementTracker'
-import type { SaveSlot } from '../src/modules/SaveSystem'
+import { SAVE_SLOT_KINDS, type SaveSlot } from '../src/modules/SaveSystem'
 
 const playerMessages = (count: number): Message[] => [
   { role: 'assistant', content: '雨声落在栏杆上。' },
@@ -112,7 +112,7 @@ describe('AchievementTracker', () => {
   })
 
   it('evaluates save slot achievements', () => {
-    const slot = (id: number): SaveSlot => ({ id, timestamp: Date.now(), data: `slot-${id}` })
+    const slot = (id: number): SaveSlot => ({ id, timestamp: Date.now(), data: `slot-${id}`, kind: SAVE_SLOT_KINDS.game })
 
     expect(AchievementTracker.evaluateSaveSlots([slot(1)])).toEqual(['first_save'])
     expect(AchievementTracker.evaluateSaveSlots([slot(1), slot(2), slot(3)])).toEqual(['three_save_slots'])

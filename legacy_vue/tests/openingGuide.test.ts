@@ -28,6 +28,7 @@ const mocks = vi.hoisted(() => ({
   chat: vi.fn(),
   getSlots: vi.fn(() => [{ id: 1, timestamp: 1710000000000, data: 'slot' }]),
   load: vi.fn(() => true),
+  loadChatAfter: vi.fn(() => null),
   save: vi.fn(() => true),
   unlock: vi.fn(),
   evaluateFromState: vi.fn(),
@@ -49,9 +50,14 @@ vi.mock('../src/modules/AudioManager', () => ({
 }))
 
 vi.mock('../src/modules/SaveSystem', () => ({
+  SAVE_SLOT_KINDS: {
+    game: 'game',
+    chatAfter: 'chatAfter'
+  },
   SaveSystem: {
     getSlots: mocks.getSlots,
     load: mocks.load,
+    loadChatAfter: mocks.loadChatAfter,
     save: mocks.save
   }
 }))
@@ -111,6 +117,8 @@ describe('opening guide flow', () => {
     mocks.getSlots.mockReturnValue([{ id: 1, timestamp: 1710000000000, data: 'slot' }])
     mocks.load.mockClear()
     mocks.load.mockReturnValue(true)
+    mocks.loadChatAfter.mockClear()
+    mocks.loadChatAfter.mockReturnValue(null)
     mocks.save.mockClear()
     mocks.save.mockReturnValue(true)
     mocks.unlock.mockClear()
@@ -138,6 +146,34 @@ describe('opening guide flow', () => {
 
     expect(sessionStorage.getItem(GAME_ENTRY_SESSION_KEY)).toBe(GAME_ENTRY_TYPES.load)
     expect(mocks.push).toHaveBeenCalledWith('/game')
+  })
+
+  it('loads after-story save slots from the start screen', async () => {
+    mocks.getSlots.mockReturnValue([{ id: 2, timestamp: 1710000000000, data: 'slot', kind: 'chatAfter' }])
+    mocks.loadChatAfter.mockReturnValue({
+      messages: [{ role: 'assistant', content: '我到楼下了。' }],
+      afterStoryContext: {
+        endingType: ENDINGS.acquaintance.type,
+        lastPlayerLine: '我在这里。',
+        endingReply: '她把手机递过来。',
+        turningLine: '我在这里。',
+        endingComment: '她记住了这句话。',
+        roundsUsed: 8,
+        affectionBoostCount: 4,
+        affection: 24
+      }
+    })
+    const wrapper = mount(StartView)
+
+    await wrapper.findAll('.menu-button')[1].trigger('click')
+    const slotButton = wrapper.findAll('.save-slot-button')[1]
+    expect(slotButton.text()).toContain('栏位 2（日后谈）')
+    await slotButton.trigger('click')
+
+    expect(sessionStorage.getItem('damo_chat_after_save_slot')).toBe('2')
+    expect(mocks.load).not.toHaveBeenCalled()
+    expect(mocks.loadChatAfter).toHaveBeenCalledWith(2)
+    expect(mocks.push).toHaveBeenCalledWith('/chat-after')
   })
 
   it('shows the full opening sequence on every new game entry', async () => {

@@ -54,8 +54,23 @@ func TestBuildMainSystemPromptDoesNotAskForMechanicTags(t *testing.T) {
 	if !strings.Contains(prompt, "JSON") {
 		t.Fatal("main prompt should explicitly forbid JSON output")
 	}
-	if !strings.Contains(prompt, "姿态边界") || !strings.Contains(prompt, "把脚/腿收回栏杆内") {
-		t.Fatal("main prompt should keep physical posture changes out of the natural reply role")
+	requiredBoundaries := []string{
+		"姿态边界",
+		"主游戏未进入结局前",
+		"不能离开栏杆场景",
+		"楼道/楼梯/门口",
+		"走下台阶",
+		"推门",
+		"转身离场",
+		"走远",
+		"收拾相机离开",
+		"原地微动作",
+		"把脚/腿收回栏杆内",
+	}
+	for _, item := range requiredBoundaries {
+		if !strings.Contains(prompt, item) {
+			t.Fatalf("main prompt should keep physical posture boundary %q", item)
+		}
 	}
 }
 

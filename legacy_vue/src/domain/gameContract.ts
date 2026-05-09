@@ -8,6 +8,7 @@ export const GAME_RULES = {
 } as const
 
 export const GAME_ENTRY_SESSION_KEY = 'damo_game_entry'
+export const CHAT_AFTER_SAVE_SLOT_SESSION_KEY = 'damo_chat_after_save_slot'
 export const ROOFTOP_BGM_SRCS = [
   '/assets/audio/bgm_rooftop_96k.ogg',
   '/assets/audio/bgm_rooftop_96k.mp3'

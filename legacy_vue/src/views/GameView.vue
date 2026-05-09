@@ -199,6 +199,7 @@ import {
   DEATH_ENDING_SEQUENCE_FRAMES,
   ENDING_BY_TYPE,
   ENDINGS,
+  CHAT_AFTER_SAVE_SLOT_SESSION_KEY,
   GAME_ENTRY_SESSION_KEY,
   GAME_ENTRY_TYPES,
   GAME_ROLE,
@@ -438,6 +439,7 @@ const goHome = () => {
 
 const goToChatAfter = () => {
   audioManager.playSfx('click')
+  sessionStorage.removeItem(CHAT_AFTER_SAVE_SLOT_SESSION_KEY)
   router.push('/chat-after')
 }
 
