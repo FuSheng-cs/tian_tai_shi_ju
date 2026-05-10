@@ -1,8 +1,0 @@
-- [x] Old simulation lore, `TrueEndingView.vue`, and complex loop mechanics are removed.
-- [x] Affection bar is visible in `GameView.vue`.
-- [x] When AI outputs `[好感度+5]`, affection increases by 5 and round count increases by 1.
-- [x] `LLMService.ts` prompt reflects the new "orphan photographer, nihilistic, Goodbye Eri" persona.
-- [x] Endings are correctly parsed as 死亡, 消失, and 相识.
-- [x] Reaching 相识 provides a button to enter the new WeChat-style `ChatAfterStoryView.vue`.
-- [x] The `ChatAfterStoryView.vue` is functional and allows endless chat with the saved character.
-- [x] `docs/storyline_and_lore.md` and `docs/prompts_and_settings.md` are updated.

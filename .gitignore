@@ -8,3 +8,18 @@ Rubbish_backup/
 *.log
 .env
 .env.local
+
+# Local-only planning, archive, and promotion docs
+.trae/specs/refactor-story-and-gameplay/checklist.md
+.trae/specs/refactor-story-and-gameplay/spec.md
+.trae/specs/refactor-story-and-gameplay/tasks.md
+CLAUDE.md
+docs/archive/cleanup_changelog.md
+docs/archive/project_overview_ai_native_backup.md
+docs/engineering/cleanup_candidates.md
+docs/engineering/emotion_cg_assets.md
+docs/engineering/optimization_report.md
+docs/engineering/optimization_requirements.md
+docs/engineering/prompt_gameplay_optimization_suggestions.md
+docs/marketing/pv_script_tiantaishiju.md
+docs/submission/award_optimized_submission.md
