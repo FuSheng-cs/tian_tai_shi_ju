@@ -1,41 +1,63 @@
 import { defineStore } from 'pinia'
 import { LLMService } from '@/modules/LLMService'
 import {
-  AFFECTION_BOOST_TAG_REGEX,
-  AI_STATE_BY_LABEL,
   AI_STATE_BY_TYPE,
-  AI_STATE_TAG_REGEX,
   AI_STATES,
-  ANY_AI_STATE_TAG_REGEX,
-  ANY_EMOTION_TAG_REGEX,
-  ANY_ENDING_TAG_REGEX,
-  EMOTION_BY_LABEL,
   EMOTION_BY_TYPE,
-  EMOTION_TAG_REGEX,
   ENDINGS,
-  ENDING_BY_LABEL,
+  ENDING_THRESHOLDS,
   ENDING_BY_TYPE,
-  ENDING_TAG_REGEX,
   GAME_ROLE,
   GAME_RULES,
-  MECHANIC_TAGS,
   WAITING_TEXTS,
   deriveAiStateType,
   resolveFallbackEndingType,
-  type AiStateLabel,
   type AiStateType,
-  type EmotionLabel,
   type EmotionType,
-  type EndingLabel,
   type EndingType
 } from '@/domain/gameContract'
-import type { EndingSummary, GameState, Message, PersistedGameState } from '@/domain/gameState'
+import type { ChatTurnResult, EndingSummary, GameState, Message, PersistedGameState, TurnEvaluation } from '@/domain/gameState'
 
 const getRoundsUsed = (messages: Message[]) =>
   messages.filter((message) => message.role === 'user').length
 
+const reconcileInferredEndingProgress = (state: GameState, endingType: EndingType) => {
+  const threshold = endingType === ENDINGS.acquaintance.type
+    ? ENDING_THRESHOLDS.acquaintance
+    : endingType === ENDINGS.disappear.type
+      ? ENDING_THRESHOLDS.disappear
+      : null
+
+  if (!threshold) return
+
+  state.affection = Math.max(state.affection, threshold.minAffection)
+  state.affectionBoostCount = Math.max(state.affectionBoostCount, threshold.minAffectionBoostCount)
+}
+
 const cleanSummaryLine = (value: unknown) =>
   typeof value === 'string' ? value.trim().slice(0, GAME_RULES.maxSummaryTextLength) : ''
+
+const DEATH_TURNING_LINE_PATTERNS = [
+  /不想管/,
+  /没时间/,
+  /自己解决/,
+  /矫情/,
+  /不想帮/,
+  /随便/,
+  /我走了/,
+  /不是唯一/
+]
+
+const findDeathTurningLine = (playerMessages: Message[]) => {
+  for (let i = playerMessages.length - 1; i >= 0; i -= 1) {
+    const line = playerMessages[i]?.content ?? ''
+    if (DEATH_TURNING_LINE_PATTERNS.some((pattern) => pattern.test(line))) {
+      return line
+    }
+  }
+
+  return playerMessages[playerMessages.length - 1]?.content
+}
 
 const buildLocalEndingComment = (endingType: EndingType | null, boostCount: number) => {
   if (endingType === ENDINGS.acquaintance.type) return '你让她在这一夜里看见了被理解的可能。'
@@ -49,7 +71,11 @@ const buildLocalEndingComment = (endingType: EndingType | null, boostCount: numb
 
 const buildLocalEndingSummary = (state: GameState): EndingSummary => {
   const playerMessages = state.messages.filter((message) => message.role === 'user')
+  const deathTurningLine = state.endingType === ENDINGS.death.type
+    ? findDeathTurningLine(playerMessages)
+    : null
   const fallbackLine =
+    deathTurningLine ||
     state.affectionBoostMessages[state.affectionBoostMessages.length - 1] ||
     playerMessages[playerMessages.length - 1]?.content ||
     '你没有留下明确的话。'
@@ -80,6 +106,71 @@ const normalizeEmotionHistory = (value: unknown): EmotionType[] =>
   Array.isArray(value)
     ? value.map(normalizeEmotionType).filter((emotion): emotion is EmotionType => emotion !== null)
     : []
+
+const createDefaultTurnEvaluation = (aiState: AiStateType | null): TurnEvaluation => ({
+  emotion: 'normal',
+  aiState: aiState ?? AI_STATES.guarded.type,
+  affectionDelta: 0,
+  pressureDelta: 0,
+  endingType: null,
+  confidence: 0
+})
+
+const normalizeChatTurn = (value: unknown, fallbackAiState: AiStateType | null): ChatTurnResult => {
+  const fallbackEvaluation = createDefaultTurnEvaluation(fallbackAiState)
+  if (typeof value === 'string') {
+    return {
+      reply: value,
+      evaluation: fallbackEvaluation
+    }
+  }
+
+  if (!value || typeof value !== 'object') {
+    return {
+      reply: '',
+      evaluation: fallbackEvaluation
+    }
+  }
+
+  const record = value as Partial<ChatTurnResult>
+  return {
+    reply: typeof record.reply === 'string' ? record.reply : '',
+    evaluation: record.evaluation ?? fallbackEvaluation
+  }
+}
+
+const normalizePressureDelta = (value: unknown): 0 | 1 | 2 => {
+  const numeric = Number(value)
+  if (Number.isNaN(numeric) || numeric <= 0) return 0
+  if (numeric === 1) return 1
+  return 2
+}
+
+const applyEvaluatedAiState = (state: GameState, value: unknown) => {
+  const aiState = normalizeAiStateType(value)
+  if (!aiState) return
+
+  state.lastAiStateTag = aiState
+  if (state.aiStateHistory[state.aiStateHistory.length - 1] !== aiState) {
+    state.aiStateHistory.push(aiState)
+  }
+}
+
+const applyEvaluatedEmotion = (state: GameState, value: TurnEvaluation['emotion']) => {
+  if (value === 'normal') {
+    state.lastEmotionTag = null
+    return
+  }
+
+  const emotion = normalizeEmotionType(value)
+  if (!emotion) {
+    state.lastEmotionTag = null
+    return
+  }
+
+  state.lastEmotionTag = emotion
+  state.emotionHistory.push(emotion)
+}
 
 export const useGameStore = defineStore('game', {
   state: (): GameState => ({
@@ -130,7 +221,7 @@ export const useGameStore = defineStore('game', {
       this.isWaiting = true;
       this.waitingText = WAITING_TEXTS[Math.floor(Math.random() * WAITING_TEXTS.length)];
       
-      const reply = await LLMService.chat(userText, this.messages.slice(0, -1), {
+      const rawTurn = await LLMService.chat(userText, this.messages.slice(0, -1), {
         roundsLeft: this.roundCount,
         affection: this.affection,
         affectionBoostCount: this.affectionBoostCount,
@@ -140,54 +231,40 @@ export const useGameStore = defineStore('game', {
       
       this.isWaiting = false;
       
-      let finalReply = reply;
+      const turn = normalizeChatTurn(rawTurn, this.lastAiStateTag);
+      const evaluation = turn.evaluation;
+      let finalReply = turn.reply.trim();
 
-      const aiStateMatch = finalReply.match(AI_STATE_TAG_REGEX);
-      if (aiStateMatch) {
-        const aiState = AI_STATE_BY_LABEL[aiStateMatch[1] as AiStateLabel]
-        if (aiState) {
-          this.lastAiStateTag = aiState.type;
-          this.aiStateHistory.push(aiState.type);
-        }
-        finalReply = finalReply.replace(ANY_AI_STATE_TAG_REGEX, '').trim();
-      }
-
-      const emotionMatch = finalReply.match(EMOTION_TAG_REGEX);
-      if (emotionMatch) {
-        const emotion = EMOTION_BY_LABEL[emotionMatch[1] as EmotionLabel]
-        if (emotion) {
-          this.lastEmotionTag = emotion.type;
-          this.emotionHistory.push(emotion.type);
-        }
-        finalReply = finalReply.replace(ANY_EMOTION_TAG_REGEX, '').trim();
-      } else {
-        this.lastEmotionTag = null;
-      }
+      applyEvaluatedAiState(this.$state, evaluation.aiState);
+      applyEvaluatedEmotion(this.$state, evaluation.emotion);
       
-      // Check for affection boost
-      if (reply.includes(MECHANIC_TAGS.affectionBoost)) {
+      const pressureDelta = normalizePressureDelta(evaluation.pressureDelta);
+      if (pressureDelta > 0) {
+        this.roundCount = Math.max(0, this.roundCount - pressureDelta);
+      }
+
+      if (evaluation.affectionDelta === GAME_RULES.affectionBoostValue) {
         this.affection += GAME_RULES.affectionBoostValue;
         this.affectionBoostCount += 1;
         this.affectionBoostMessages.push(userText);
         this.roundCount += 1;
-        finalReply = finalReply.replace(AFFECTION_BOOST_TAG_REGEX, '').trim();
       }
 
-      const endingMatch = finalReply.match(ENDING_TAG_REGEX);
+      const evaluatedEndingType = normalizeEndingType(evaluation.endingType);
       
-      if (endingMatch) {
+      if (evaluatedEndingType) {
         this.isEnding = true;
-        const ending = ENDING_BY_LABEL[endingMatch[1] as EndingLabel]
-        this.endingType = ending?.type ?? ENDINGS.disappear.type;
-        
-        finalReply = finalReply.replace(ANY_ENDING_TAG_REGEX, '').trim();
+        this.endingType = evaluatedEndingType;
       } else if (this.roundCount <= 0) {
         this.isEnding = true;
-        this.endingType = resolveFallbackEndingType({
+        const fallbackEndingType = resolveFallbackEndingType({
           affection: this.affection,
           affectionBoostCount: this.affectionBoostCount,
-          turnsUsed: getRoundsUsed(this.messages)
+          turnsUsed: getRoundsUsed(this.messages),
+          lastAssistantText: finalReply
         });
+        this.endingType = fallbackEndingType;
+        reconcileInferredEndingProgress(this.$state, fallbackEndingType);
       }
       
       if (finalReply) {
@@ -246,6 +323,11 @@ export const useGameStore = defineStore('game', {
       if (this.endingSummary) return this.endingSummary;
 
       const fallbackSummary = buildLocalEndingSummary(this.$state);
+
+      if (this.endingType === ENDINGS.death.type) {
+        this.endingSummary = fallbackSummary;
+        return this.endingSummary;
+      }
 
       try {
         const aiSummary = await LLMService.getEndingSummary(this.messages, {

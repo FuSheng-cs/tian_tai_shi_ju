@@ -2,47 +2,59 @@
   <div class="game-view min-h-screen w-full relative flex flex-col bg-black text-gray-100 overflow-hidden">
     <!-- Background (now using the character images directly as they contain the full scene) -->
     <div class="absolute inset-0 z-0">
-      <img 
-        :src="currentBg" 
-        class="w-full h-full object-cover transition-opacity duration-1000"
-        :class="gameStore.isEnding ? 'opacity-100' : 'opacity-80'"
-        alt="Background"
-      />
+      <picture class="block h-full w-full">
+        <source :srcset="currentBg.mobile" media="(max-width: 768px)" />
+        <img
+          :src="currentBg.desktop"
+          class="w-full h-full object-cover transition-opacity duration-1000"
+          :class="backgroundImageClass"
+          alt="Background"
+          decoding="async"
+        />
+      </picture>
     </div>
+
+    <OpeningSequenceOverlay
+      v-if="isOpeningSequenceActive"
+      :frames="OPENING_SEQUENCE_FRAMES"
+      @complete="completeOpeningSequence"
+    />
+
+    <EndingSequenceOverlay
+      v-if="isDeathEndingSequenceActive"
+      :frames="DEATH_ENDING_SEQUENCE_FRAMES"
+      @complete="completeDeathEndingSequence"
+    />
 
     <!-- Character layer removed since the new images are full-scene compositions -->
 
     <!-- Top UI -->
-    <div class="absolute top-0 left-0 right-0 z-30 p-6 flex justify-between items-start pointer-events-auto">
-      <div class="flex gap-4">
-        <div class="w-48 bg-black/50 p-2 rounded backdrop-blur-sm border border-gray-700">
-          <div class="text-sm text-gray-300 mb-1 flex justify-between">
-            <span>剩余机会</span>
-            <span>{{ gameStore.roundCount }}/{{ GAME_RULES.initialRoundCount }}</span>
-          </div>
-          <ProgressBar :value="gameStore.roundCount" :max="GAME_RULES.initialRoundCount" color="#ef4444" />
+    <div class="absolute top-0 left-0 right-0 z-30 flex flex-wrap items-start justify-between gap-3 p-4 pointer-events-auto md:p-6">
+      <div class="flex max-w-[calc(100%-112px)] flex-wrap gap-2 md:max-w-none md:gap-4">
+        <div class="rounded-md border border-white/10 bg-black/35 px-2 py-1.5 shadow-[0_0_18px_rgba(0,0,0,0.45)] backdrop-blur-[2px]">
+          <ChanceCigarettes :value="gameStore.roundCount" :max="GAME_RULES.initialRoundCount" />
         </div>
         
-        <div v-if="gameStore.hintCount > 0 && !gameStore.isEnding" class="bg-[#0a0515]/90 px-4 py-2 rounded-xl border border-gray-800 shadow-lg backdrop-blur-md flex items-center">
+        <div v-if="gameStore.hintCount > 0 && !gameStore.isEnding" class="bg-[#0a0515]/90 px-3 py-2 rounded-xl border border-gray-800 shadow-lg backdrop-blur-md flex items-center md:px-4">
           <button 
             @click="handleHint" 
-            :disabled="gameStore.isWaiting"
-            class="text-sm text-yellow-500 hover:text-yellow-400 font-bold disabled:opacity-50 flex items-center gap-2 transition-colors"
+            :disabled="gameStore.isWaiting || isCinematicOverlayActive"
+            class="text-xs text-yellow-500 hover:text-yellow-400 font-bold disabled:opacity-50 flex items-center gap-2 transition-colors sm:text-sm"
           >
             <span class="text-lg">💡</span> 寻找线索 ({{ gameStore.hintCount }})
           </button>
         </div>
       </div>
       
-      <div class="flex gap-3">
+      <div class="flex shrink-0 gap-2 md:gap-3">
         <button
           @click="openSaveSlots"
-          :disabled="gameStore.isWaiting"
-          class="bg-gray-800/80 hover:bg-gray-700 px-3 py-1.5 rounded text-sm border border-gray-600 backdrop-blur-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-800/80"
+          :disabled="gameStore.isWaiting || isCinematicOverlayActive"
+          class="bg-gray-800/80 hover:bg-gray-700 px-2.5 py-1.5 rounded text-sm border border-gray-600 backdrop-blur-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-800/80 md:px-3"
         >
           保存
         </button>
-        <button @click="goHome" class="bg-gray-800/80 hover:bg-gray-700 px-3 py-1.5 rounded text-sm border border-gray-600 backdrop-blur-sm transition-colors">退出</button>
+        <button @click="goHome" class="bg-gray-800/80 hover:bg-gray-700 px-2.5 py-1.5 rounded text-sm border border-gray-600 backdrop-blur-sm transition-colors md:px-3">退出</button>
       </div>
     </div>
 
@@ -81,7 +93,7 @@
     </div>
 
     <!-- Dialog Box -->
-    <div class="absolute bottom-0 left-0 right-0 z-30 p-4 md:p-8 pointer-events-auto bg-gradient-to-t from-black via-black/80 to-transparent pt-24">
+    <div v-if="!isCinematicOverlayActive" class="absolute bottom-0 left-0 right-0 z-30 p-4 md:p-8 pointer-events-auto bg-gradient-to-t from-black via-black/80 to-transparent pt-24">
       <div class="max-w-4xl mx-auto">
         <div class="bg-black/60 border border-gray-700/50 rounded-xl p-6 shadow-2xl backdrop-blur-md min-h-[160px] flex flex-col justify-end transition-all duration-500">
           
@@ -105,7 +117,8 @@
           </div>
 
           <!-- Input Area -->
-          <div v-if="!gameStore.isWaiting && !gameStore.isEnding && textCompleted" class="mt-6 flex gap-4">
+          <div v-if="!gameStore.isWaiting && !gameStore.isEnding && textCompleted" class="mt-6">
+            <div class="flex gap-4">
             <input 
               v-model="inputText" 
               @keyup.enter="handleSend"
@@ -117,9 +130,23 @@
             <button @click="handleSend" class="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.6)]">
               发送
             </button>
+            </div>
           </div>
 
-          <div v-if="gameStore.isEnding && textCompleted" class="mt-6 space-y-4">
+          <div v-if="canShowEndingSettlement" class="mt-6 space-y-4" data-test="ending-settlement">
+            <div
+              v-if="endingDefinition"
+              class="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+              :class="{
+                'border-red-300/35 bg-red-950/25 text-red-50': gameStore.endingType === ENDINGS.death.type,
+                'border-sky-300/35 bg-sky-950/25 text-sky-50': gameStore.endingType === ENDINGS.disappear.type,
+                'border-emerald-300/35 bg-emerald-950/25 text-emerald-50': gameStore.endingType === ENDINGS.acquaintance.type
+              }"
+            >
+              <span class="text-xs opacity-75">结局</span>
+              <strong class="text-base">{{ endingDefinition.achievementName }}</strong>
+            </div>
+
             <section class="border-t border-gray-700/60 pt-4 text-sm text-gray-300">
               <div class="mb-3 flex items-center justify-between text-xs uppercase text-purple-300/80">
                 <span>本局回声</span>
@@ -168,13 +195,31 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ENDINGS, GAME_ROLE, GAME_RULES, resolveVisualState } from '@/domain/gameContract'
+import {
+  DEATH_ENDING_SEQUENCE_FRAMES,
+  ENDING_BY_TYPE,
+  ENDINGS,
+  CHAT_AFTER_SAVE_SLOT_SESSION_KEY,
+  GAME_ENTRY_SESSION_KEY,
+  GAME_ENTRY_TYPES,
+  GAME_ROLE,
+  GAME_RULES,
+  GAMEPLAY_PRELOAD_IMAGES,
+  OPENING_SEQUENCE_FRAMES,
+  ROOFTOP_BGM_SRCS,
+  resolveWaitingBackground,
+  resolveWaitingMobileBackground,
+  resolveVisualState,
+  type ResolvedVisualState
+} from '@/domain/gameContract'
 import { useGameStore } from '@/store/gameStore'
 import { audioManager } from '@/modules/AudioManager'
 import { SaveSystem, type SaveSlot } from '@/modules/SaveSystem'
 import { AchievementTracker } from '@/modules/AchievementTracker'
+import ChanceCigarettes from '@/components/ChanceCigarettes.vue'
+import EndingSequenceOverlay from '@/components/EndingSequenceOverlay.vue'
+import OpeningSequenceOverlay from '@/components/OpeningSequenceOverlay.vue'
 import TypewriterText from '@/components/TypewriterText.vue'
-import ProgressBar from '@/components/ProgressBar.vue'
 
 const router = useRouter()
 const gameStore = useGameStore()
@@ -186,6 +231,12 @@ const latestHint = ref<string | null>(null)
 const showSaveSlots = ref(false)
 const saveSlots = ref<SaveSlot[]>([])
 const isEndingSummaryLoading = ref(false)
+const isOpeningSequenceActive = ref(false)
+const isDeathEndingSequenceActive = ref(false)
+const hasPlayedDeathEndingSequence = ref(gameStore.isEnding && gameStore.endingType === ENDINGS.death.type)
+const hasStartedBgm = ref(false)
+const waitingVisualState = ref<ResolvedVisualState | null>(null)
+const preloadedImages = new Set<string>()
 
 const latestMessage = computed(() => {
   if (gameStore.messages.length === 0) return null
@@ -193,23 +244,92 @@ const latestMessage = computed(() => {
 })
 
 const saveSlotMap = computed(() => new Map(saveSlots.value.map((slot) => [slot.id, slot])))
+const hasPlayerMessages = computed(() => gameStore.messages.some((message) => message.role === 'user'))
+const endingDefinition = computed(() =>
+  gameStore.endingType ? ENDING_BY_TYPE[gameStore.endingType] : null
+)
+const isCinematicOverlayActive = computed(() => isOpeningSequenceActive.value || isDeathEndingSequenceActive.value)
+const isDeathEndingSequencePending = computed(() =>
+  gameStore.isEnding &&
+  gameStore.endingType === ENDINGS.death.type &&
+  !hasPlayedDeathEndingSequence.value
+)
+const canShowEndingSettlement = computed(() =>
+  gameStore.isEnding && textCompleted.value && !isDeathEndingSequenceActive.value
+)
 
 const currentVisualState = computed(() => resolveVisualState({
-  roundCount: gameStore.roundCount,
+  roundCount: isDeathEndingSequencePending.value ? Math.min(gameStore.roundCount, 1) : gameStore.roundCount,
   affection: gameStore.affection,
-  isEnding: gameStore.isEnding,
-  endingType: gameStore.endingType,
+  isEnding: gameStore.isEnding && !isDeathEndingSequencePending.value,
+  endingType: isDeathEndingSequencePending.value ? null : gameStore.endingType,
   aiStateType: gameStore.lastAiStateTag,
   emotionType: gameStore.lastEmotionTag
 }))
 
-const currentBg = computed(() => currentVisualState.value.backgroundImage)
+const currentBg = computed(() =>
+  gameStore.isWaiting
+    ? {
+        desktop: resolveWaitingBackground(waitingVisualState.value ?? currentVisualState.value),
+        mobile: resolveWaitingMobileBackground(waitingVisualState.value ?? currentVisualState.value)
+      }
+    : {
+        desktop: currentVisualState.value.backgroundImage,
+        mobile: currentVisualState.value.mobileBackgroundImage
+      }
+)
+
+const backgroundImageClass = computed(() =>
+  isDeathEndingSequencePending.value
+    ? 'death-cinematic-background'
+    : gameStore.isEnding
+      ? 'opacity-100'
+      : 'opacity-80'
+)
+
+const preloadImages = (sources: readonly string[]) => {
+  sources.forEach((src) => {
+    if (!src || preloadedImages.has(src)) return
+
+    preloadedImages.add(src)
+    const image = new Image()
+    image.decoding = 'async'
+    image.src = src
+  })
+}
+
+const startRooftopBgm = () => {
+  if (hasStartedBgm.value) return
+  if (gameStore.isEnding && gameStore.endingType === ENDINGS.death.type) return
+  hasStartedBgm.value = true
+  audioManager.playBgm(ROOFTOP_BGM_SRCS)
+}
+
+const completeOpeningSequence = () => {
+  isOpeningSequenceActive.value = false
+  startRooftopBgm()
+}
+
+const shouldStartDeathEndingSequence = () =>
+  gameStore.endingType === ENDINGS.death.type &&
+  !hasPlayedDeathEndingSequence.value &&
+  !isDeathEndingSequenceActive.value
+
+const completeDeathEndingSequence = () => {
+  isDeathEndingSequenceActive.value = false
+}
 
 const onTextComplete = () => {
   textCompleted.value = true
   if (gameStore.isEnding && gameStore.endingType) {
     AchievementTracker.unlock(gameStore.endingType)
+    AchievementTracker.evaluateFromState(gameStore.$state)
     void ensureEndingSummary()
+    if (shouldStartDeathEndingSequence()) {
+      hasPlayedDeathEndingSequence.value = true
+      audioManager.stopBgm()
+      isDeathEndingSequenceActive.value = true
+    }
   }
 }
 
@@ -226,23 +346,36 @@ const ensureEndingSummary = async () => {
 
 const handleSend = async () => {
   const text = inputText.value.trim()
-  if (!text || gameStore.isWaiting || gameStore.isEnding) return
+  if (!text || gameStore.isWaiting || gameStore.isEnding || isCinematicOverlayActive.value) return
   
   audioManager.playSfx('click')
   inputText.value = ''
   textCompleted.value = false
   latestHint.value = null
   
-  await gameStore.sendMessage(text)
+  waitingVisualState.value = currentVisualState.value
+  try {
+    await gameStore.sendMessage(text)
+  } finally {
+    waitingVisualState.value = null
+  }
+  if (!gameStore.isEnding) {
+    AchievementTracker.evaluateFromState(gameStore.$state)
+  }
 }
 
 const handleHint = async () => {
-  if (gameStore.hintCount <= 0 || gameStore.isWaiting) return
+  if (gameStore.hintCount <= 0 || gameStore.isWaiting || isCinematicOverlayActive.value) return
   audioManager.playSfx('click')
   textCompleted.value = false
-  const hint = await gameStore.requestHint()
-  if (hint) {
-    latestHint.value = hint
+  waitingVisualState.value = currentVisualState.value
+  try {
+    const hint = await gameStore.requestHint()
+    if (hint) {
+      latestHint.value = hint
+    }
+  } finally {
+    waitingVisualState.value = null
   }
 }
 
@@ -271,7 +404,7 @@ const refreshSaveSlots = () => {
 
 const openSaveSlots = () => {
   audioManager.playSfx('click')
-  if (gameStore.isWaiting) {
+  if (gameStore.isWaiting || isCinematicOverlayActive.value) {
     alert('正在等待回应，暂时不能保存。')
     return
   }
@@ -291,6 +424,7 @@ const saveToSlot = (slotId: number) => {
 
   if (SaveSystem.save(slotId)) {
     refreshSaveSlots()
+    AchievementTracker.evaluateSaveSlots(saveSlots.value)
     showSaveSlots.value = false
     alert(`游戏已保存至栏位 ${slotId}`)
   } else {
@@ -305,11 +439,37 @@ const goHome = () => {
 
 const goToChatAfter = () => {
   audioManager.playSfx('click')
+  sessionStorage.removeItem(CHAT_AFTER_SAVE_SLOT_SESSION_KEY)
   router.push('/chat-after')
 }
 
 onMounted(() => {
   AchievementTracker.unlock('first_try')
-  audioManager.playBgm('/assets/audio/bgm_rooftop.mp3')
+  preloadImages(GAMEPLAY_PRELOAD_IMAGES)
+  startRooftopBgm()
+
+  if (gameStore.isEnding && gameStore.endingType === ENDINGS.death.type) {
+    hasPlayedDeathEndingSequence.value = true
+  }
+
+  const entryType = sessionStorage.getItem(GAME_ENTRY_SESSION_KEY)
+  sessionStorage.removeItem(GAME_ENTRY_SESSION_KEY)
+  const shouldPlayOpening = entryType === GAME_ENTRY_TYPES.newGame && !hasPlayerMessages.value && !gameStore.isEnding
+
+  if (shouldPlayOpening) {
+    isOpeningSequenceActive.value = true
+    return
+  }
+
 })
 </script>
+
+<style scoped>
+.death-cinematic-background {
+  opacity: 0.78;
+  filter: brightness(0.82) contrast(1.05);
+  transition:
+    opacity 1000ms ease,
+    filter 1000ms ease;
+}
+</style>

@@ -9,13 +9,20 @@
     <section class="menu-shell">
       <div class="brand-panel">
         <h1 id="start-title" class="sr-only">天台十句</h1>
-        <img
-          class="title-art"
-          src="/assets/images/menu_title.png"
-          alt=""
-          aria-hidden="true"
-          draggable="false"
-        />
+        <picture>
+          <source :srcset="MENU_TITLE_WEBP_IMAGE" type="image/webp" />
+          <img
+            class="title-art"
+            :src="MENU_TITLE_IMAGE"
+            width="1660"
+            height="496"
+            alt=""
+            aria-hidden="true"
+            decoding="async"
+            fetchpriority="high"
+            draggable="false"
+          />
+        </picture>
         <p class="tagline">
           <span class="quote-mark quote-mark-open" aria-hidden="true">“</span>
           <span class="quote-copy">
@@ -71,7 +78,7 @@
 
     <footer class="menu-footer" aria-label="版本信息">
       <span class="footer-dot"></span>
-      <span>v1.1.0</span>
+      <span>v1.7.0</span>
       <span class="footer-line"></span>
       <span>AI-DRIVEN NARRATIVE EXPERIENCE</span>
     </footer>
@@ -92,7 +99,7 @@
             :disabled="!hasLoadSlot(slotId)"
             @click="loadFromSlot(slotId)"
           >
-            <span class="save-slot-title">栏位 {{ slotId }}</span>
+            <span class="save-slot-title">{{ getLoadSlotTitle(slotId) }}</span>
             <span class="save-slot-status">{{ getLoadSlotStatus(slotId) }}</span>
           </button>
         </div>
@@ -104,10 +111,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { GAME_ROLE, GAME_RULES } from '@/domain/gameContract'
+import { CHAT_AFTER_SAVE_SLOT_SESSION_KEY, GAME_ENTRY_SESSION_KEY, GAME_ENTRY_TYPES, GAME_ROLE, GAME_RULES } from '@/domain/gameContract'
 import { useGameStore } from '@/store/gameStore'
 import { audioManager } from '@/modules/AudioManager'
-import { SaveSystem, type SaveSlot } from '@/modules/SaveSystem'
+import { SAVE_SLOT_KINDS, SaveSystem, type SaveSlot } from '@/modules/SaveSystem'
 import {
   ArrowRight,
   FolderOpen,
@@ -120,6 +127,8 @@ import {
 const router = useRouter()
 const gameStore = useGameStore()
 const SAVE_SLOT_IDS = GAME_RULES.saveSlotIds
+const MENU_TITLE_WEBP_IMAGE = '/assets/images/menu_title.webp'
+const MENU_TITLE_IMAGE = '/assets/images/menu_title.png'
 
 const showLoadSlots = ref(false)
 const saveSlots = ref<SaveSlot[]>([])
@@ -129,6 +138,7 @@ const saveSlotMap = computed(() => new Map(saveSlots.value.map((slot) => [slot.i
 const startGame = () => {
   audioManager.playSfx('click')
   gameStore.resetGame()
+  sessionStorage.setItem(GAME_ENTRY_SESSION_KEY, GAME_ENTRY_TYPES.newGame)
   router.push('/game')
 }
 
@@ -157,6 +167,11 @@ const getLoadSlotStatus = (slotId: number) => {
   return slot ? `已有存档：${formatSaveTime(slot.timestamp)}` : '空栏位'
 }
 
+const getLoadSlotTitle = (slotId: number) => {
+  const slot = saveSlotMap.value.get(slotId)
+  return slot?.kind === SAVE_SLOT_KINDS.chatAfter ? `栏位 ${slotId}（日后谈）` : `栏位 ${slotId}`
+}
+
 const closeLoadSlots = () => {
   showLoadSlots.value = false
 }
@@ -165,7 +180,22 @@ const loadFromSlot = (slotId: number) => {
   audioManager.playSfx('click')
   if (!hasLoadSlot(slotId)) return
 
+  const slot = saveSlotMap.value.get(slotId)
+  if (slot?.kind === SAVE_SLOT_KINDS.chatAfter) {
+    if (SaveSystem.loadChatAfter(slotId)) {
+      sessionStorage.setItem(CHAT_AFTER_SAVE_SLOT_SESSION_KEY, String(slotId))
+      router.push('/chat-after')
+      return
+    }
+
+    alert('未找到有效存档。')
+    refreshSaveSlots()
+    return
+  }
+
   if (SaveSystem.load(slotId)) {
+    sessionStorage.setItem(GAME_ENTRY_SESSION_KEY, GAME_ENTRY_TYPES.load)
+    sessionStorage.removeItem(CHAT_AFTER_SAVE_SLOT_SESSION_KEY)
     router.push('/game')
   } else {
     alert('未找到有效存档。')
@@ -217,7 +247,11 @@ const goToAchievements = () => {
 
 .menu-bg {
   z-index: 0;
-  background-image: url('/assets/images/menu_bg_rooftop.png');
+  background-image: url('/assets/images/menu_bg_rooftop_1600.webp');
+  background-image: image-set(
+    url('/assets/images/menu_bg_rooftop_1600.webp') type('image/webp'),
+    url('/assets/images/menu_bg_rooftop.png') type('image/png')
+  );
   background-position: center;
   background-size: cover;
   filter: saturate(0.9) contrast(1.08) brightness(0.78);
@@ -227,7 +261,11 @@ const goToAchievements = () => {
 
 .character-layer {
   z-index: 4;
-  background-image: url('/assets/images/char_girl_smoke.png');
+  background-image: url('/assets/images/char_girl_smoke_1600.webp');
+  background-image: image-set(
+    url('/assets/images/char_girl_smoke_1600.webp') type('image/webp'),
+    url('/assets/images/char_girl_smoke.png') type('image/png')
+  );
   background-position: center 52%;
   background-size: cover;
   opacity: 0.42;
@@ -708,11 +746,21 @@ const goToAchievements = () => {
   }
 
   .menu-bg {
+    background-image: url('/assets/images/menu_bg_rooftop_900.webp');
+    background-image: image-set(
+      url('/assets/images/menu_bg_rooftop_900.webp') type('image/webp'),
+      url('/assets/images/menu_bg_rooftop.png') type('image/png')
+    );
     background-position: center;
   }
 
   .character-layer {
     opacity: 0.28;
+    background-image: url('/assets/images/char_girl_smoke_900.webp');
+    background-image: image-set(
+      url('/assets/images/char_girl_smoke_900.webp') type('image/webp'),
+      url('/assets/images/char_girl_smoke.png') type('image/png')
+    );
     background-position: center;
     -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 20%, black 70%, transparent 100%);
     mask-image: linear-gradient(180deg, transparent 0%, black 20%, black 70%, transparent 100%);

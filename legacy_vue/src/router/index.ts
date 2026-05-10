@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouterHistory, RouteRecordRaw } from 'vue-router'
-import { ENDINGS } from '@/domain/gameContract'
+import { CHAT_AFTER_SAVE_SLOT_SESSION_KEY, ENDINGS } from '@/domain/gameContract'
 import type { GameState } from '@/domain/gameState'
+import { SaveSystem } from '@/modules/SaveSystem'
 import { useGameStore } from '@/store/gameStore'
 
 export const routes: Array<RouteRecordRaw> = [
@@ -32,8 +33,14 @@ export const routes: Array<RouteRecordRaw> = [
   }
 ]
 
+const canLoadChatAfterStoryFromSession = () => {
+  const slotId = Number(sessionStorage.getItem(CHAT_AFTER_SAVE_SLOT_SESSION_KEY))
+  if (!Number.isInteger(slotId)) return false
+  return SaveSystem.loadChatAfter(slotId) !== null
+}
+
 export const canEnterChatAfterStory = (state: Pick<GameState, 'isEnding' | 'endingType'>) =>
-  state.isEnding && state.endingType === ENDINGS.acquaintance.type
+  (state.isEnding && state.endingType === ENDINGS.acquaintance.type) || canLoadChatAfterStoryFromSession()
 
 export const createAppRouter = (
   history: RouterHistory = createWebHistory(),

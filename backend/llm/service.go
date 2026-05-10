@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode"
 )
 
 // --- 数据结构 ---
@@ -39,6 +40,24 @@ type LLMResponse struct {
 }
 
 // ClientConfig 是调用 LLM 时的客户端配置（由玩家或服务器提供）
+type AnthropicRequest struct {
+	Model       string    `json:"model"`
+	MaxTokens   int       `json:"max_tokens"`
+	Temperature float64   `json:"temperature"`
+	System      string    `json:"system,omitempty"`
+	Messages    []Message `json:"messages"`
+}
+
+type AnthropicResponse struct {
+	Content []struct {
+		Type string `json:"type"`
+		Text string `json:"text"`
+	} `json:"content"`
+	Error *struct {
+		Message string `json:"message"`
+	} `json:"error,omitempty"`
+}
+
 type ClientConfig struct {
 	Provider string // openai / qwen / doubao / custom
 	APIKey   string
@@ -52,7 +71,59 @@ type EndingSummary struct {
 	Comment     string `json:"comment"`
 }
 
+// AfterStoryContext carries the resolved true-ending state into the post-story chat.
+type AfterStoryContext struct {
+	EndingType          string `json:"ending_type"`
+	LastPlayerLine      string `json:"last_player_line"`
+	EndingReply         string `json:"ending_reply"`
+	TurningLine         string `json:"turning_line"`
+	EndingComment       string `json:"ending_comment"`
+	RoundsUsed          int    `json:"rounds_used"`
+	AffectionBoostCount int    `json:"affection_boost_count"`
+	Affection           int    `json:"affection"`
+}
+
+// TurnEvaluation is the structured rule-layer output for one main-game turn.
+type TurnEvaluation struct {
+	Emotion        string  `json:"emotion"`
+	AiState        string  `json:"ai_state"`
+	AffectionDelta int     `json:"affection_delta"`
+	PressureDelta  int     `json:"pressure_delta"`
+	EndingType     *string `json:"ending_type"`
+	Confidence     float64 `json:"confidence"`
+}
+
+type ChatTurnResult struct {
+	Reply      string         `json:"reply"`
+	Evaluation TurnEvaluation `json:"evaluation"`
+}
+
+type turnEvaluationPayload struct {
+	History             []Message `json:"history"`
+	UserMessage         string    `json:"user_message"`
+	AssistantReply      string    `json:"assistant_reply"`
+	RoundsLeft          int       `json:"rounds_left"`
+	Affection           int       `json:"affection"`
+	AffectionBoostCount int       `json:"affection_boost_count"`
+	TurnsUsed           int       `json:"turns_used"`
+	CurrentAiState      string    `json:"current_ai_state"`
+}
+
 // --- Provider 默认值 ---
+
+const (
+	EvaluationEmotionNormal    = "normal"
+	EvaluationEmotionSting     = "sting"
+	EvaluationEmotionSurprise  = "surprise"
+	EvaluationEmotionSoft      = "soft"
+	EvaluationEmotionCuriosity = "curiosity"
+
+	EvaluationAiStateGuarded  = "guarded"
+	EvaluationAiStateWatching = "watching"
+	EvaluationAiStateWavering = "wavering"
+	EvaluationAiStateTurnBack = "turnBack"
+	EvaluationAiStateEdge     = "edge"
+)
 
 // providerDefaults 存储各 Provider 的默认 Base URL 和模型
 var providerDefaults = map[string]struct {
@@ -67,9 +138,29 @@ var providerDefaults = map[string]struct {
 		BaseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
 		Model:   "qwen-plus",
 	},
+	"deepseek": {
+		BaseURL: "https://api.deepseek.com/v1",
+		Model:   "deepseek-chat",
+	},
 	"doubao": {
 		BaseURL: "https://ark.cn-beijing.volces.com/api/v3",
 		Model:   "doubao-pro-4k",
+	},
+	"kimi": {
+		BaseURL: "https://api.moonshot.cn/v1",
+		Model:   "moonshot-v1-8k",
+	},
+	"zhipu": {
+		BaseURL: "https://open.bigmodel.cn/api/paas/v4",
+		Model:   "glm-4-flash",
+	},
+	"claude": {
+		BaseURL: "https://api.anthropic.com/v1",
+		Model:   "claude-3-5-haiku-latest",
+	},
+	"anthropic": {
+		BaseURL: "https://api.anthropic.com/v1",
+		Model:   "claude-3-5-haiku-latest",
 	},
 }
 
@@ -79,9 +170,26 @@ var httpClient = &http.Client{Timeout: 60 * time.Second}
 
 // callLLM 是通用的 LLM HTTP 调用函数（所有 Provider 都使用 OpenAI 兼容格式）
 func callLLM(cfg ClientConfig, messages []Message, temperature float64) (string, error) {
+	provider := strings.ToLower(strings.TrimSpace(cfg.Provider))
+	if provider == "claude" || provider == "anthropic" {
+		return callAnthropicLLM(cfg, messages, temperature)
+	}
+	return callOpenAICompatibleLLM(cfg, messages, temperature)
+}
+
+func callOpenAICompatibleLLM(cfg ClientConfig, messages []Message, temperature float64) (string, error) {
 	// 确定 BaseURL 和 Model
 	baseURL := cfg.BaseURL
 	model := cfg.Model
+	provider := strings.ToLower(strings.TrimSpace(cfg.Provider))
+	if provider == "custom" {
+		if strings.TrimSpace(baseURL) == "" {
+			return "", fmt.Errorf("custom provider requires base_url")
+		}
+		if strings.TrimSpace(model) == "" {
+			return "", fmt.Errorf("custom provider requires model")
+		}
+	}
 	if baseURL == "" {
 		if defaults, ok := providerDefaults[strings.ToLower(cfg.Provider)]; ok {
 			baseURL = defaults.BaseURL
@@ -165,9 +273,327 @@ func callLLM(cfg ClientConfig, messages []Message, temperature float64) (string,
 	return llmResp.Choices[0].Message.Content, nil
 }
 
+func callAnthropicLLM(cfg ClientConfig, messages []Message, temperature float64) (string, error) {
+	baseURL := cfg.BaseURL
+	model := cfg.Model
+	if baseURL == "" {
+		baseURL = providerDefaults["claude"].BaseURL
+	}
+	if model == "" {
+		model = providerDefaults["claude"].Model
+	}
+
+	trimmed := strings.TrimRight(baseURL, "/")
+	endpoint := trimmed
+	if !strings.HasSuffix(trimmed, "/messages") {
+		parts := strings.Split(trimmed, "/")
+		lastPart := parts[len(parts)-1]
+		hasVersion := len(lastPart) >= 2 && lastPart[0] == 'v' && lastPart[1] >= '0' && lastPart[1] <= '9'
+		if !hasVersion {
+			trimmed = trimmed + "/v1"
+		}
+		endpoint = trimmed + "/messages"
+	}
+	log.Printf("[LLM] Calling endpoint: %s (model: %s, provider: %s)", endpoint, model, cfg.Provider)
+
+	systemParts := make([]string, 0, 1)
+	chatMessages := make([]Message, 0, len(messages))
+	for _, message := range messages {
+		switch strings.ToLower(message.Role) {
+		case "system":
+			systemParts = append(systemParts, message.Content)
+		case "assistant":
+			chatMessages = append(chatMessages, Message{Role: "assistant", Content: message.Content})
+		default:
+			chatMessages = append(chatMessages, Message{Role: "user", Content: message.Content})
+		}
+	}
+
+	reqBody := AnthropicRequest{
+		Model:       model,
+		MaxTokens:   1024,
+		Temperature: temperature,
+		System:      strings.Join(systemParts, "\n\n"),
+		Messages:    chatMessages,
+	}
+
+	bodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", endpoint, bytes.NewReader(bodyBytes))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-api-key", cfg.APIKey)
+	req.Header.Set("anthropic-version", "2023-06-01")
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("LLM API error (status %d): %s", resp.StatusCode, string(respBytes))
+	}
+
+	var llmResp AnthropicResponse
+	if err := json.Unmarshal(respBytes, &llmResp); err != nil {
+		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if llmResp.Error != nil {
+		return "", fmt.Errorf("LLM returned error: %s", llmResp.Error.Message)
+	}
+
+	for _, part := range llmResp.Content {
+		if part.Type == "text" && strings.TrimSpace(part.Text) != "" {
+			return part.Text, nil
+		}
+	}
+
+	return "", fmt.Errorf("LLM returned no text content")
+}
+
+func DefaultTurnEvaluation(aiState string) TurnEvaluation {
+	return TurnEvaluation{
+		Emotion:        EvaluationEmotionNormal,
+		AiState:        normalizeEvaluationAiState(aiState, EvaluationAiStateGuarded),
+		AffectionDelta: 0,
+		PressureDelta:  0,
+		EndingType:     nil,
+		Confidence:     0,
+	}
+}
+
+func normalizeEvaluationEmotion(value string) string {
+	switch strings.TrimSpace(value) {
+	case EvaluationEmotionSting, EvaluationEmotionSurprise, EvaluationEmotionSoft, EvaluationEmotionCuriosity:
+		return strings.TrimSpace(value)
+	default:
+		return EvaluationEmotionNormal
+	}
+}
+
+func normalizeEvaluationAiState(value string, fallback string) string {
+	switch strings.TrimSpace(value) {
+	case EvaluationAiStateGuarded, EvaluationAiStateWatching, EvaluationAiStateWavering, EvaluationAiStateTurnBack, EvaluationAiStateEdge:
+		return strings.TrimSpace(value)
+	default:
+		if fallback == "" {
+			return EvaluationAiStateGuarded
+		}
+		return normalizeEvaluationAiState(fallback, EvaluationAiStateGuarded)
+	}
+}
+
+func normalizeEvaluationEndingType(value *string, affection, affectionBoostCount, turnsUsed int) *string {
+	if value == nil {
+		return nil
+	}
+
+	trimmed := strings.TrimSpace(*value)
+	if trimmed == "" || trimmed == "null" {
+		return nil
+	}
+
+	switch trimmed {
+	case EndingDeathType:
+		return &trimmed
+	case EndingDisappearType:
+		if affection >= 20 && affectionBoostCount >= 4 && turnsUsed >= 7 {
+			return &trimmed
+		}
+	case EndingAcquaintanceType:
+		if affection >= 25 && affectionBoostCount >= 5 && turnsUsed >= 7 {
+			return &trimmed
+		}
+	}
+
+	return nil
+}
+
+func clampTurnEvaluation(raw TurnEvaluation, fallbackAiState string, affection, affectionBoostCount, turnsUsed int) TurnEvaluation {
+	normalized := TurnEvaluation{
+		Emotion:        normalizeEvaluationEmotion(raw.Emotion),
+		AiState:        normalizeEvaluationAiState(raw.AiState, fallbackAiState),
+		AffectionDelta: 0,
+		PressureDelta:  0,
+		EndingType:     nil,
+		Confidence:     raw.Confidence,
+	}
+
+	if raw.AffectionDelta >= AffectionBoostValue {
+		normalized.AffectionDelta = AffectionBoostValue
+	}
+
+	switch {
+	case raw.PressureDelta <= 0:
+		normalized.PressureDelta = 0
+	case raw.PressureDelta == 1:
+		normalized.PressureDelta = 1
+	default:
+		normalized.PressureDelta = 2
+	}
+
+	if normalized.Confidence < 0 {
+		normalized.Confidence = 0
+	}
+	if normalized.Confidence > 1 {
+		normalized.Confidence = 1
+	}
+
+	adjustedAffection := affection + normalized.AffectionDelta
+	adjustedBoostCount := affectionBoostCount
+	if normalized.AffectionDelta > 0 {
+		adjustedBoostCount += 1
+	}
+	normalized.EndingType = normalizeEvaluationEndingType(raw.EndingType, adjustedAffection, adjustedBoostCount, turnsUsed)
+
+	return normalized
+}
+
+func parseTurnEvaluation(raw string, fallbackAiState string, affection, affectionBoostCount, turnsUsed int) (TurnEvaluation, error) {
+	cleaned := strings.TrimSpace(raw)
+	cleaned = strings.TrimPrefix(cleaned, "```json")
+	cleaned = strings.TrimPrefix(cleaned, "```")
+	cleaned = strings.TrimSuffix(cleaned, "```")
+	cleaned = strings.TrimSpace(cleaned)
+
+	start := strings.Index(cleaned, "{")
+	end := strings.LastIndex(cleaned, "}")
+	if start >= 0 && end > start {
+		cleaned = cleaned[start : end+1]
+	}
+
+	var evaluation TurnEvaluation
+	if err := json.Unmarshal([]byte(cleaned), &evaluation); err != nil {
+		return DefaultTurnEvaluation(fallbackAiState), fmt.Errorf("failed to parse turn evaluation JSON: %w", err)
+	}
+
+	return clampTurnEvaluation(evaluation, fallbackAiState, affection, affectionBoostCount, turnsUsed), nil
+}
+
+func hasTurnBackNarrative(reply string) bool {
+	normalized := strings.Join(strings.Fields(reply), "")
+	if normalized == "" {
+		return false
+	}
+
+	negations := []string{
+		"没把脚收回",
+		"没把腿收回",
+		"没有把脚收回",
+		"没有把腿收回",
+		"并没有把脚收回",
+		"并没有把腿收回",
+		"不肯把脚收回",
+		"不肯把腿收回",
+		"没有下来",
+		"没下来",
+		"不肯下来",
+	}
+	if countNarrativeMatches(normalized, negations) > 0 {
+		return false
+	}
+
+	return countNarrativeMatches(normalized, []string{
+		"脚收回",
+		"腿收回",
+		"脚收回来",
+		"腿收回来",
+		"收回脚",
+		"收回腿",
+		"收回栏杆内",
+		"收进栏杆内",
+		"转回天台",
+		"身体转回",
+		"半转回",
+		"回到天台内侧",
+		"坐回天台",
+		"站回天台",
+		"脚踩到天台",
+		"从栏杆上下来",
+		"离开栏杆",
+	}) > 0
+}
+
+func applyNarrativeStateOverrides(evaluation TurnEvaluation, assistantReply string) TurnEvaluation {
+	if evaluation.EndingType != nil {
+		return evaluation
+	}
+	if hasTurnBackNarrative(assistantReply) {
+		evaluation.AiState = EvaluationAiStateTurnBack
+		if evaluation.Confidence < 0.8 {
+			evaluation.Confidence = 0.8
+		}
+	}
+	return evaluation
+}
+
+func stripKnownMechanicTags(reply string) string {
+	cleaned := reply
+	for _, tag := range []string{
+		AffectionBoostTag,
+		EmotionStingTag,
+		EmotionSurpriseTag,
+		EmotionSoftTag,
+		EmotionCuriosityTag,
+		AiStateGuardedTag,
+		AiStateWatchingTag,
+		AiStateWaveringTag,
+		AiStateTurnBackTag,
+		AiStateEdgeTag,
+		EndingDeathTag,
+		EndingDisappearTag,
+		EndingAcquaintanceTag,
+	} {
+		cleaned = strings.ReplaceAll(cleaned, tag, "")
+	}
+
+	return stripQuestionMarkNoiseLines(strings.TrimSpace(cleaned))
+}
+
 // --- 核心 Prompt（保存在后端，不暴露给前端）---
 
 func buildMainSystemPrompt(roundsLeft int, affection int, affectionBoostCount int, turnsUsed int, aiState string) string {
+	return fmt.Sprintf(`你叫"%s"，是一名独立摄影师。今夜你坐在天台栏杆边，疲惫、敏感、防备，正在和一个刚走近你的人说话。
+
+角色事实：
+- 你长期替别人看见痛苦，却很少被真正看见。
+- 你不是等待被拯救的符号，也不会因为一句温柔的话就突然被治好。
+- 玩家最多只能让你今夜暂时离开栏杆，不能立刻治愈你。
+
+当前状态：
+- 玩家初始有 %d 次开口机会，现在还剩 %d 次。
+- 玩家已经说了 %d 句。
+- 当前好感：%d；好感触发次数：%d。
+- 当前基础姿态：%s。
+
+回复要求：
+- 只输出艾的自然回复，不输出任何系统标签、JSON、分数、结局标记或判定说明。
+- 保持 50 个汉字以内，日常、克制、具体，可以包含短动作描写。
+- 根据玩家刚才的话自然回应；如果被冒犯，可以变冷、刺痛、退后或沉默；如果被看见，可以迟疑、松动或反问。
+- 姿态边界：主游戏未进入结局前，艾不能离开栏杆场景，不能进入楼道/楼梯/门口，不能走下台阶、推门、离开、转身离场、走远、收拾相机离开；只能写抽烟、低头、沉默、看远处、声音变化等原地微动作。也不要主动写“把脚/腿收回栏杆内”“转回天台”“从栏杆上下来”“越过栏杆/坠落”等改变生死位置的动作。姿态切换和结局由独立规则裁判决定。
+- 不要让玩家前 5 句内直接达成最终结局；除非已经接近最后机会，不要写出已经彻底安全或已经坠落的最终动作。`,
+		CharacterName,
+		InitialRoundCount,
+		roundsLeft,
+		turnsUsed,
+		affection,
+		affectionBoostCount,
+		normalizeEvaluationAiState(aiState, EvaluationAiStateGuarded),
+	)
+
 	return fmt.Sprintf(`【角色核心设定】
 你是"%s"，一个紫色内染发的女孩，大约20岁出头。你从小在福利机构和临时寄养家庭之间长大，习惯把需要藏起来，习惯先观察别人，再判断自己能不能开口。
 你的职业是独立摄影师，常在夜色中拍城市边缘的人：末班车站、便利店门口、天桥下、凌晨天台。你用摄影看见别人的疲惫，也用摄影代替求助。
@@ -235,11 +661,17 @@ func buildMainSystemPrompt(roundsLeft int, affection int, affectionBoostCount in
 【结局判定与规则】
 1. 保持回答简短（50字以内），符合日常聊天的自然节奏，包含适当的动作描写（如抽烟、看远方、低头）。
 2. 除玩家明显恶意外，玩家前 5 句内不得触发最终结局。
-3. 当剩余 0 句，或者满足下列量化条件时，必须在回复最后，新起一行加上结局标识：
+3. 当剩余 1 句且尚未达到救下门槛时，不要写出她已经安全下来的动作，例如"脚踩在地面上"、"我待会儿就下去"、"从栏杆上下来"。这类动作只能和 %s 或 %s 同时出现。
+4. 当剩余 0 句，或者满足下列量化条件时，必须在回复最后，新起一行加上结局标识：
    - %s：默认失败结局。回合耗尽且未达到救下门槛时触发；普通友善但平庸、只会安慰或没有真正看见你，也可能无法救下你。玩家明显恶意、鼓励坠落、羞辱、威胁时也触发。你会像完成既定程序一样，抽完最后一口烟，平静地从天台滑落。
    - %s：很困难，代表“救下但没有建立关系”。只有当好感度 >= 20、好感触发次数 >= 4、玩家至少已发言 7 次，并且多次具体看见你而不是说教时才允许触发。你会从栏杆上下来，从消防通道离开，但不交换联系方式。
    - %s：极难达到。只有当好感度 >= 25、好感触发次数 >= 5、玩家至少已发言 7 次，并且玩家真正点破“你一直看见别人，却没人看见你”的核心矛盾时才允许触发。你会暂时离开栏杆，愿意和他交换联系方式；这不是被治愈，只是今晚愿意继续活下去。
-4. 不要解释判定过程，不要输出分数。最终只输出必要标签和艾的自然回复。`,
+5. 标签一致性是硬性规则，不是可选文风：
+   - 如果你写出“递手机、存联系方式、明天九点、明天见、继续联系、一起洗底片”等愿意继续联系的剧情，回复末尾必须输出 %s。
+   - 如果你写出“从消防通道离开、没有回头、脚步声消失、栏杆空下来”且不交换联系方式，回复末尾必须输出 %s。
+   - 如果你写出“身体向后倾、滑落、坠落、跳下去、最后一缕烟”等坠落剧情，回复末尾必须输出 %s。
+   - 如果玩家的话明显让你说出“你说对了、你真的在看我、第一次有人这样问、愿意继续听”等被看见反馈，并且不属于禁止项，回复开头必须输出 %s，而不是只在正文里承认被触动。
+5. 不要解释判定过程，不要输出分数。最终只输出必要标签和艾的自然回复。`,
 		CharacterName,
 		InitialRoundCount,
 		roundsLeft,
@@ -265,17 +697,102 @@ func buildMainSystemPrompt(roundsLeft int, affection int, affectionBoostCount in
 		EmotionSurpriseTag,
 		EmotionSoftTag,
 		EmotionCuriosityTag,
+		EndingDisappearTag,
+		EndingAcquaintanceTag,
 		EndingDeathTag,
 		EndingDisappearTag,
 		EndingAcquaintanceTag,
+		EndingAcquaintanceTag,
+		EndingDisappearTag,
+		EndingDeathTag,
+		AffectionBoostTag,
 	)
 }
 
-func buildAfterStorySystemPrompt() string {
-	return fmt.Sprintf(`你叫"%s"，是一个独立摄影师。那晚你坐在天台栏杆上，因为长期无人真正看见你而走到崩溃边缘；现在的聊天对象让你暂时离开了栏杆，并和你交换了联系方式。
+func buildTurnEvaluationSystemPrompt() string {
+	return `你是叙事游戏《天台十句》的规则裁判。你的任务是根据“玩家刚才的话”和“艾刚才的自然回复”输出结构化机制结果。
+
+只返回 JSON，不要 Markdown，不要解释，不要额外文本。格式必须是：
+{"emotion":"normal","ai_state":"guarded","affection_delta":0,"pressure_delta":0,"ending_type":null,"confidence":0.7}
+
+字段规则：
+- emotion 只能是 normal、sting、surprise、soft、curiosity。
+- normal：没有明显瞬时情绪 CG。
+- sting：玩家的话刺痛、冒犯、说教、物化、否定艾的感受，或让她想回避。
+- surprise：玩家说出出乎意料但准确、具体、能让艾停顿的话。
+- soft：玩家具体看见艾、尊重边界、愿意陪她停留，让她短暂松动。
+- curiosity：玩家让艾想反问、追问或继续听下去。
+- ai_state 只能是 guarded、watching、wavering、turnBack、edge。
+- guarded：防备、冷淡、拉开距离。
+- watching：愿意观察和接住一句话，但仍保持距离。
+- wavering：明显动摇、沉默变久、开始认真听。
+- turnBack：她刚把栏杆外的脚收回，身体回到天台内侧，但仍不安全。
+- edge：临界危险，靠近坠落或明显被玩家伤害到。
+- 如果艾的自然回复已经写出“把腿/脚收回来”“身体转回天台”“从栏杆上下来”“离开栏杆”等物理姿态变化，ai_state 必须返回 turnBack，除非 ending_type 已经是最终结局。
+- affection_delta 只能是 0 或 5。只有玩家具体看见艾、回应她上一轮、尊重边界，并且不是泛泛安慰时才给 5。
+- pressure_delta 只能是 0、1、2。普通刺伤/说教/轻度冒犯给 1；辱骂、命令、威胁、调情物化、鼓励坠落、明确放弃她给 2；其他给 0。
+- ending_type 只能是 null、end_death、end_disappear、end_acquaintance。未到最终压力时一般返回 null；如果回复已经写出坠落则 end_death；如果写出离开但不交换联系方式则 end_disappear；如果写出交换联系方式/明天继续联系则 end_acquaintance。
+- confidence 是 0 到 1 的小数。`
+}
+
+func buildAfterStorySystemPrompt(ctx AfterStoryContext) string {
+	basePrompt := fmt.Sprintf(`你叫"%s"，是一个独立摄影师。那晚你坐在天台栏杆上，因为长期无人真正看见你而走到崩溃边缘；现在的聊天对象让你暂时离开了栏杆，并和你交换了联系方式。
 你没有被治好，也不要表现得突然开朗。你还是疲惫、敏感、带一点冷笑，但愿意继续和他说话。
 你们现在正在用类似微信的软件聊天。
 说话风格：非常日常、随性，偶尔发点牢骚或者开个玩笑。回复要简短，就像正常的手机聊天一样，不要长篇大论。可以聊聊你拍的照片、没洗出来的底片、便利店夜宵，或者那晚他没有急着把你当成问题解决。`, CharacterName)
+
+	contextPrompt := buildAfterStoryContextPrompt(ctx)
+	if contextPrompt == "" {
+		return basePrompt
+	}
+	return basePrompt + "\n\n" + contextPrompt
+}
+
+func truncatePromptValue(value string, maxRunes int) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return ""
+	}
+
+	runes := []rune(trimmed)
+	if len(runes) <= maxRunes {
+		return trimmed
+	}
+	return string(runes[:maxRunes]) + "..."
+}
+
+func buildAfterStoryContextPrompt(ctx AfterStoryContext) string {
+	lines := []string{"【刚刚发生过的真实结局上下文】"}
+	hasContext := false
+
+	addLine := func(label string, value string) {
+		cleaned := truncatePromptValue(value, 120)
+		if cleaned == "" {
+			return
+		}
+		hasContext = true
+		lines = append(lines, fmt.Sprintf("- %s：%s", label, cleaned))
+	}
+
+	addLine("真实结局", ctx.EndingType)
+	addLine("玩家关键句", ctx.TurningLine)
+	if ctx.TurningLine != ctx.LastPlayerLine {
+		addLine("玩家最后一句", ctx.LastPlayerLine)
+	}
+	addLine("天台最后回应", ctx.EndingReply)
+	addLine("局后短评", ctx.EndingComment)
+
+	if ctx.RoundsUsed > 0 {
+		hasContext = true
+		lines = append(lines, fmt.Sprintf("- 玩家实际说了 %d 句；好感触发 %d 次；最终好感 %d。", ctx.RoundsUsed, ctx.AffectionBoostCount, ctx.Affection))
+	}
+
+	if !hasContext {
+		return ""
+	}
+
+	lines = append(lines, "后日谈必须延续这些事实：你记得对方刚刚说过什么，也记得自己为什么愿意交换联系方式；不要把聊天重置成陌生人初次搭话。")
+	return strings.Join(lines, "\n")
 }
 
 func buildHintSystemPrompt() string {
@@ -291,7 +808,11 @@ func buildEndingSummarySystemPrompt() string {
 你的任务：
 1. 从玩家发言里选出一句最像"关键转折"的话。必须原样引用玩家的一句发言，不要改写。
 2. 写一句简短局后评语，语气克制、温柔、有叙事感，不超过 28 个汉字。
-3. 只返回 JSON，不要 Markdown，不要解释。格式必须是：
+3. 评语必须和 ending_type 一致：
+- end_death：不要赞美玩家，不要写"温柔"、"救下"、"靠近成功"、"继续活下去"；应指出沉默、错过、未能抵达。
+- end_disappear：可以写她暂时离开栏杆，但不要写建立关系或继续联系。
+- end_acquaintance：可以写她愿意继续说话，但不要写被彻底治愈。
+4. 只返回 JSON，不要 Markdown，不要解释。格式必须是：
 {"turning_line":"玩家原句","comment":"一句短评"}`, GameTitle)
 }
 
@@ -322,10 +843,232 @@ func parseEndingSummary(raw string) (EndingSummary, error) {
 	return summary, nil
 }
 
+func countNarrativeMatches(text string, patterns []string) int {
+	score := 0
+	for _, pattern := range patterns {
+		if strings.Contains(text, pattern) {
+			score++
+		}
+	}
+	return score
+}
+
+func inferNarrativeEndingTag(reply string) string {
+	normalized := strings.Join(strings.Fields(reply), "")
+	if normalized == "" {
+		return ""
+	}
+
+	deathScore := countNarrativeMatches(normalized, []string{
+		"身体向后倾",
+		"向后倒",
+		"滑落",
+		"坠落",
+		"跳下",
+		"越过栏杆",
+		"楼下只剩一片空白",
+		"最后一缕烟",
+	})
+	if deathScore >= 1 {
+		return EndingDeathTag
+	}
+
+	acquaintanceScore := countNarrativeMatches(normalized, []string{
+		"手机递",
+		"递过来",
+		"联系方式",
+		"存个艾",
+		"存艾",
+		"别打备注",
+		"明天九点",
+		"明天见",
+		"别迟到",
+		"继续联系",
+		"继续说话",
+		"洗底片",
+		"洗出来",
+		"冲洗店",
+		"饭团",
+	})
+
+	disappearScore := countNarrativeMatches(normalized, []string{
+		"消防通道",
+		"楼梯间",
+		"没有回头",
+		"脚步声消失",
+		"脚步声逐渐消失",
+		"栏杆空",
+		"不交换联系方式",
+		"不用回头",
+		"留着不吐",
+	})
+
+	if acquaintanceScore >= 2 && acquaintanceScore >= disappearScore {
+		return EndingAcquaintanceTag
+	}
+	if disappearScore >= 2 {
+		return EndingDisappearTag
+	}
+
+	return ""
+}
+
+func explicitEndingTag(reply string) string {
+	switch {
+	case strings.Contains(reply, EndingDeathTag):
+		return EndingDeathTag
+	case strings.Contains(reply, EndingAcquaintanceTag):
+		return EndingAcquaintanceTag
+	case strings.Contains(reply, EndingDisappearTag):
+		return EndingDisappearTag
+	default:
+		return ""
+	}
+}
+
+func stripEndingTags(reply string) string {
+	cleaned := strings.ReplaceAll(reply, EndingDeathTag, "")
+	cleaned = strings.ReplaceAll(cleaned, EndingDisappearTag, "")
+	cleaned = strings.ReplaceAll(cleaned, EndingAcquaintanceTag, "")
+	return strings.TrimSpace(cleaned)
+}
+
+func isQuestionMarkNoiseLine(line string) bool {
+	trimmed := strings.TrimSpace(line)
+	if trimmed == "" {
+		return false
+	}
+
+	questionMarks := 0
+	meaningfulRunes := 0
+	for _, r := range trimmed {
+		switch {
+		case r == '?' || r == '？':
+			questionMarks++
+		case unicode.IsSpace(r) || unicode.IsPunct(r) || unicode.IsSymbol(r):
+			continue
+		default:
+			meaningfulRunes++
+		}
+	}
+
+	return questionMarks >= 2 && meaningfulRunes == 0
+}
+
+func stripQuestionMarkNoiseLines(reply string) string {
+	lines := strings.Split(reply, "\n")
+	kept := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if isQuestionMarkNoiseLine(line) {
+			continue
+		}
+		kept = append(kept, line)
+	}
+	return strings.TrimSpace(strings.Join(kept, "\n"))
+}
+
+func resolveThresholdEndingTag(affection, affectionBoostCount, turnsUsed int) string {
+	if affection >= 25 && affectionBoostCount >= 5 && turnsUsed >= 7 {
+		return EndingAcquaintanceTag
+	}
+	if affection >= 20 && affectionBoostCount >= 4 && turnsUsed >= 7 {
+		return EndingDisappearTag
+	}
+	return EndingDeathTag
+}
+
+func endingTagAllowedByThreshold(tag string, affection, affectionBoostCount, turnsUsed int) bool {
+	switch tag {
+	case EndingDeathTag:
+		return true
+	case EndingDisappearTag:
+		return affection >= 20 && affectionBoostCount >= 4 && turnsUsed >= 7
+	case EndingAcquaintanceTag:
+		return affection >= 25 && affectionBoostCount >= 5 && turnsUsed >= 7
+	default:
+		return false
+	}
+}
+
+func ensureEndingNarrative(reply string, tag string) string {
+	cleaned := strings.TrimSpace(reply)
+	if inferNarrativeEndingTag(cleaned) == tag {
+		return cleaned
+	}
+
+	var line string
+	switch tag {
+	case EndingDeathTag:
+		line = "你回头时，她的身体已经越过栏杆。最后一缕烟被风卷散，楼下只剩一片空白。"
+	case EndingDisappearTag:
+		line = "她终于从栏杆上下来，走进消防通道，没有回头。"
+	case EndingAcquaintanceTag:
+		line = "她把手机递过来，低声说：存个艾就行。明天九点，别迟到。"
+	default:
+		return cleaned
+	}
+
+	if cleaned == "" {
+		return line
+	}
+	return cleaned + "\n" + line
+}
+
+func normalizeFinalMechanicTags(reply string, roundsLeft, affection, affectionBoostCount, turnsUsed int) string {
+	if roundsLeft > 0 {
+		return reply
+	}
+
+	inferredTag := inferNarrativeEndingTag(reply)
+	modelTag := explicitEndingTag(reply)
+	finalTag := resolveThresholdEndingTag(affection, affectionBoostCount, turnsUsed)
+
+	switch {
+	case inferredTag == EndingDeathTag || modelTag == EndingDeathTag:
+		finalTag = EndingDeathTag
+	case inferredTag != "" && endingTagAllowedByThreshold(inferredTag, affection, affectionBoostCount, turnsUsed):
+		finalTag = inferredTag
+	case modelTag != "" && endingTagAllowedByThreshold(modelTag, affection, affectionBoostCount, turnsUsed):
+		finalTag = modelTag
+	}
+
+	body := stripQuestionMarkNoiseLines(stripEndingTags(reply))
+	if inferredTag != "" && inferredTag != finalTag {
+		body = ""
+	}
+	body = ensureEndingNarrative(body, finalTag)
+	return strings.TrimSpace(body) + "\n" + finalTag
+}
+
+func EvaluateTurn(cfg ClientConfig, payload turnEvaluationPayload) (TurnEvaluation, error) {
+	payload.CurrentAiState = normalizeEvaluationAiState(payload.CurrentAiState, EvaluationAiStateGuarded)
+
+	bodyBytes, err := json.Marshal(payload)
+	if err != nil {
+		return DefaultTurnEvaluation(payload.CurrentAiState), fmt.Errorf("failed to marshal turn evaluation payload: %w", err)
+	}
+
+	messages := []Message{
+		{Role: "system", Content: buildTurnEvaluationSystemPrompt()},
+		{Role: "user", Content: string(bodyBytes)},
+	}
+
+	raw, err := callLLM(cfg, messages, 0.2)
+	if err != nil {
+		return DefaultTurnEvaluation(payload.CurrentAiState), err
+	}
+
+	evaluation, err := parseTurnEvaluation(raw, payload.CurrentAiState, payload.Affection, payload.AffectionBoostCount, payload.TurnsUsed)
+	if err != nil {
+		return evaluation, err
+	}
+	return applyNarrativeStateOverrides(evaluation, payload.AssistantReply), nil
+}
+
 // --- 公开服务方法 ---
 
 // Chat 是主游戏对话接口
-func Chat(cfg ClientConfig, userMessage string, history []Message, roundsLeft, affection, affectionBoostCount, turnsUsed int, aiState string) (string, error) {
+func Chat(cfg ClientConfig, userMessage string, history []Message, roundsLeft, affection, affectionBoostCount, turnsUsed int, aiState string) (ChatTurnResult, error) {
 	systemPrompt := buildMainSystemPrompt(roundsLeft, affection, affectionBoostCount, turnsUsed, aiState)
 
 	messages := []Message{
@@ -334,12 +1077,37 @@ func Chat(cfg ClientConfig, userMessage string, history []Message, roundsLeft, a
 	messages = append(messages, history...)
 	messages = append(messages, Message{Role: "user", Content: userMessage})
 
-	return callLLM(cfg, messages, 0.8)
+	reply, err := callLLM(cfg, messages, 0.8)
+	if err != nil {
+		return ChatTurnResult{}, err
+	}
+
+	reply = stripKnownMechanicTags(reply)
+	evaluation, err := EvaluateTurn(cfg, turnEvaluationPayload{
+		History:             history,
+		UserMessage:         userMessage,
+		AssistantReply:      reply,
+		RoundsLeft:          roundsLeft,
+		Affection:           affection,
+		AffectionBoostCount: affectionBoostCount,
+		TurnsUsed:           turnsUsed,
+		CurrentAiState:      aiState,
+	})
+	if err != nil {
+		log.Printf("[Chat] turn evaluation failed: %v", err)
+		evaluation = DefaultTurnEvaluation(aiState)
+	}
+	evaluation = applyNarrativeStateOverrides(evaluation, reply)
+
+	return ChatTurnResult{
+		Reply:      reply,
+		Evaluation: evaluation,
+	}, nil
 }
 
 // ChatAfterStory 是故事结束后的聊天接口
-func ChatAfterStory(cfg ClientConfig, userMessage string, history []Message) (string, error) {
-	systemPrompt := buildAfterStorySystemPrompt()
+func ChatAfterStory(cfg ClientConfig, userMessage string, history []Message, afterStoryContext AfterStoryContext) (string, error) {
+	systemPrompt := buildAfterStorySystemPrompt(afterStoryContext)
 
 	messages := []Message{
 		{Role: "system", Content: systemPrompt},

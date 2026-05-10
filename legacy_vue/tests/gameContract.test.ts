@@ -4,14 +4,24 @@ import { cwd } from 'node:process'
 import { describe, expect, it } from 'vitest'
 import {
   AI_STATES,
+  DEATH_ENDING_SEQUENCE_FRAMES,
   ENDING_THRESHOLDS,
   EMOTIONS,
   ENDINGS,
+  FALL_IMPACT_SFX_SRC,
   GAME_ROLE,
   GAME_RULES,
   MECHANIC_TAGS,
+  OPENING_SEQUENCE_FRAMES,
+  ROOFTOP_BGM_SRC,
+  ROOFTOP_BGM_SRCS,
   SCENE_BACKGROUNDS,
+  SCENE_MOBILE_BACKGROUNDS,
+  STAIR_STEP_SFX_SRCS,
+  inferEndingTypeFromNarrative,
   resolveFallbackEndingType,
+  resolveWaitingBackground,
+  resolveWaitingMobileBackground,
   resolveVisualState
 } from '../src/domain/gameContract'
 
@@ -81,7 +91,10 @@ describe('game contract', () => {
   })
 
   it('maps every scene background to an existing asset', () => {
-    for (const backgroundImage of Object.values(SCENE_BACKGROUNDS)) {
+    for (const backgroundImage of [
+      ...Object.values(SCENE_BACKGROUNDS),
+      ...Object.values(SCENE_MOBILE_BACKGROUNDS)
+    ]) {
       const assetPath = backgroundImage.replace('/assets/', 'legacy_vue/public/assets/')
       expect(existsSync(resolve(cwd(), '..', assetPath))).toBe(true)
     }
@@ -91,7 +104,60 @@ describe('game contract', () => {
     for (const aiState of Object.values(AI_STATES)) {
       const assetPath = aiState.backgroundImage.replace('/assets/', 'legacy_vue/public/assets/')
       expect(existsSync(resolve(cwd(), '..', assetPath))).toBe(true)
+      const mobileAssetPath = aiState.mobileBackgroundImage.replace('/assets/', 'legacy_vue/public/assets/')
+      expect(existsSync(resolve(cwd(), '..', mobileAssetPath))).toBe(true)
     }
+  })
+
+  it('maps the opening sequence frames and step SFX to existing assets', () => {
+    expect(OPENING_SEQUENCE_FRAMES).toHaveLength(5)
+
+    for (const frame of OPENING_SEQUENCE_FRAMES) {
+      const assetPath = frame.image.replace('/assets/', 'legacy_vue/public/assets/')
+      expect(existsSync(resolve(cwd(), '..', assetPath))).toBe(true)
+      expect(frame.caption).toMatch(/我/)
+    }
+
+    expect(STAIR_STEP_SFX_SRCS).toHaveLength(4)
+    for (const sfxSrc of STAIR_STEP_SFX_SRCS) {
+      const assetPath = sfxSrc.replace('/assets/', 'legacy_vue/public/assets/')
+      expect(existsSync(resolve(cwd(), '..', assetPath))).toBe(true)
+    }
+  })
+
+  it('maps the death ending cinematic sequence frames to existing desktop and mobile assets', () => {
+    expect(DEATH_ENDING_SEQUENCE_FRAMES).toHaveLength(5)
+    expect(DEATH_ENDING_SEQUENCE_FRAMES[0].id).toBe('fall-01-silence')
+    expect(ENDINGS.death.backgroundImage).toBe(DEATH_ENDING_SEQUENCE_FRAMES[4].image)
+    expect(ENDINGS.death.mobileBackgroundImage).toBe(DEATH_ENDING_SEQUENCE_FRAMES[4].mobileImage)
+
+    for (const frame of DEATH_ENDING_SEQUENCE_FRAMES) {
+      const desktopAssetPath = frame.image.replace('/assets/', 'legacy_vue/public/assets/')
+      const mobileAssetPath = frame.mobileImage.replace('/assets/', 'legacy_vue/public/assets/')
+      expect(existsSync(resolve(cwd(), '..', desktopAssetPath))).toBe(true)
+      expect(existsSync(resolve(cwd(), '..', mobileAssetPath))).toBe(true)
+      expect(frame.caption.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('maps the rooftop BGM to an existing trimmed asset', () => {
+    const assetPath = ROOFTOP_BGM_SRC.replace('/assets/', 'legacy_vue/public/assets/')
+    expect(existsSync(resolve(cwd(), '..', assetPath))).toBe(true)
+    for (const bgmSrc of ROOFTOP_BGM_SRCS) {
+      const fallbackAssetPath = bgmSrc.replace('/assets/', 'legacy_vue/public/assets/')
+      expect(existsSync(resolve(cwd(), '..', fallbackAssetPath))).toBe(true)
+    }
+    const fallImpactAssetPath = FALL_IMPACT_SFX_SRC.replace('/assets/', 'legacy_vue/public/assets/')
+    expect(existsSync(resolve(cwd(), '..', fallImpactAssetPath))).toBe(true)
+  })
+
+  it('keeps the opening sequence written as player inner monologue', () => {
+    expect(OPENING_SEQUENCE_FRAMES[0]).toMatchObject({
+      chapterTitle: '序章',
+      chapterMeta: '23:47 / 天台入口'
+    })
+    expect(OPENING_SEQUENCE_FRAMES[4].caption).toContain('怕再响一点')
+    expect(OPENING_SEQUENCE_FRAMES[4].caption).not.toContain('十句话')
   })
 
   it('resolves CG priority through the visual state machine', () => {
@@ -128,7 +194,20 @@ describe('game contract', () => {
       emotionType: EMOTIONS.soft.type
     })).toMatchObject({
       source: 'aiState',
+      label: AI_STATES.edge.label,
       backgroundImage: AI_STATES.turnBack.backgroundImage
+    })
+
+    expect(resolveVisualState({
+      roundCount: 4,
+      affection: 15,
+      isEnding: false,
+      endingType: null,
+      aiStateType: AI_STATES.turnBack.type,
+      emotionType: null
+    })).toMatchObject({
+      source: 'aiState',
+      backgroundImage: AI_STATES.wavering.backgroundImage
     })
 
     expect(resolveVisualState({
@@ -140,8 +219,44 @@ describe('game contract', () => {
       emotionType: EMOTIONS.sting.type
     })).toMatchObject({
       source: 'ending',
-      backgroundImage: ENDINGS.death.backgroundImage
+      backgroundImage: ENDINGS.death.backgroundImage,
+      mobileBackgroundImage: ENDINGS.death.mobileBackgroundImage
     })
+  })
+
+  it('keeps waiting CG consistent with dangerous turned-away states', () => {
+    const guardedState = resolveVisualState({
+      roundCount: 8,
+      affection: 0,
+      isEnding: false,
+      endingType: null,
+      aiStateType: AI_STATES.guarded.type,
+      emotionType: null
+    })
+    expect(resolveWaitingBackground(guardedState)).toBe(SCENE_BACKGROUNDS.smoke)
+    expect(resolveWaitingMobileBackground(guardedState)).toBe(SCENE_MOBILE_BACKGROUNDS.smoke)
+
+    const turnBackState = resolveVisualState({
+      roundCount: 1,
+      affection: 0,
+      isEnding: false,
+      endingType: null,
+      aiStateType: AI_STATES.turnBack.type,
+      emotionType: EMOTIONS.soft.type
+    })
+    expect(resolveWaitingBackground(turnBackState)).toBe(AI_STATES.turnBack.backgroundImage)
+    expect(resolveWaitingMobileBackground(turnBackState)).toBe(AI_STATES.turnBack.mobileBackgroundImage)
+
+    const edgeState = resolveVisualState({
+      roundCount: 1,
+      affection: 0,
+      isEnding: false,
+      endingType: null,
+      aiStateType: AI_STATES.watching.type,
+      emotionType: EMOTIONS.soft.type
+    })
+    expect(resolveWaitingBackground(edgeState)).toBe(AI_STATES.edge.backgroundImage)
+    expect(resolveWaitingMobileBackground(edgeState)).toBe(AI_STATES.edge.mobileBackgroundImage)
   })
 
   it('resolves local fallback endings with death as the default failure', () => {
@@ -162,5 +277,30 @@ describe('game contract', () => {
       affectionBoostCount: ENDING_THRESHOLDS.acquaintance.minAffectionBoostCount,
       turnsUsed: ENDING_THRESHOLDS.acquaintance.minTurnsUsed
     })).toBe(ENDINGS.acquaintance.type)
+  })
+
+  it('infers ending semantics from untagged final narrative text', () => {
+    expect(inferEndingTypeFromNarrative('她把手机递过来，说：存个艾就行。明天九点，别迟到。'))
+      .toBe(ENDINGS.acquaintance.type)
+    expect(inferEndingTypeFromNarrative('她走进消防通道，没有回头，脚步声逐渐消失。'))
+      .toBe(ENDINGS.disappear.type)
+    expect(inferEndingTypeFromNarrative('她轻轻呼出最后一缕烟，身体向后倾去。'))
+      .toBe(ENDINGS.death.type)
+  })
+
+  it('uses narrative ending inference before numeric fallback when tags are missing', () => {
+    expect(resolveFallbackEndingType({
+      affection: 0,
+      affectionBoostCount: 0,
+      turnsUsed: GAME_RULES.initialRoundCount,
+      lastAssistantText: '她低头看了看自己的脚，说：走吧。明天九点，别迟到。'
+    })).toBe(ENDINGS.acquaintance.type)
+
+    expect(resolveFallbackEndingType({
+      affection: 0,
+      affectionBoostCount: 0,
+      turnsUsed: GAME_RULES.initialRoundCount,
+      lastAssistantText: '她背靠着栏杆，转身往消防通道走去，没有回头。'
+    })).toBe(ENDINGS.disappear.type)
   })
 })

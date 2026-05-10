@@ -1,20 +1,41 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "HanYiPixel11";
+  src: url("/assets/fonts/HYPixel11pxU-2.ttf") format("truetype");
+  font-display: swap;
+  font-weight: 400 900;
+  font-style: normal;
+}
+
 :root {
   --font-size-base: 16px;
   --line-height-base: 1.5;
   --theme-color: #a855f7; /* purple-500 */
+  --font-hanyi-pixel: "HanYiPixel11", "Microsoft YaHei", "Noto Sans SC", sans-serif;
 }
 
 body {
-  font-family: 'Source Han Sans', sans-serif;
+  font-family: var(--font-hanyi-pixel);
   font-size: var(--font-size-base);
   line-height: var(--line-height-base);
   @apply bg-zinc-900 text-gray-100 overflow-hidden select-none;
 }
 
-h1, h2, h3, h4, h5, h6, .font-pixel {
-  font-family: 'FZPixel', monospace;
+body *,
+button,
+input,
+textarea,
+select,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-pixel,
+.font-mono {
+  font-family: var(--font-hanyi-pixel) !important;
 }
 
 .typewriter-cursor::after {
