@@ -35,13 +35,20 @@
           <ChanceCigarettes :value="gameStore.roundCount" :max="GAME_RULES.initialRoundCount" />
         </div>
         
-        <div v-if="gameStore.hintCount > 0 && !gameStore.isEnding" class="bg-[#0a0515]/90 px-3 py-2 rounded-xl border border-gray-800 shadow-lg backdrop-blur-md flex items-center md:px-4">
+        <div v-if="gameStore.hintCount > 0 && !gameStore.isEnding" class="rounded-md border border-white/10 bg-black/35 px-2 py-1.5 shadow-[0_0_18px_rgba(0,0,0,0.45)] backdrop-blur-[2px]">
           <button 
             @click="handleHint" 
             :disabled="gameStore.isWaiting || isCinematicOverlayActive"
-            class="text-xs text-yellow-500 hover:text-yellow-400 font-bold disabled:opacity-50 flex items-center gap-2 transition-colors sm:text-sm"
+            class="hint-hud-button"
+            :aria-label="`寻找线索，剩余 ${gameStore.hintCount} / ${GAME_RULES.initialHintCount}`"
           >
-            <span class="text-lg">💡</span> 寻找线索 ({{ gameStore.hintCount }})
+            <span class="hint-hud-button__icon" aria-hidden="true">
+              <img :src="HINT_BULB_IMAGE" alt="" draggable="false" />
+            </span>
+            <span class="hint-hud-button__content">
+              <span class="hint-hud-button__label">寻找线索</span>
+              <span class="hint-hud-button__count">{{ gameStore.hintCount }}/{{ GAME_RULES.initialHintCount }}</span>
+            </span>
           </button>
         </div>
       </div>
@@ -101,12 +108,18 @@
             <TypewriterText :text="gameStore.waitingText" />
           </div>
           
-          <div v-else-if="latestHint" class="text-base md:text-lg leading-relaxed text-yellow-100/90 mb-6 bg-yellow-900/20 p-4 rounded-xl border border-yellow-700/30">
-            <div class="font-bold text-yellow-500 text-sm mb-2 flex justify-between">
-              <span>【内心直觉】</span>
-              <button @click="clearHint" class="text-gray-500 hover:text-white">✕</button>
+          <div v-else-if="latestHint" class="hint-card">
+            <span class="hint-card__perforation" aria-hidden="true"></span>
+            <div class="hint-card__header">
+              <span class="hint-card__title">
+                <img :src="HINT_BULB_IMAGE" alt="" draggable="false" />
+                <span>内心直觉</span>
+              </span>
+              <button type="button" @click="clearHint" class="hint-card__close" aria-label="关闭线索">✕</button>
             </div>
-            <TypewriterText :text="latestHint" @complete="onTextComplete" :key="latestHint" />
+            <div class="hint-card__copy">
+              <TypewriterText :text="latestHint" @complete="onTextComplete" :key="latestHint" />
+            </div>
           </div>
           
           <div v-else-if="latestMessage" class="text-lg md:text-xl leading-relaxed text-gray-100">
@@ -118,17 +131,28 @@
 
           <!-- Input Area -->
           <div v-if="!gameStore.isWaiting && !gameStore.isEnding && textCompleted" class="mt-6">
-            <div class="flex gap-4">
+            <div class="dialog-input-row">
             <input 
               v-model="inputText" 
               @keyup.enter="handleSend"
               type="text" 
-              class="flex-1 bg-gray-900/80 border border-gray-600 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-purple-500 transition-colors shadow-inner"
+              class="dialog-input"
               placeholder="对她说点什么..."
               autofocus
             />
-            <button @click="handleSend" class="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.6)]">
-              发送
+            <button type="button" @click="handleSend" class="dialog-send-button" aria-label="发送">
+              <svg class="dialog-send-icon" viewBox="0 0 16 16" aria-hidden="true" shape-rendering="crispEdges">
+                <path
+                  class="dialog-send-icon__body"
+                  d="M2 7h2V6h2V5h2V4h2V3h4v1h-1v2h-1v2h-1v3h-1v2H9v-1H8v-2H7V9H5V8H2V7z"
+                />
+                <path
+                  class="dialog-send-icon__cut"
+                  d="M6 8h2v1h1v1h1v1H9v-1H8V9H6V8z"
+                />
+                <path class="dialog-send-icon__spark" d="M12 4h1v1h-1V4z" />
+              </svg>
+              <span class="sr-only">发送</span>
             </button>
             </div>
           </div>
@@ -224,6 +248,7 @@ import TypewriterText from '@/components/TypewriterText.vue'
 const router = useRouter()
 const gameStore = useGameStore()
 const SAVE_SLOT_IDS = GAME_RULES.saveSlotIds
+const HINT_BULB_IMAGE = '/assets/images/ui_hint_bulb.svg'
 
 const inputText = ref('')
 const textCompleted = ref(false)
@@ -471,5 +496,368 @@ onMounted(() => {
   transition:
     opacity 1000ms ease,
     filter 1000ms ease;
+}
+
+.hint-card {
+  position: relative;
+  margin-bottom: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(229, 231, 235, 0.16);
+  border-radius: 7px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.055) 0 1px, transparent 1px 12px),
+    radial-gradient(circle at 16% 0, rgba(255, 238, 179, 0.14), transparent 34%),
+    linear-gradient(135deg, rgba(7, 7, 9, 0.86), rgba(16, 12, 9, 0.82));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+    inset 0 18px 38px rgba(255, 255, 255, 0.025),
+    0 0 24px rgba(0, 0, 0, 0.42);
+  color: rgba(238, 238, 238, 0.92);
+  padding: 14px 16px 16px 34px;
+}
+
+.hint-card::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 100% 9px, 11px 100%;
+  content: "";
+  opacity: 0.32;
+  mix-blend-mode: screen;
+}
+
+.hint-card__perforation {
+  position: absolute;
+  top: 9px;
+  bottom: 9px;
+  left: 10px;
+  width: 10px;
+  border-right: 1px solid rgba(229, 231, 235, 0.08);
+  background:
+    radial-gradient(circle, rgba(229, 231, 235, 0.34) 0 2px, transparent 2.4px)
+    center top / 8px 13px repeat-y;
+  opacity: 0.58;
+}
+
+.hint-card__header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+}
+
+.hint-card__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(250, 238, 188, 0.86);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-shadow: 0 0 7px rgba(255, 210, 112, 0.18), 0 1px 2px rgba(0, 0, 0, 0.86);
+}
+
+.hint-card__title img {
+  width: 16px;
+  height: 16px;
+  filter: drop-shadow(0 0 5px rgba(255, 235, 176, 0.34));
+  image-rendering: pixelated;
+  pointer-events: none;
+  user-select: none;
+}
+
+.hint-card__close {
+  border: 0;
+  padding: 1px 2px;
+  background: transparent;
+  color: rgba(229, 231, 235, 0.42);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  transition: color 160ms ease, filter 160ms ease;
+}
+
+.hint-card__close:hover {
+  color: rgba(255, 255, 255, 0.86);
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.18));
+}
+
+.hint-card__copy {
+  position: relative;
+  z-index: 1;
+  color: rgba(242, 242, 242, 0.92);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.7;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.78);
+}
+
+.dialog-input-row {
+  display: flex;
+  gap: 12px;
+}
+
+.dialog-input {
+  min-width: 0;
+  flex: 1 1 auto;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 7px;
+  background:
+    linear-gradient(180deg, rgba(8, 13, 24, 0.9), rgba(6, 9, 17, 0.88));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    inset 0 0 18px rgba(0, 0, 0, 0.32);
+  color: rgba(243, 244, 246, 0.94);
+  font: inherit;
+  padding: 11px 13px;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+
+.dialog-input::placeholder {
+  color: rgba(156, 163, 175, 0.72);
+}
+
+.dialog-input:focus {
+  outline: none;
+  border-color: rgba(168, 85, 247, 0.46);
+  background:
+    linear-gradient(180deg, rgba(10, 14, 25, 0.94), rgba(6, 8, 16, 0.92));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    inset 0 0 18px rgba(0, 0, 0, 0.34),
+    0 0 0 1px rgba(168, 85, 247, 0.08),
+    0 0 18px rgba(168, 85, 247, 0.18);
+}
+
+.dialog-send-button {
+  flex: 0 0 auto;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid rgba(213, 196, 255, 0.38);
+  border-radius: 3px;
+  background:
+    linear-gradient(180deg, rgba(55, 36, 82, 0.98) 0%, rgba(31, 23, 47, 0.98) 49%, rgba(13, 11, 20, 0.98) 50%, rgba(44, 24, 69, 0.98) 100%);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.86),
+    0 3px 0 rgba(7, 6, 12, 0.95),
+    0 4px 0 rgba(116, 80, 154, 0.2),
+    0 0 10px rgba(124, 58, 237, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    inset 2px 0 0 rgba(255, 255, 255, 0.035),
+    inset -2px 0 0 rgba(0, 0, 0, 0.38),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.72);
+  color: rgba(246, 242, 255, 0.95);
+  font: inherit;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  min-height: 46px;
+  width: 58px;
+  min-width: 58px;
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.9),
+    0 0 6px rgba(232, 213, 255, 0.24);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    filter 160ms ease,
+    transform 160ms ease;
+}
+
+.dialog-send-button::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  z-index: 0;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.055) 0 1px, transparent 1px 5px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 42%, rgba(0, 0, 0, 0.2) 43% 100%);
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.dialog-send-button::after {
+  content: '';
+  position: absolute;
+  right: 5px;
+  bottom: 4px;
+  left: 5px;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, rgba(221, 205, 255, 0.34) 0 4px, transparent 4px 7px);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.dialog-send-icon {
+  position: relative;
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+  filter:
+    drop-shadow(0 1px 0 rgba(0, 0, 0, 0.95))
+    drop-shadow(0 0 5px rgba(221, 205, 255, 0.28));
+  image-rendering: pixelated;
+}
+
+.dialog-send-icon__body,
+.dialog-send-icon__spark {
+  fill: rgba(238, 235, 246, 0.94);
+}
+
+.dialog-send-icon__cut {
+  fill: rgba(26, 18, 38, 0.94);
+}
+
+.dialog-send-button:hover {
+  border-color: rgba(231, 220, 255, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.9),
+    0 3px 0 rgba(7, 6, 12, 0.95),
+    0 4px 0 rgba(151, 115, 194, 0.24),
+    0 0 14px rgba(168, 85, 247, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 2px 0 0 rgba(255, 255, 255, 0.045),
+    inset -2px 0 0 rgba(0, 0, 0, 0.34),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.66);
+  filter: brightness(1.04);
+}
+
+.dialog-send-button:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.9),
+    0 1px 0 rgba(7, 6, 12, 0.95),
+    0 0 8px rgba(124, 58, 237, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 2px 0 rgba(0, 0, 0, 0.55);
+}
+
+.hint-hud-button {
+  border: 0;
+  padding: 0;
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: rgba(229, 231, 235, 0.82);
+  font: inherit;
+  line-height: 1;
+  transition:
+    color 180ms ease,
+    opacity 180ms ease,
+    filter 180ms ease;
+}
+
+.hint-hud-button:hover:not(:disabled) {
+  color: rgba(250, 246, 218, 0.96);
+  filter: drop-shadow(0 0 5px rgba(255, 240, 190, 0.18));
+}
+
+.hint-hud-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.hint-hud-button__icon {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  place-items: center;
+  filter:
+    drop-shadow(0 0 3px rgba(255, 244, 202, 0.46))
+    drop-shadow(0 0 8px rgba(255, 218, 143, 0.16));
+}
+
+.hint-hud-button__icon img {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  pointer-events: none;
+  user-select: none;
+}
+
+.hint-hud-button__content {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}
+
+.hint-hud-button__label {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.86);
+}
+
+.hint-hud-button__count {
+  color: rgba(229, 231, 235, 0.72);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.86);
+}
+
+@media (max-width: 640px) {
+  .hint-card {
+    margin-bottom: 20px;
+    padding: 12px 13px 13px 30px;
+  }
+
+  .hint-card__copy {
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .dialog-input-row {
+    gap: 10px;
+  }
+
+  .dialog-input {
+    padding: 10px 12px;
+  }
+
+  .dialog-send-button {
+    min-height: 43px;
+    width: 52px;
+    min-width: 52px;
+    padding: 0;
+  }
+
+  .dialog-send-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .hint-hud-button {
+    min-height: 42px;
+    gap: 6px;
+  }
+
+  .hint-hud-button__icon {
+    width: 20px;
+    height: 20px;
+    flex-basis: 20px;
+  }
+
+  .hint-hud-button__label,
+  .hint-hud-button__count {
+    font-size: 10px;
+  }
 }
 </style>
