@@ -293,26 +293,11 @@ onMounted(() => {
 
 .chat-scrollbar {
   scrollbar-gutter: stable;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(7, 193, 96, 0.45) rgba(0, 0, 0, 0.06);
+  scrollbar-width: none;
   overscroll-behavior: contain;
 }
 
 .chat-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.chat-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.04);
-  border-radius: 999px;
-}
-
-.chat-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(7, 193, 96, 0.45);
-  border-radius: 999px;
-}
-
-.chat-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(7, 193, 96, 0.65);
+  display: none;
 }
 </style>
