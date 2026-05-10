@@ -26,8 +26,8 @@
         <p class="tagline">
           <span class="quote-mark quote-mark-open" aria-hidden="true">“</span>
           <span class="quote-copy">
-            你只有 <strong>{{ GAME_RULES.initialRoundCount }} 句话</strong> 的时间。<br />
-            但也许，真诚的倾听能让她多停留一会儿。
+            <strong>{{ GAME_RULES.initialRoundCount }} 句话后</strong>，她可能从天台坠落。<br />
+            你说的每一个字，都在决定她靠近你，还是靠近风。
           </span>
           <span class="quote-mark quote-mark-close" aria-hidden="true">”</span>
         </p>
