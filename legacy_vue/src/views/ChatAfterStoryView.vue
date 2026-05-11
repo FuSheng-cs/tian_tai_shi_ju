@@ -270,7 +270,6 @@ const saveToSlot = (slotId: number) => {
     sessionStorage.setItem(CHAT_AFTER_SAVE_SLOT_SESSION_KEY, String(slotId))
     refreshSaveSlots()
     showSaveSlots.value = false
-    alert(`日后谈已保存至栏位 ${slotId}`)
   } else {
     alert('保存失败')
   }

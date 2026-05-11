@@ -6,7 +6,7 @@
     <button
       type="button"
       @click="goBack"
-      class="fixed left-4 top-4 z-30 inline-flex items-center gap-2 rounded-lg border border-gray-700/70 bg-gray-950/78 px-3 py-2 text-sm font-medium text-gray-200 shadow-lg backdrop-blur-md transition-colors hover:border-purple-400/60 hover:bg-gray-900 hover:text-white sm:left-6 sm:top-6"
+      class="settings-frame-button settings-frame-button--floating"
       aria-label="返回上一页"
     >
       <ArrowLeft class="h-4 w-4" aria-hidden="true" />
@@ -151,7 +151,7 @@
                     type="button"
                     @click="testConnection"
                     :disabled="!canTestConnection"
-                    class="inline-flex items-center gap-2 rounded-lg border border-purple-500/40 bg-purple-700/70 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-purple-600 disabled:cursor-not-allowed disabled:border-gray-700 disabled:bg-gray-800 disabled:text-gray-500"
+                    class="settings-frame-button settings-frame-button--test"
                   >
                     <Loader2 v-if="isTesting" class="h-4 w-4 animate-spin" aria-hidden="true" />
                     <PlugZap v-else class="h-4 w-4" aria-hidden="true" />
@@ -204,7 +204,7 @@
         <button
           type="button"
           @click="goBack"
-          class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-gray-700 to-gray-600 px-7 py-2.5 font-medium text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:from-gray-600 hover:to-gray-500"
+          class="settings-frame-button settings-frame-button--footer"
         >
           <ArrowLeft class="h-4 w-4" aria-hidden="true" />
           返回
@@ -386,5 +386,90 @@ const goBack = () => {
 
 .provider-option {
   letter-spacing: 0;
+}
+
+.settings-frame-button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid rgba(135, 154, 176, 0.42);
+  border-radius: 4px;
+  background:
+    linear-gradient(180deg, rgba(18, 22, 30, 0.82), rgba(8, 10, 14, 0.72));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.58),
+    0 8px 22px rgba(0, 0, 0, 0.24);
+  color: rgba(239, 244, 248, 0.92);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+  padding: 0 15px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.86);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.settings-frame-button:hover:not(:disabled),
+.settings-frame-button:focus-visible:not(:disabled) {
+  border-color: rgba(171, 188, 207, 0.62);
+  background:
+    linear-gradient(180deg, rgba(24, 29, 38, 0.9), rgba(10, 12, 17, 0.8));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.075),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.62),
+    0 0 0 1px rgba(255, 255, 255, 0.025),
+    0 9px 22px rgba(0, 0, 0, 0.28);
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.settings-frame-button:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 1px 0 rgba(0, 0, 0, 0.52),
+    0 4px 12px rgba(0, 0, 0, 0.24);
+}
+
+.settings-frame-button:disabled {
+  cursor: not-allowed;
+  border-color: rgba(94, 108, 126, 0.36);
+  background:
+    linear-gradient(180deg, rgba(17, 20, 26, 0.56), rgba(7, 8, 12, 0.5));
+  color: rgba(135, 146, 160, 0.62);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.025),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.settings-frame-button--floating {
+  position: fixed;
+  left: 16px;
+  top: 16px;
+  z-index: 30;
+  backdrop-filter: blur(8px);
+}
+
+.settings-frame-button--test {
+  flex: 0 0 auto;
+  padding-inline: 16px;
+}
+
+.settings-frame-button--footer {
+  min-width: 82px;
+  padding-inline: 22px;
+}
+
+@media (min-width: 640px) {
+  .settings-frame-button--floating {
+    left: 24px;
+    top: 24px;
+  }
 }
 </style>

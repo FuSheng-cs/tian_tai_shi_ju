@@ -55,13 +55,14 @@
       
       <div class="flex shrink-0 gap-2 md:gap-3">
         <button
+          type="button"
           @click="openSaveSlots"
           :disabled="gameStore.isWaiting || isCinematicOverlayActive"
-          class="bg-gray-800/80 hover:bg-gray-700 px-2.5 py-1.5 rounded text-sm border border-gray-600 backdrop-blur-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-800/80 md:px-3"
+          class="quiet-frame-button"
         >
           保存
         </button>
-        <button @click="goHome" class="bg-gray-800/80 hover:bg-gray-700 px-2.5 py-1.5 rounded text-sm border border-gray-600 backdrop-blur-sm transition-colors md:px-3">退出</button>
+        <button type="button" @click="goHome" class="quiet-frame-button">退出</button>
       </div>
     </div>
 
@@ -451,7 +452,6 @@ const saveToSlot = (slotId: number) => {
     refreshSaveSlots()
     AchievementTracker.evaluateSaveSlots(saveSlots.value)
     showSaveSlots.value = false
-    alert(`游戏已保存至栏位 ${slotId}`)
   } else {
     alert(gameStore.isWaiting ? '正在等待回应，暂时不能保存。' : '保存失败')
   }
@@ -596,6 +596,59 @@ onMounted(() => {
   font-weight: 600;
   line-height: 1.7;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.78);
+}
+
+.quiet-frame-button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(135, 154, 176, 0.42);
+  border-radius: 4px;
+  background:
+    linear-gradient(180deg, rgba(18, 22, 30, 0.82), rgba(8, 10, 14, 0.72));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.58),
+    0 6px 18px rgba(0, 0, 0, 0.22);
+  color: rgba(239, 244, 248, 0.92);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+  padding: 0 14px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.86);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.quiet-frame-button:hover:not(:disabled),
+.quiet-frame-button:focus-visible:not(:disabled) {
+  border-color: rgba(171, 188, 207, 0.62);
+  background:
+    linear-gradient(180deg, rgba(24, 29, 38, 0.9), rgba(10, 12, 17, 0.8));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.075),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.62),
+    0 0 0 1px rgba(255, 255, 255, 0.025),
+    0 7px 18px rgba(0, 0, 0, 0.25);
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.quiet-frame-button:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 1px 0 rgba(0, 0, 0, 0.52),
+    0 3px 10px rgba(0, 0, 0, 0.22);
+}
+
+.quiet-frame-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
 }
 
 .dialog-input-row {
