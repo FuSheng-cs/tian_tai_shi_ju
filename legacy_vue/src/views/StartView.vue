@@ -371,29 +371,41 @@ const goToAchievements = () => {
 }
 
 .tagline {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 0.58cqw;
   width: 32.4cqw;
   max-width: none;
-  margin: 1.05cqw 0 0 3.2cqw;
-  padding: 0.56cqw 1.05cqw 0.62cqw;
+  margin: 0.78cqw 0 0 3.2cqw;
+  padding: 0.42cqw 0;
   color: rgba(247, 243, 255, 0.88);
   font-size: clamp(0.92rem, 1.04cqw, 1.12rem);
   line-height: 1.45;
   font-style: italic;
   letter-spacing: 0.03em;
-  background:
-    linear-gradient(90deg, rgba(141, 72, 226, 0.13), rgba(255, 255, 255, 0.035) 46%, rgba(141, 72, 226, 0.11)),
-    linear-gradient(180deg, rgba(10, 7, 20, 0.22), rgba(0, 0, 0, 0.04));
-  border-top: 1px solid rgba(216, 182, 255, 0.24);
-  border-bottom: 1px solid rgba(216, 182, 255, 0.18);
-  box-shadow:
-    0 0 24px rgba(139, 78, 216, 0.12),
-    0 1px 0 rgba(255, 255, 255, 0.04) inset;
   text-shadow:
     0 1px 2px rgba(0, 0, 0, 0.9),
     0 0 12px rgba(216, 182, 255, 0.18);
+}
+
+.tagline::after {
+  content: "";
+  position: absolute;
+  left: 2.2cqw;
+  right: 2.2cqw;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(182, 108, 255, 0.32) 18%,
+    rgba(245, 241, 255, 0.34) 50%,
+    rgba(182, 108, 255, 0.28) 82%,
+    transparent
+  );
+  box-shadow: 0 0 12px rgba(182, 108, 255, 0.18);
+  opacity: 0.72;
 }
 
 .tagline strong {
@@ -430,6 +442,10 @@ const goToAchievements = () => {
   gap: 0.26em;
   flex: 1;
   white-space: nowrap;
+  color: rgba(238, 233, 248, 0.82);
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.88),
+    0 0 10px rgba(188, 144, 255, 0.22);
 }
 
 .quote-copy strong {
@@ -800,11 +816,12 @@ const goToAchievements = () => {
       url('/assets/images/menu_bg_rooftop_900.webp') type('image/webp'),
       url('/assets/images/menu_bg_rooftop.png') type('image/png')
     );
-    background-position: center;
+    background-position: 58% center;
+    filter: saturate(0.86) contrast(1.08) brightness(0.68);
   }
 
   .character-layer {
-    opacity: 0.28;
+    opacity: 0.2;
     background-image: url('/assets/images/char_girl_smoke_900.webp');
     background-image: image-set(
       url('/assets/images/char_girl_smoke_900.webp') type('image/webp'),
@@ -817,8 +834,8 @@ const goToAchievements = () => {
 
   .menu-shade {
     background:
-      linear-gradient(180deg, rgba(3, 3, 8, 0.78) 0%, rgba(3, 3, 8, 0.56) 42%, rgba(3, 3, 8, 0.94) 100%),
-      linear-gradient(90deg, rgba(3, 3, 8, 0.76), rgba(3, 3, 8, 0.58));
+      linear-gradient(180deg, rgba(3, 3, 8, 0.86) 0%, rgba(3, 3, 8, 0.52) 36%, rgba(3, 3, 8, 0.96) 100%),
+      linear-gradient(90deg, rgba(3, 3, 8, 0.78), rgba(3, 3, 8, 0.54));
   }
 
   .menu-shell {
@@ -828,15 +845,15 @@ const goToAchievements = () => {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    gap: 18px;
-    width: min(560px, calc(100% - 32px));
+    gap: 14px;
+    width: min(500px, calc(100% - 28px));
     max-width: none;
     min-height: auto;
     aspect-ratio: auto;
     transform: none;
     container-type: normal;
     margin: 0 auto;
-    padding: 26px 0 78px;
+    padding: clamp(18px, 4.2svh, 34px) 0 64px;
   }
 
   .brand-panel {
@@ -850,7 +867,7 @@ const goToAchievements = () => {
     position: static;
     width: 100%;
     order: 2;
-    gap: 12px;
+    gap: 10px;
   }
 
   .intro-card {
@@ -859,37 +876,62 @@ const goToAchievements = () => {
     width: 100%;
     max-width: none;
     transform: none;
-    padding: 18px 18px 20px;
+    padding: 15px 16px 17px;
+    background:
+      linear-gradient(180deg, rgba(18, 13, 28, 0.7), rgba(4, 4, 10, 0.72)),
+      rgba(0, 0, 0, 0.28);
   }
 
   .title-art {
-    width: min(100%, 420px);
+    width: min(92%, 390px);
     margin: 0 auto;
   }
 
   .tagline {
     justify-content: center;
-    width: 100%;
-    max-width: 440px;
-    margin: 4px auto 0;
-    padding: 10px 14px 11px;
-    font-size: 0.98rem;
+    align-items: center;
+    gap: 8px;
+    width: min(100%, 430px);
+    max-width: none;
+    margin: 4px auto 2px;
+    padding: 8px 0 9px;
+    font-size: clamp(0.88rem, 3.5vw, 1rem);
     line-height: 1.55;
     text-align: center;
+  }
+
+  .tagline::after {
+    left: 44px;
+    right: 44px;
   }
 
   .quote-copy {
     white-space: normal;
     flex-wrap: wrap;
+    row-gap: 0;
+    column-gap: 0.28em;
   }
 
   .quote-mark {
-    font-size: 1.7rem;
+    font-size: 1.24rem;
   }
 
   .intro-heading {
     gap: 10px;
-    font-size: 0.95rem;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+  }
+
+  .intro-card p {
+    margin-bottom: 9px;
+    font-size: 0.84rem;
+    line-height: 1.65;
+  }
+
+  .intro-list {
+    gap: 7px;
+    margin-top: 11px;
+    padding-top: 10px;
   }
 
   .intro-list li {
@@ -904,9 +946,10 @@ const goToAchievements = () => {
 
   .menu-button,
   .menu-button-primary {
-    min-height: 62px;
+    min-height: 54px;
     grid-template-columns: 30px 1fr 30px;
     padding: 0 18px;
+    border-radius: 7px;
   }
 
   .menu-button span {
@@ -922,7 +965,7 @@ const goToAchievements = () => {
     position: relative;
     left: auto;
     bottom: auto;
-    margin: -58px auto 18px;
+    margin: -46px auto 14px;
     transform: none;
     justify-content: center;
     width: calc(100% - 32px);
@@ -937,33 +980,53 @@ const goToAchievements = () => {
 
 @media (max-width: 480px) {
   .menu-shell {
-    width: calc(100% - 24px);
-    padding-top: 20px;
+    width: calc(100% - 22px);
+    gap: 11px;
+    padding-top: 16px;
   }
 
   .title-art {
-    width: min(100%, 340px);
+    width: min(96%, 328px);
   }
 
   .tagline {
-    font-size: 0.9rem;
+    font-size: 0.86rem;
+    line-height: 1.48;
+  }
+
+  .quote-copy strong {
+    font-size: 1.08em;
   }
 
   .intro-heading {
-    margin-bottom: 12px;
+    margin-bottom: 9px;
   }
 
   .intro-card p {
-    font-size: 0.88rem;
-    line-height: 1.7;
+    font-size: 0.8rem;
+    line-height: 1.62;
   }
 
   .intro-list {
-    margin-top: 14px;
+    margin-top: 10px;
   }
 
   .intro-list li {
-    font-size: 0.84rem;
+    font-size: 0.78rem;
+    line-height: 1.48;
+  }
+
+  .menu-button,
+  .menu-button-primary {
+    min-height: 50px;
+  }
+
+  .menu-button span {
+    font-size: 0.94rem;
+  }
+
+  .menu-button-primary span {
+    font-size: 1rem;
   }
 }
 
