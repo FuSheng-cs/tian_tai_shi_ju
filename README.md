@@ -94,8 +94,10 @@ VITE_BACKEND_URL=http://localhost:8080
 - [项目简介与 AI 原生说明](docs/product/project_overview.md)
 - [玩家阅读文档](docs/product/player_guide.md)
 - [故事线与世界观](docs/product/storyline_and_lore.md)
+- [游戏设定集](docs/product/game_setting_bible.md)
 - [技术文档](docs/engineering/technical_overview.md)
 - [Prompt 与设定说明](docs/engineering/prompts_and_settings.md)
+- [文档与 Prompt 一致性审查](docs/engineering/document_prompt_audit_2026-06-29.md)
 - [优化建议](docs/engineering/optimization_report.md)
 
 ## 常用命令

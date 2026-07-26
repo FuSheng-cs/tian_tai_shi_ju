@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouterHistory, RouteRecordRaw } from 'vue-router'
-import { CHAT_AFTER_SAVE_SLOT_SESSION_KEY, ENDINGS } from '@/domain/gameContract'
+import { CHAT_AFTER_SLOT_QUERY_KEY, ENDINGS, parseChatAfterSlotId } from '@/domain/gameContract'
 import type { GameState } from '@/domain/gameState'
 import { SaveSystem } from '@/modules/SaveSystem'
 import { useGameStore } from '@/store/gameStore'
@@ -33,14 +33,17 @@ export const routes: Array<RouteRecordRaw> = [
   }
 ]
 
-const canLoadChatAfterStoryFromSession = () => {
-  const slotId = Number(sessionStorage.getItem(CHAT_AFTER_SAVE_SLOT_SESSION_KEY))
-  if (!Number.isInteger(slotId)) return false
-  return SaveSystem.loadChatAfter(slotId) !== null
+const canLoadChatAfterStoryFromSlot = (slotValue: unknown) => {
+  const slotId = parseChatAfterSlotId(slotValue)
+  return slotId !== null && SaveSystem.loadChatAfter(slotId) !== null
 }
 
-export const canEnterChatAfterStory = (state: Pick<GameState, 'isEnding' | 'endingType'>) =>
-  (state.isEnding && state.endingType === ENDINGS.acquaintance.type) || canLoadChatAfterStoryFromSession()
+export const canEnterChatAfterStory = (
+  state: Pick<GameState, 'isEnding' | 'endingType'>,
+  slotValue: unknown = null
+) =>
+  (state.isEnding && state.endingType === ENDINGS.acquaintance.type) ||
+  canLoadChatAfterStoryFromSlot(slotValue)
 
 export const createAppRouter = (
   history: RouterHistory = createWebHistory(),
@@ -52,7 +55,8 @@ export const createAppRouter = (
   })
 
   router.beforeEach((to) => {
-    if (to.name === 'ChatAfter' && !canEnterChatAfterStory(useGameStore())) {
+    const slotValue = to.query[CHAT_AFTER_SLOT_QUERY_KEY]
+    if (to.name === 'ChatAfter' && !canEnterChatAfterStory(useGameStore(), slotValue)) {
       return { name: 'Start' }
     }
   })

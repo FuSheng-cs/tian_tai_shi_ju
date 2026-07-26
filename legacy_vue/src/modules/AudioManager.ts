@@ -7,7 +7,7 @@ const FALL_IMPACT_VOLUME_SCALE = 0.82
 const FALL_IMPACT_SFX_KEY = 'fall_impact'
 type AudioSource = string | readonly string[]
 
-const normalizeAudioSources = (src: AudioSource) => Array.isArray(src) ? [...src] : [src]
+const normalizeAudioSources = (src: AudioSource) => (Array.isArray(src) ? [...src] : [src])
 const getAudioSourceKey = (src: AudioSource) => normalizeAudioSources(src).join('|')
 
 class AudioManager {
@@ -113,9 +113,8 @@ class AudioManager {
   playStairStep(stepIndex?: number) {
     const settingsStore = useSettingsStore()
     const sequenceIndex = stepIndex ?? this.nextStairStepIndex
-    const sfxKey = this.stairStepSfxKeys[
-      ((sequenceIndex % this.stairStepSfxKeys.length) + this.stairStepSfxKeys.length) % this.stairStepSfxKeys.length
-    ]
+    const stepCount = this.stairStepSfxKeys.length
+    const sfxKey = this.stairStepSfxKeys[((sequenceIndex % stepCount) + stepCount) % stepCount]
     const sfx = sfxKey ? this.sfxMap[sfxKey] : null
     this.nextStairStepIndex = sequenceIndex + 1
 
@@ -135,9 +134,6 @@ class AudioManager {
     }
   }
 
-  startTypewriter() {}
-  stopTypewriter() {}
-
   updateVolumes() {
     const settingsStore = useSettingsStore()
     if (this.bgm) {
@@ -145,11 +141,12 @@ class AudioManager {
     }
 
     Object.entries(this.sfxMap).forEach(([key, sfx]) => {
-      const volumeScale = key === FALL_IMPACT_SFX_KEY
-        ? FALL_IMPACT_VOLUME_SCALE
-        : this.stairStepSfxKeys.includes(key)
-          ? STAIR_STEP_VOLUME_SCALE
-          : 1
+      const volumeScale =
+        key === FALL_IMPACT_SFX_KEY
+          ? FALL_IMPACT_VOLUME_SCALE
+          : this.stairStepSfxKeys.includes(key)
+            ? STAIR_STEP_VOLUME_SCALE
+            : 1
       sfx.volume(settingsStore.sfxVolume * volumeScale)
     })
 

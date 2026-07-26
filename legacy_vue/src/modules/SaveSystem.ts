@@ -1,6 +1,11 @@
 import CRC32 from 'crc-32'
 import { GAME_RULES } from '@/domain/gameContract'
-import type { AfterStoryContext, Message, PersistedGameState, StablePersistedGameState } from '@/domain/gameState'
+import type {
+  AfterStoryContext,
+  Message,
+  PersistedGameState,
+  StablePersistedGameState
+} from '@/domain/gameState'
 import { useGameStore } from '@/store/gameStore'
 
 const SAVE_KEY_PREFIX = 'damo_save_'
@@ -10,44 +15,43 @@ export const SAVE_SLOT_KINDS = {
   chatAfter: 'chatAfter'
 } as const
 
-export type SaveSlotKind = typeof SAVE_SLOT_KINDS[keyof typeof SAVE_SLOT_KINDS]
+export type SaveSlotKind = (typeof SAVE_SLOT_KINDS)[keyof typeof SAVE_SLOT_KINDS]
 
 export interface SaveSlot {
-  id: number;
-  timestamp: number;
-  data: string; // Base64 encoded JSON + CRC32
-  kind: SaveSlotKind;
+  id: number
+  timestamp: number
+  data: string // Base64 encoded JSON + CRC32
+  kind: SaveSlotKind
 }
 
 export interface ChatAfterSaveData {
-  messages: Message[];
-  afterStoryContext: AfterStoryContext;
+  messages: Message[]
+  afterStoryContext: AfterStoryContext
 }
 
 interface StoredSaveSlot {
-  id: number;
-  timestamp: number;
-  data: string;
-  kind?: SaveSlotKind;
+  id: number
+  timestamp: number
+  data: string
+  kind?: SaveSlotKind
 }
 
 interface GameSavePayload {
-  kind?: SaveSlotKind;
-  state: StablePersistedGameState;
-  checksum: number;
+  kind?: SaveSlotKind
+  state: StablePersistedGameState
+  checksum: number
 }
 
 interface ChatAfterSavePayload {
-  kind: typeof SAVE_SLOT_KINDS.chatAfter;
-  state: ChatAfterSaveData;
-  checksum: number;
+  kind: typeof SAVE_SLOT_KINDS.chatAfter
+  state: ChatAfterSaveData
+  checksum: number
 }
 
 const encodePayload = (payload: GameSavePayload | ChatAfterSavePayload) =>
   btoa(encodeURIComponent(JSON.stringify(payload)))
 
-const decodePayload = (slot: StoredSaveSlot) =>
-  JSON.parse(decodeURIComponent(atob(slot.data)))
+const decodePayload = (slot: StoredSaveSlot) => JSON.parse(decodeURIComponent(atob(slot.data)))
 
 const checksumMatches = (state: unknown, checksum: unknown) =>
   typeof checksum === 'number' && CRC32.str(JSON.stringify(state)) === checksum
@@ -75,12 +79,14 @@ const readSlot = (slotId: number): SaveSlot | null => {
 }
 
 const isMessageArray = (value: unknown): value is Message[] =>
-  Array.isArray(value) && value.every((message) =>
-    message &&
-    typeof message === 'object' &&
-    (message as Message).role &&
-    ['user', 'assistant'].includes((message as Message).role) &&
-    typeof (message as Message).content === 'string'
+  Array.isArray(value) &&
+  value.every(
+    (message) =>
+      message &&
+      typeof message === 'object' &&
+      (message as Message).role &&
+      ['user', 'assistant'].includes((message as Message).role) &&
+      typeof (message as Message).content === 'string'
   )
 
 const isAfterStoryContext = (value: unknown): value is AfterStoryContext => {
@@ -119,7 +125,7 @@ export class SaveSystem {
         endingType: gameStore.endingType,
         endingSummary: gameStore.endingSummary
       }
-      
+
       const jsonStr = JSON.stringify(stateToSave)
       const checksum = CRC32.str(jsonStr)
       const payload: GameSavePayload = {
@@ -127,16 +133,16 @@ export class SaveSystem {
         state: stateToSave,
         checksum
       }
-      
+
       const base64Data = encodePayload(payload)
-      
+
       const slot: SaveSlot = {
         id: slotId,
         timestamp: Date.now(),
         data: base64Data,
         kind: SAVE_SLOT_KINDS.game
       }
-      
+
       localStorage.setItem(`${SAVE_KEY_PREFIX}${slotId}`, JSON.stringify(slot))
       return true
     } catch (e) {
@@ -149,14 +155,14 @@ export class SaveSystem {
     try {
       const slot = readSlot(slotId)
       if (!slot || slot.kind !== SAVE_SLOT_KINDS.game) return false
-      
+
       const payload = decodePayload(slot) as GameSavePayload
-      
+
       if (!checksumMatches(payload.state, payload.checksum)) {
         console.error('Save file corrupted: Checksum mismatch')
         return false
       }
-      
+
       const gameStore = useGameStore()
       gameStore.loadState(payload.state as PersistedGameState)
       return true

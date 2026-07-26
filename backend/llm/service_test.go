@@ -2,6 +2,7 @@ package llm
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -259,6 +260,114 @@ func TestChatReturnsNaturalReplyAndStructuredEvaluation(t *testing.T) {
 	}
 }
 
+func TestChatFallsBackToSilentLineWhenReplyIsOnlyMechanicTags(t *testing.T) {
+	callCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		switch callCount {
+		case 1:
+			writeOpenAIContent(t, w, AiStateWaveringTag+AffectionBoostTag)
+		case 2:
+			writeOpenAIContent(t, w, `{
+				"emotion":"normal",
+				"ai_state":"guarded",
+				"affection_delta":0,
+				"pressure_delta":0,
+				"ending_type":null,
+				"confidence":0.7
+			}`)
+		default:
+			t.Fatalf("unexpected LLM call #%d", callCount)
+		}
+	}))
+	defer server.Close()
+
+	oldClient := httpClient
+	httpClient = server.Client()
+	defer func() {
+		httpClient = oldClient
+	}()
+
+	result, err := Chat(ClientConfig{
+		Provider: "custom",
+		APIKey:   "test-key",
+		Model:    "test-model",
+		BaseURL:  server.URL,
+	}, "hello", nil, 8, 0, 0, 1, EvaluationAiStateGuarded)
+	if err != nil {
+		t.Fatalf("Chat returned error: %v", err)
+	}
+
+	if strings.TrimSpace(result.Reply) == "" {
+		t.Fatal("tag-only reply should not be passed through as empty")
+	}
+	if result.Reply != FallbackSilentReply {
+		t.Fatalf("expected fallback silent reply, got %q", result.Reply)
+	}
+}
+
+func TestEvaluateTurnSendsOnlyRecentHistoryToJudge(t *testing.T) {
+	var captured LLMRequest
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&captured); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+		writeOpenAIContent(t, w, `{
+			"emotion":"normal",
+			"ai_state":"guarded",
+			"affection_delta":0,
+			"pressure_delta":0,
+			"ending_type":null,
+			"confidence":0.7
+		}`)
+	}))
+	defer server.Close()
+
+	oldClient := httpClient
+	httpClient = server.Client()
+	defer func() {
+		httpClient = oldClient
+	}()
+
+	history := make([]Message, 0, 10)
+	for i := 0; i < 10; i++ {
+		role := "assistant"
+		if i%2 == 1 {
+			role = "user"
+		}
+		history = append(history, Message{Role: role, Content: fmt.Sprintf("line-%d", i)})
+	}
+
+	_, err := EvaluateTurn(ClientConfig{
+		Provider: "custom",
+		APIKey:   "test-key",
+		Model:    "test-model",
+		BaseURL:  server.URL,
+	}, turnEvaluationPayload{
+		History:        history,
+		UserMessage:    "hello",
+		AssistantReply: "natural reply",
+		CurrentAiState: EvaluationAiStateGuarded,
+	})
+	if err != nil {
+		t.Fatalf("EvaluateTurn returned error: %v", err)
+	}
+
+	if len(captured.Messages) != 2 {
+		t.Fatalf("unexpected judge messages: %#v", captured.Messages)
+	}
+	var payload turnEvaluationPayload
+	if err := json.Unmarshal([]byte(captured.Messages[1].Content), &payload); err != nil {
+		t.Fatalf("failed to decode judge payload: %v", err)
+	}
+	if len(payload.History) != evaluationHistoryWindow {
+		t.Fatalf("expected judge history window %d, got %d", evaluationHistoryWindow, len(payload.History))
+	}
+	if payload.History[len(payload.History)-1].Content != "line-9" {
+		t.Fatalf("expected most recent history to be kept, got %#v", payload.History)
+	}
+}
+
 func TestChatFallsBackWhenEvaluatorFails(t *testing.T) {
 	callCount := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -377,6 +486,101 @@ func TestCallLLMUsesAnthropicMessagesAPIForClaude(t *testing.T) {
 	}
 	if len(captured.Messages) != 1 || captured.Messages[0].Role != "user" || captured.Messages[0].Content != "hello" {
 		t.Fatalf("unexpected messages: %#v", captured.Messages)
+	}
+}
+
+func TestCallAnthropicLLMPrependsPlaceholderUserWhenHistoryStartsWithAssistant(t *testing.T) {
+	var captured AnthropicRequest
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&captured); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"content":[{"type":"text","text":"ok"}]}`))
+	}))
+	defer server.Close()
+
+	oldClient := httpClient
+	httpClient = server.Client()
+	defer func() {
+		httpClient = oldClient
+	}()
+
+	_, err := callLLM(ClientConfig{
+		Provider: "claude",
+		APIKey:   "test-key",
+		Model:    "claude-test",
+		BaseURL:  server.URL,
+	}, []Message{
+		{Role: "system", Content: "system prompt"},
+		{Role: "assistant", Content: "opening line"},
+		{Role: "user", Content: "hello"},
+	}, 0.4)
+	if err != nil {
+		t.Fatalf("callLLM returned error: %v", err)
+	}
+
+	if len(captured.Messages) != 3 {
+		t.Fatalf("expected placeholder user message to be prepended, got %#v", captured.Messages)
+	}
+	if captured.Messages[0].Role != "user" || captured.Messages[0].Content != "（游戏开始）" {
+		t.Fatalf("unexpected first message: %#v", captured.Messages[0])
+	}
+	if captured.Messages[1].Role != "assistant" || captured.Messages[1].Content != "opening line" {
+		t.Fatalf("unexpected second message: %#v", captured.Messages[1])
+	}
+	if captured.Messages[2].Role != "user" || captured.Messages[2].Content != "hello" {
+		t.Fatalf("unexpected third message: %#v", captured.Messages[2])
+	}
+}
+
+func TestNarrativeStateOverrideKeepsStateForDirectVerbNegations(t *testing.T) {
+	evaluation := TurnEvaluation{
+		Emotion:    EvaluationEmotionSting,
+		AiState:    EvaluationAiStateEdge,
+		Confidence: 0.7,
+	}
+
+	for _, reply := range []string{
+		"别劝了，我不会离开栏杆。",
+		"她摇头：我不想离开栏杆。",
+		"我不肯从栏杆上下来，你能怎样？",
+	} {
+		got := applyNarrativeStateOverrides(evaluation, reply)
+		if got.AiState != EvaluationAiStateEdge {
+			t.Fatalf("negated recovery %q should not force turnBack, got %#v", reply, got)
+		}
+	}
+}
+
+func TestStripKnownMechanicTagsRemovesColonAndBracketVariants(t *testing.T) {
+	cases := map[string]string{
+		"[状态：动摇]她低下头，烟灰抖了一下。":            "她低下头，烟灰抖了一下。",
+		"[好感度 +5]【结局：死亡】她看着你。":           "她看着你。",
+		AiStateWaveringTag + "她沉默。":      "她沉默。",
+		AffectionBoostTag + "你说对了一半。":    "你说对了一半。",
+		EndingAcquaintanceTag + "存个艾就行。": "存个艾就行。",
+		"（她指了指相机）里面的照片，我自己都没看过。":         "（她指了指相机）里面的照片，我自己都没看过。",
+	}
+
+	for input, want := range cases {
+		if got := stripKnownMechanicTags(input); got != want {
+			t.Fatalf("stripKnownMechanicTags(%q) = %q, want %q", input, got, want)
+		}
+	}
+}
+
+func TestStripKnownMechanicTagsKeepsPunctuationOnlyReply(t *testing.T) {
+	got := stripKnownMechanicTags("（……？？）")
+	if got != "（……？？）" {
+		t.Fatalf("punctuation-only reply should not be emptied, got %q", got)
+	}
+}
+
+func TestStripKnownMechanicTagsStillRemovesNoiseLinesFromMultiLineReply(t *testing.T) {
+	got := stripKnownMechanicTags("？？？？\n她低下头。")
+	if got != "她低下头。" {
+		t.Fatalf("noise line should be removed from multi-line reply, got %q", got)
 	}
 }
 

@@ -1,9 +1,11 @@
 <template>
-  <div class="game-view min-h-screen w-full relative flex flex-col bg-black text-gray-100 overflow-hidden">
+  <div
+    class="game-view min-h-screen w-full relative flex flex-col bg-black text-gray-100 overflow-hidden"
+  >
     <!-- Background (now using the character images directly as they contain the full scene) -->
     <div class="absolute inset-0 z-0">
       <picture class="block h-full w-full">
-        <source :srcset="currentBg.mobile" media="(max-width: 768px)" />
+        <source :srcset="currentBg.mobile" :media="MOBILE_BACKGROUND_MEDIA_QUERY" />
         <img
           :src="currentBg.desktop"
           class="w-full h-full object-cover transition-opacity duration-1000"
@@ -29,15 +31,22 @@
     <!-- Character layer removed since the new images are full-scene compositions -->
 
     <!-- Top UI -->
-    <div class="absolute top-0 left-0 right-0 z-30 flex flex-wrap items-start justify-between gap-3 p-4 pointer-events-auto md:p-6">
+    <div
+      class="absolute top-0 left-0 right-0 z-30 flex flex-wrap items-start justify-between gap-3 p-4 pointer-events-auto md:p-6"
+    >
       <div class="flex max-w-[calc(100%-112px)] flex-wrap gap-2 md:max-w-none md:gap-4">
-        <div class="rounded-md border border-white/10 bg-black/35 px-2 py-1.5 shadow-[0_0_18px_rgba(0,0,0,0.45)] backdrop-blur-[2px]">
+        <div
+          class="rounded-md border border-white/10 bg-black/35 px-2 py-1.5 shadow-[0_0_18px_rgba(0,0,0,0.45)] backdrop-blur-[2px]"
+        >
           <ChanceCigarettes :value="gameStore.roundCount" :max="GAME_RULES.initialRoundCount" />
         </div>
-        
-        <div v-if="gameStore.hintCount > 0 && !gameStore.isEnding" class="rounded-md border border-white/10 bg-black/35 px-2 py-1.5 shadow-[0_0_18px_rgba(0,0,0,0.45)] backdrop-blur-[2px]">
-          <button 
-            @click="handleHint" 
+
+        <div
+          v-if="gameStore.hintCount > 0 && !gameStore.isEnding"
+          class="rounded-md border border-white/10 bg-black/35 px-2 py-1.5 shadow-[0_0_18px_rgba(0,0,0,0.45)] backdrop-blur-[2px]"
+        >
+          <button
+            @click="handleHint"
             :disabled="gameStore.isWaiting || isCinematicOverlayActive"
             class="hint-hud-button"
             :aria-label="`寻找线索，剩余 ${gameStore.hintCount} / ${GAME_RULES.initialHintCount}`"
@@ -47,12 +56,14 @@
             </span>
             <span class="hint-hud-button__content">
               <span class="hint-hud-button__label">寻找线索</span>
-              <span class="hint-hud-button__count">{{ gameStore.hintCount }}/{{ GAME_RULES.initialHintCount }}</span>
+              <span class="hint-hud-button__count"
+                >{{ gameStore.hintCount }}/{{ GAME_RULES.initialHintCount }}</span
+              >
             </span>
           </button>
         </div>
       </div>
-      
+
       <div class="flex shrink-0 gap-2 md:gap-3">
         <button
           type="button"
@@ -72,7 +83,9 @@
       class="absolute inset-0 z-40 flex items-center justify-center bg-black/55 px-4 backdrop-blur-sm pointer-events-auto"
       @click.self="closeSaveSlots"
     >
-      <div class="w-full max-w-sm rounded-lg border border-purple-400/30 bg-[#090711]/95 p-5 shadow-[0_0_32px_rgba(168,85,247,0.22)]">
+      <div
+        class="w-full max-w-sm rounded-lg border border-purple-400/30 bg-[#090711]/95 p-5 shadow-[0_0_32px_rgba(168,85,247,0.22)]"
+      >
         <div class="mb-4 flex items-center justify-between">
           <h2 class="text-base font-bold text-purple-100">选择保存栏位</h2>
           <button
@@ -93,7 +106,7 @@
             class="rounded border border-gray-700 bg-black/45 px-4 py-3 text-left transition-colors hover:border-purple-400/70 hover:bg-purple-950/35"
             @click="saveToSlot(slotId)"
           >
-            <span class="block text-sm font-bold text-gray-100">栏位 {{ slotId }}</span>
+            <span class="block text-sm font-bold text-gray-100">{{ getSlotTitle(slotId) }}</span>
             <span class="mt-1 block text-xs text-gray-400">{{ getSlotStatus(slotId) }}</span>
           </button>
         </div>
@@ -101,14 +114,18 @@
     </div>
 
     <!-- Dialog Box -->
-    <div v-if="!isCinematicOverlayActive" class="absolute bottom-0 left-0 right-0 z-30 p-4 md:p-8 pointer-events-auto bg-gradient-to-t from-black via-black/80 to-transparent pt-24">
+    <div
+      v-if="!isCinematicOverlayActive"
+      class="absolute bottom-0 left-0 right-0 z-30 p-4 md:p-8 pointer-events-auto bg-gradient-to-t from-black via-black/80 to-transparent pt-24"
+    >
       <div class="max-w-4xl mx-auto">
-        <div class="bg-black/60 border border-gray-700/50 rounded-xl p-6 shadow-2xl backdrop-blur-md min-h-[160px] flex flex-col justify-end transition-all duration-500">
-          
+        <div
+          class="bg-black/60 border border-gray-700/50 rounded-xl p-6 shadow-2xl backdrop-blur-md min-h-[160px] flex flex-col justify-end transition-all duration-500"
+        >
           <div v-if="gameStore.isWaiting" class="italic text-gray-500 text-base md:text-lg py-4">
             <TypewriterText :text="gameStore.waitingText" />
           </div>
-          
+
           <div v-else-if="latestHint" class="hint-card">
             <span class="hint-card__perforation" aria-hidden="true"></span>
             <div class="hint-card__header">
@@ -116,45 +133,69 @@
                 <img :src="HINT_BULB_IMAGE" alt="" draggable="false" />
                 <span>内心直觉</span>
               </span>
-              <button type="button" @click="clearHint" class="hint-card__close" aria-label="关闭线索">✕</button>
+              <button
+                type="button"
+                @click="clearHint"
+                class="hint-card__close"
+                aria-label="关闭线索"
+              >
+                ✕
+              </button>
             </div>
             <div class="hint-card__copy">
               <TypewriterText :text="latestHint" @complete="onTextComplete" :key="latestHint" />
             </div>
           </div>
-          
+
           <div v-else-if="latestMessage" class="text-lg md:text-xl leading-relaxed text-gray-100">
             <div class="font-pixel text-purple-400 text-lg mb-3">
-              {{ latestMessage.role === 'assistant' ? (gameStore.isEnding ? GAME_ROLE.narratorSpeakerName : GAME_ROLE.assistantSpeakerName) : GAME_ROLE.playerSpeakerName }}
+              {{
+                latestMessage.role === 'assistant'
+                  ? gameStore.isEnding
+                    ? GAME_ROLE.narratorSpeakerName
+                    : GAME_ROLE.assistantSpeakerName
+                  : GAME_ROLE.playerSpeakerName
+              }}
             </div>
-            <TypewriterText :text="latestMessage.content" @complete="onTextComplete" :key="gameStore.messages.length" />
+            <TypewriterText
+              :text="latestMessage.content"
+              @complete="onTextComplete"
+              :key="gameStore.messages.length"
+            />
           </div>
 
           <!-- Input Area -->
           <div v-if="!gameStore.isWaiting && !gameStore.isEnding && textCompleted" class="mt-6">
             <div class="dialog-input-row">
-            <input 
-              v-model="inputText" 
-              @keyup.enter="handleSend"
-              type="text" 
-              class="dialog-input"
-              placeholder="对她说点什么..."
-              autofocus
-            />
-            <button type="button" @click="handleSend" class="dialog-send-button" aria-label="发送">
-              <svg class="dialog-send-icon" viewBox="0 0 16 16" aria-hidden="true" shape-rendering="crispEdges">
-                <path
-                  class="dialog-send-icon__body"
-                  d="M2 7h2V6h2V5h2V4h2V3h4v1h-1v2h-1v2h-1v3h-1v2H9v-1H8v-2H7V9H5V8H2V7z"
-                />
-                <path
-                  class="dialog-send-icon__cut"
-                  d="M6 8h2v1h1v1h1v1H9v-1H8V9H6V8z"
-                />
-                <path class="dialog-send-icon__spark" d="M12 4h1v1h-1V4z" />
-              </svg>
-              <span class="sr-only">发送</span>
-            </button>
+              <input
+                v-model="inputText"
+                @keyup.enter="handleSend"
+                type="text"
+                class="dialog-input"
+                placeholder="对她说点什么..."
+                autofocus
+              />
+              <button
+                type="button"
+                @click="handleSend"
+                class="dialog-send-button"
+                aria-label="发送"
+              >
+                <svg
+                  class="dialog-send-icon"
+                  viewBox="0 0 16 16"
+                  aria-hidden="true"
+                  shape-rendering="crispEdges"
+                >
+                  <path
+                    class="dialog-send-icon__body"
+                    d="M2 7h2V6h2V5h2V4h2V3h4v1h-1v2h-1v2h-1v3h-1v2H9v-1H8v-2H7V9H5V8H2V7z"
+                  />
+                  <path class="dialog-send-icon__cut" d="M6 8h2v1h1v1h1v1H9v-1H8V9H6V8z" />
+                  <path class="dialog-send-icon__spark" d="M12 4h1v1h-1V4z" />
+                </svg>
+                <span class="sr-only">发送</span>
+              </button>
             </div>
           </div>
 
@@ -163,9 +204,12 @@
               v-if="endingDefinition"
               class="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
               :class="{
-                'border-red-300/35 bg-red-950/25 text-red-50': gameStore.endingType === ENDINGS.death.type,
-                'border-sky-300/35 bg-sky-950/25 text-sky-50': gameStore.endingType === ENDINGS.disappear.type,
-                'border-emerald-300/35 bg-emerald-950/25 text-emerald-50': gameStore.endingType === ENDINGS.acquaintance.type
+                'border-red-300/35 bg-red-950/25 text-red-50':
+                  gameStore.endingType === ENDINGS.death.type,
+                'border-sky-300/35 bg-sky-950/25 text-sky-50':
+                  gameStore.endingType === ENDINGS.disappear.type,
+                'border-emerald-300/35 bg-emerald-950/25 text-emerald-50':
+                  gameStore.endingType === ENDINGS.acquaintance.type
               }"
             >
               <span class="text-xs opacity-75">结局</span>
@@ -173,7 +217,9 @@
             </div>
 
             <section class="border-t border-gray-700/60 pt-4 text-sm text-gray-300">
-              <div class="mb-3 flex items-center justify-between text-xs uppercase text-purple-300/80">
+              <div
+                class="mb-3 flex items-center justify-between text-xs uppercase text-purple-300/80"
+              >
                 <span>本局回声</span>
                 <span v-if="isEndingSummaryLoading" class="text-gray-500">整理中...</span>
               </div>
@@ -182,31 +228,43 @@
                 <div class="grid grid-cols-2 gap-3">
                   <div class="border-l border-purple-400/50 pl-3">
                     <div class="text-xs text-gray-500">使用句数</div>
-                    <div class="mt-0.5 font-bold text-gray-100">{{ gameStore.endingSummary.roundsUsed }} 句</div>
+                    <div class="mt-0.5 font-bold text-gray-100">
+                      {{ gameStore.endingSummary.roundsUsed }} 句
+                    </div>
                   </div>
                   <div class="border-l border-pink-400/50 pl-3">
                     <div class="text-xs text-gray-500">好感触发</div>
-                    <div class="mt-0.5 font-bold text-gray-100">{{ gameStore.endingSummary.affectionBoostCount }} 次</div>
+                    <div class="mt-0.5 font-bold text-gray-100">
+                      {{ gameStore.endingSummary.affectionBoostCount }} 次
+                    </div>
                   </div>
                 </div>
                 <p class="leading-relaxed text-gray-200">
-                  <span class="text-gray-500">关键转折句：</span>“{{ gameStore.endingSummary.turningLine }}”
+                  <span class="text-gray-500">关键转折句：</span>“{{
+                    gameStore.endingSummary.turningLine
+                  }}”
                 </p>
                 <p class="leading-relaxed text-purple-100/90">
                   <span class="text-gray-500">局后评语：</span>{{ gameStore.endingSummary.comment }}
                 </p>
               </div>
 
-              <div v-else class="text-gray-500">
-                正在从这一夜里挑出最重要的一句话……
-              </div>
+              <div v-else class="text-gray-500">正在从这一夜里挑出最重要的一句话……</div>
             </section>
 
             <div class="flex justify-center gap-4">
-              <button v-if="gameStore.endingType === ENDINGS.acquaintance.type" @click="goToChatAfter" class="px-8 py-3 bg-[#07c160] hover:bg-[#06ad56] text-white font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(7,193,96,0.4)]">
+              <button
+                v-if="gameStore.endingType === ENDINGS.acquaintance.type"
+                @click="goToChatAfter"
+                class="px-8 py-3 bg-[#07c160] hover:bg-[#06ad56] text-white font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(7,193,96,0.4)]"
+              >
                 添加联系人...
               </button>
-              <button v-else @click="goHome" class="px-8 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg border border-gray-600 transition-colors">
+              <button
+                v-else
+                @click="goHome"
+                class="px-8 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg border border-gray-600 transition-colors"
+              >
                 返回标题
               </button>
             </div>
@@ -219,17 +277,17 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   DEATH_ENDING_SEQUENCE_FRAMES,
   ENDING_BY_TYPE,
   ENDINGS,
-  CHAT_AFTER_SAVE_SLOT_SESSION_KEY,
-  GAME_ENTRY_SESSION_KEY,
+  GAME_ENTRY_QUERY_KEY,
   GAME_ENTRY_TYPES,
   GAME_ROLE,
   GAME_RULES,
   GAMEPLAY_PRELOAD_IMAGES,
+  MOBILE_BACKGROUND_MEDIA_QUERY,
   OPENING_SEQUENCE_FRAMES,
   ROOFTOP_BGM_SRCS,
   resolveWaitingBackground,
@@ -239,13 +297,15 @@ import {
 } from '@/domain/gameContract'
 import { useGameStore } from '@/store/gameStore'
 import { audioManager } from '@/modules/AudioManager'
-import { SaveSystem, type SaveSlot } from '@/modules/SaveSystem'
+import { SaveSystem } from '@/modules/SaveSystem'
 import { AchievementTracker } from '@/modules/AchievementTracker'
+import { useSaveSlots } from '@/composables/useSaveSlots'
 import ChanceCigarettes from '@/components/ChanceCigarettes.vue'
 import EndingSequenceOverlay from '@/components/EndingSequenceOverlay.vue'
 import OpeningSequenceOverlay from '@/components/OpeningSequenceOverlay.vue'
 import TypewriterText from '@/components/TypewriterText.vue'
 
+const route = useRoute()
 const router = useRouter()
 const gameStore = useGameStore()
 const SAVE_SLOT_IDS = GAME_RULES.saveSlotIds
@@ -255,11 +315,13 @@ const inputText = ref('')
 const textCompleted = ref(false)
 const latestHint = ref<string | null>(null)
 const showSaveSlots = ref(false)
-const saveSlots = ref<SaveSlot[]>([])
+const { saveSlots, refreshSaveSlots, getSlot, getSlotTitle, getSlotStatus } = useSaveSlots()
 const isEndingSummaryLoading = ref(false)
 const isOpeningSequenceActive = ref(false)
 const isDeathEndingSequenceActive = ref(false)
-const hasPlayedDeathEndingSequence = ref(gameStore.isEnding && gameStore.endingType === ENDINGS.death.type)
+const hasPlayedDeathEndingSequence = ref(
+  gameStore.isEnding && gameStore.endingType === ENDINGS.death.type
+)
 const hasStartedBgm = ref(false)
 const waitingVisualState = ref<ResolvedVisualState | null>(null)
 const preloadedImages = new Set<string>()
@@ -269,29 +331,37 @@ const latestMessage = computed(() => {
   return gameStore.messages[gameStore.messages.length - 1]
 })
 
-const saveSlotMap = computed(() => new Map(saveSlots.value.map((slot) => [slot.id, slot])))
-const hasPlayerMessages = computed(() => gameStore.messages.some((message) => message.role === 'user'))
+const hasPlayerMessages = computed(() =>
+  gameStore.messages.some((message) => message.role === 'user')
+)
 const endingDefinition = computed(() =>
   gameStore.endingType ? ENDING_BY_TYPE[gameStore.endingType] : null
 )
-const isCinematicOverlayActive = computed(() => isOpeningSequenceActive.value || isDeathEndingSequenceActive.value)
-const isDeathEndingSequencePending = computed(() =>
-  gameStore.isEnding &&
-  gameStore.endingType === ENDINGS.death.type &&
-  !hasPlayedDeathEndingSequence.value
+const isCinematicOverlayActive = computed(
+  () => isOpeningSequenceActive.value || isDeathEndingSequenceActive.value
 )
-const canShowEndingSettlement = computed(() =>
-  gameStore.isEnding && textCompleted.value && !isDeathEndingSequenceActive.value
+const isDeathEndingSequencePending = computed(
+  () =>
+    gameStore.isEnding &&
+    gameStore.endingType === ENDINGS.death.type &&
+    !hasPlayedDeathEndingSequence.value
+)
+const canShowEndingSettlement = computed(
+  () => gameStore.isEnding && textCompleted.value && !isDeathEndingSequenceActive.value
 )
 
-const currentVisualState = computed(() => resolveVisualState({
-  roundCount: isDeathEndingSequencePending.value ? Math.min(gameStore.roundCount, 1) : gameStore.roundCount,
-  affection: gameStore.affection,
-  isEnding: gameStore.isEnding && !isDeathEndingSequencePending.value,
-  endingType: isDeathEndingSequencePending.value ? null : gameStore.endingType,
-  aiStateType: gameStore.lastAiStateTag,
-  emotionType: gameStore.lastEmotionTag
-}))
+const currentVisualState = computed(() =>
+  resolveVisualState({
+    roundCount: isDeathEndingSequencePending.value
+      ? Math.min(gameStore.roundCount, 1)
+      : gameStore.roundCount,
+    affection: gameStore.affection,
+    isEnding: gameStore.isEnding && !isDeathEndingSequencePending.value,
+    endingType: isDeathEndingSequencePending.value ? null : gameStore.endingType,
+    aiStateType: gameStore.lastAiStateTag,
+    emotionType: gameStore.lastEmotionTag
+  })
+)
 
 const currentBg = computed(() =>
   gameStore.isWaiting
@@ -373,19 +443,22 @@ const ensureEndingSummary = async () => {
 const handleSend = async () => {
   const text = inputText.value.trim()
   if (!text || gameStore.isWaiting || gameStore.isEnding || isCinematicOverlayActive.value) return
-  
+
   audioManager.playSfx('click')
   inputText.value = ''
   textCompleted.value = false
   latestHint.value = null
-  
+
   waitingVisualState.value = currentVisualState.value
   try {
     await gameStore.sendMessage(text)
   } finally {
     waitingVisualState.value = null
   }
-  if (!gameStore.isEnding) {
+  if (gameStore.isEnding) {
+    // Start the summary request now so the network round-trip overlaps the typewriter animation.
+    void ensureEndingSummary()
+  } else {
     AchievementTracker.evaluateFromState(gameStore.$state)
   }
 }
@@ -411,23 +484,6 @@ const clearHint = () => {
   textCompleted.value = true // Ensure input shows up immediately after closing hint
 }
 
-const formatSaveTime = (timestamp: number) =>
-  new Intl.DateTimeFormat('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(new Date(timestamp))
-
-const getSlotStatus = (slotId: number) => {
-  const slot = saveSlotMap.value.get(slotId)
-  return slot ? `已有存档：${formatSaveTime(slot.timestamp)}` : '空栏位'
-}
-
-const refreshSaveSlots = () => {
-  saveSlots.value = SaveSystem.getSlots()
-}
-
 const openSaveSlots = () => {
   audioManager.playSfx('click')
   if (gameStore.isWaiting || isCinematicOverlayActive.value) {
@@ -445,8 +501,7 @@ const closeSaveSlots = () => {
 
 const saveToSlot = (slotId: number) => {
   audioManager.playSfx('click')
-  const existingSlot = saveSlotMap.value.get(slotId)
-  if (existingSlot && !confirm(`栏位 ${slotId} 已有存档，是否覆盖？`)) return
+  if (getSlot(slotId) && !confirm(`${getSlotTitle(slotId)} 已有存档，是否覆盖？`)) return
 
   if (SaveSystem.save(slotId)) {
     refreshSaveSlots()
@@ -464,28 +519,29 @@ const goHome = () => {
 
 const goToChatAfter = () => {
   audioManager.playSfx('click')
-  sessionStorage.removeItem(CHAT_AFTER_SAVE_SLOT_SESSION_KEY)
   router.push('/chat-after')
 }
 
 onMounted(() => {
   AchievementTracker.unlock('first_try')
-  preloadImages(GAMEPLAY_PRELOAD_IMAGES)
+  const usesMobileBackground = window.matchMedia(MOBILE_BACKGROUND_MEDIA_QUERY).matches
+  preloadImages(
+    usesMobileBackground ? GAMEPLAY_PRELOAD_IMAGES.mobile : GAMEPLAY_PRELOAD_IMAGES.desktop
+  )
   startRooftopBgm()
 
   if (gameStore.isEnding && gameStore.endingType === ENDINGS.death.type) {
     hasPlayedDeathEndingSequence.value = true
   }
 
-  const entryType = sessionStorage.getItem(GAME_ENTRY_SESSION_KEY)
-  sessionStorage.removeItem(GAME_ENTRY_SESSION_KEY)
-  const shouldPlayOpening = entryType === GAME_ENTRY_TYPES.newGame && !hasPlayerMessages.value && !gameStore.isEnding
+  const entryType = route.query[GAME_ENTRY_QUERY_KEY]
+  const shouldPlayOpening =
+    entryType === GAME_ENTRY_TYPES.newGame && !hasPlayerMessages.value && !gameStore.isEnding
 
   if (shouldPlayOpening) {
     isOpeningSequenceActive.value = true
     return
   }
-
 })
 </script>
 
@@ -523,8 +579,10 @@ onMounted(() => {
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
-  background-size: 100% 9px, 11px 100%;
-  content: "";
+  background-size:
+    100% 9px,
+    11px 100%;
+  content: '';
   opacity: 0.32;
   mix-blend-mode: screen;
 }
@@ -536,9 +594,8 @@ onMounted(() => {
   left: 10px;
   width: 10px;
   border-right: 1px solid rgba(229, 231, 235, 0.08);
-  background:
-    radial-gradient(circle, rgba(229, 231, 235, 0.34) 0 2px, transparent 2.4px)
-    center top / 8px 13px repeat-y;
+  background: radial-gradient(circle, rgba(229, 231, 235, 0.34) 0 2px, transparent 2.4px) center
+    top / 8px 13px repeat-y;
   opacity: 0.58;
 }
 
@@ -560,7 +617,9 @@ onMounted(() => {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0;
-  text-shadow: 0 0 7px rgba(255, 210, 112, 0.18), 0 1px 2px rgba(0, 0, 0, 0.86);
+  text-shadow:
+    0 0 7px rgba(255, 210, 112, 0.18),
+    0 1px 2px rgba(0, 0, 0, 0.86);
 }
 
 .hint-card__title img {
@@ -580,7 +639,9 @@ onMounted(() => {
   font: inherit;
   font-size: 13px;
   line-height: 1;
-  transition: color 160ms ease, filter 160ms ease;
+  transition:
+    color 160ms ease,
+    filter 160ms ease;
 }
 
 .hint-card__close:hover {
@@ -605,8 +666,7 @@ onMounted(() => {
   justify-content: center;
   border: 1px solid rgba(135, 154, 176, 0.42);
   border-radius: 4px;
-  background:
-    linear-gradient(180deg, rgba(18, 22, 30, 0.82), rgba(8, 10, 14, 0.72));
+  background: linear-gradient(180deg, rgba(18, 22, 30, 0.82), rgba(8, 10, 14, 0.72));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.055),
     inset 0 -1px 0 rgba(0, 0, 0, 0.58),
@@ -629,8 +689,7 @@ onMounted(() => {
 .quiet-frame-button:hover:not(:disabled),
 .quiet-frame-button:focus-visible:not(:disabled) {
   border-color: rgba(171, 188, 207, 0.62);
-  background:
-    linear-gradient(180deg, rgba(24, 29, 38, 0.9), rgba(10, 12, 17, 0.8));
+  background: linear-gradient(180deg, rgba(24, 29, 38, 0.9), rgba(10, 12, 17, 0.8));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.075),
     inset 0 -1px 0 rgba(0, 0, 0, 0.62),
@@ -661,8 +720,7 @@ onMounted(() => {
   flex: 1 1 auto;
   border: 1px solid rgba(148, 163, 184, 0.24);
   border-radius: 7px;
-  background:
-    linear-gradient(180deg, rgba(8, 13, 24, 0.9), rgba(6, 9, 17, 0.88));
+  background: linear-gradient(180deg, rgba(8, 13, 24, 0.9), rgba(6, 9, 17, 0.88));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.035),
     inset 0 0 18px rgba(0, 0, 0, 0.32);
@@ -682,8 +740,7 @@ onMounted(() => {
 .dialog-input:focus {
   outline: none;
   border-color: rgba(168, 85, 247, 0.46);
-  background:
-    linear-gradient(180deg, rgba(10, 14, 25, 0.94), rgba(6, 8, 16, 0.92));
+  background: linear-gradient(180deg, rgba(10, 14, 25, 0.94), rgba(6, 8, 16, 0.92));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
     inset 0 0 18px rgba(0, 0, 0, 0.34),
@@ -698,8 +755,13 @@ onMounted(() => {
   overflow: hidden;
   border: 1px solid rgba(213, 196, 255, 0.38);
   border-radius: 3px;
-  background:
-    linear-gradient(180deg, rgba(55, 36, 82, 0.98) 0%, rgba(31, 23, 47, 0.98) 49%, rgba(13, 11, 20, 0.98) 50%, rgba(44, 24, 69, 0.98) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(55, 36, 82, 0.98) 0%,
+    rgba(31, 23, 47, 0.98) 49%,
+    rgba(13, 11, 20, 0.98) 50%,
+    rgba(44, 24, 69, 0.98) 100%
+  );
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.86),
     0 3px 0 rgba(7, 6, 12, 0.95),
@@ -750,7 +812,11 @@ onMounted(() => {
   bottom: 4px;
   left: 5px;
   height: 2px;
-  background: repeating-linear-gradient(90deg, rgba(221, 205, 255, 0.34) 0 4px, transparent 4px 7px);
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(221, 205, 255, 0.34) 0 4px,
+    transparent 4px 7px
+  );
   opacity: 0.45;
   pointer-events: none;
 }
@@ -760,9 +826,7 @@ onMounted(() => {
   z-index: 1;
   width: 24px;
   height: 24px;
-  filter:
-    drop-shadow(0 1px 0 rgba(0, 0, 0, 0.95))
-    drop-shadow(0 0 5px rgba(221, 205, 255, 0.28));
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.95)) drop-shadow(0 0 5px rgba(221, 205, 255, 0.28));
   image-rendering: pixelated;
 }
 
@@ -832,8 +896,7 @@ onMounted(() => {
   height: 24px;
   flex: 0 0 24px;
   place-items: center;
-  filter:
-    drop-shadow(0 0 3px rgba(255, 244, 202, 0.46))
+  filter: drop-shadow(0 0 3px rgba(255, 244, 202, 0.46))
     drop-shadow(0 0 8px rgba(255, 218, 143, 0.16));
 }
 

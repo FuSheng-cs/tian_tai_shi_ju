@@ -7,8 +7,14 @@ export const GAME_RULES = {
   maxSummaryTextLength: 80
 } as const
 
-export const GAME_ENTRY_SESSION_KEY = 'damo_game_entry'
-export const CHAT_AFTER_SAVE_SLOT_SESSION_KEY = 'damo_chat_after_save_slot'
+export const GAME_ENTRY_QUERY_KEY = 'entry'
+export const CHAT_AFTER_SLOT_QUERY_KEY = 'slot'
+
+export const parseChatAfterSlotId = (value: unknown): number | null => {
+  if (typeof value !== 'string' || value === '') return null
+  const slotId = Number(value)
+  return Number.isInteger(slotId) ? slotId : null
+}
 export const ROOFTOP_BGM_SRCS = [
   '/assets/audio/bgm_rooftop_96k.ogg',
   '/assets/audio/bgm_rooftop_96k.mp3'
@@ -130,17 +136,26 @@ export const SCENE_MOBILE_BACKGROUNDS = {
 
 export const CHAT_AVATAR_IMAGE = '/assets/images/char_girl_sneer_480.webp'
 
-export const GAMEPLAY_PRELOAD_IMAGES = [
-  SCENE_BACKGROUNDS.smoke,
-  SCENE_MOBILE_BACKGROUNDS.smoke,
-  SCENE_BACKGROUNDS.normal,
-  SCENE_MOBILE_BACKGROUNDS.normal,
-  SCENE_BACKGROUNDS.sad,
-  SCENE_MOBILE_BACKGROUNDS.sad,
-  SCENE_BACKGROUNDS.turnBack,
-  SCENE_BACKGROUNDS.nearJump,
-  ...DEATH_ENDING_SEQUENCE_FRAMES.flatMap((frame) => [frame.image, frame.mobileImage])
-] as const
+export const MOBILE_BACKGROUND_MEDIA_QUERY = '(max-width: 768px)'
+
+export const GAMEPLAY_PRELOAD_IMAGES = {
+  desktop: [
+    SCENE_BACKGROUNDS.smoke,
+    SCENE_BACKGROUNDS.normal,
+    SCENE_BACKGROUNDS.sad,
+    SCENE_BACKGROUNDS.turnBack,
+    SCENE_BACKGROUNDS.nearJump,
+    ...DEATH_ENDING_SEQUENCE_FRAMES.map((frame) => frame.image)
+  ],
+  mobile: [
+    SCENE_MOBILE_BACKGROUNDS.smoke,
+    SCENE_MOBILE_BACKGROUNDS.normal,
+    SCENE_MOBILE_BACKGROUNDS.sad,
+    SCENE_MOBILE_BACKGROUNDS.turnBack,
+    SCENE_MOBILE_BACKGROUNDS.nearJump,
+    ...DEATH_ENDING_SEQUENCE_FRAMES.map((frame) => frame.mobileImage)
+  ]
+} as const
 
 export const MECHANIC_TAGS = {
   affectionBoost: `[好感度+${GAME_RULES.affectionBoostValue}]`,
@@ -190,7 +205,6 @@ export const AI_STATES = {
 
 export type AiStateDefinition = (typeof AI_STATES)[keyof typeof AI_STATES]
 export type AiStateType = AiStateDefinition['type']
-export type AiStateLabel = AiStateDefinition['label']
 
 export const EMOTIONS = {
   sting: {
@@ -225,7 +239,6 @@ export const EMOTIONS = {
 
 export type EmotionDefinition = (typeof EMOTIONS)[keyof typeof EMOTIONS]
 export type EmotionType = EmotionDefinition['type']
-export type EmotionLabel = EmotionDefinition['label']
 
 export const ENDINGS = {
   death: {
@@ -256,8 +269,10 @@ export const ENDINGS = {
 
 export type EndingDefinition = (typeof ENDINGS)[keyof typeof ENDINGS]
 export type EndingType = EndingDefinition['type']
-export type EndingLabel = EndingDefinition['label']
 
+// 结局数值门槛与后端 backend/llm/game_contract.go 的 EndingDisappearMin*/EndingAcquaintanceMin*
+// 常量逐项对应，改动必须两侧同步；一致性由 tests/gameContract.test.ts 与
+// backend/llm/game_contract_test.go 各自断言。
 export const ENDING_THRESHOLDS = {
   disappear: {
     minAffection: 20,
@@ -272,14 +287,36 @@ export const ENDING_THRESHOLDS = {
 } as const
 
 export interface EndingResolutionSnapshot {
-  affection: number;
-  affectionBoostCount: number;
-  turnsUsed: number;
-  lastAssistantText?: string;
+  affection: number
+  affectionBoostCount: number
+  turnsUsed: number
+  lastAssistantText?: string
+}
+
+// 否定语义处理与 backend/llm/service.go 的 hasNegationBeforeMatch/hasNonNegatedMatch 保持同构：
+// 命中位置前 4 个字符窗口内出现否定词即视为该次命中被否定，全部命中被否定则整个词条不算命中，
+// 覆盖“我不会跳下去”“没有滑落”等常见否定形式。
+const NEGATION_MARKERS = ['没', '不', '别'] as const
+const NEGATION_WINDOW_SIZE = 4
+
+const hasNegationBeforeMatch = (text: string, matchStart: number) => {
+  const windowText = text.slice(Math.max(0, matchStart - NEGATION_WINDOW_SIZE), matchStart)
+  return NEGATION_MARKERS.some((marker) => windowText.includes(marker))
+}
+
+const hasNonNegatedMatch = (text: string, pattern: RegExp) => {
+  const globalPattern = new RegExp(pattern.source, 'g')
+  let match = globalPattern.exec(text)
+  while (match) {
+    if (!hasNegationBeforeMatch(text, match.index)) return true
+    if (globalPattern.lastIndex === match.index) globalPattern.lastIndex += 1
+    match = globalPattern.exec(text)
+  }
+  return false
 }
 
 const countPatternMatches = (text: string, patterns: RegExp[]) =>
-  patterns.reduce((count, pattern) => count + (pattern.test(text) ? 1 : 0), 0)
+  patterns.reduce((count, pattern) => count + (hasNonNegatedMatch(text, pattern) ? 1 : 0), 0)
 
 export const inferEndingTypeFromNarrative = (text: string): EndingType | null => {
   const normalized = text.replace(/\s+/g, '')
@@ -339,11 +376,6 @@ const meetsEndingThreshold = (
   snapshot.turnsUsed >= threshold.minTurnsUsed
 
 export const resolveFallbackEndingType = (snapshot: EndingResolutionSnapshot): EndingType => {
-  const narrativeEnding = inferEndingTypeFromNarrative(snapshot.lastAssistantText ?? '')
-  if (narrativeEnding) {
-    return narrativeEnding
-  }
-
   if (meetsEndingThreshold(snapshot, ENDING_THRESHOLDS.acquaintance)) {
     return ENDINGS.acquaintance.type
   }
@@ -352,60 +384,20 @@ export const resolveFallbackEndingType = (snapshot: EndingResolutionSnapshot): E
     return ENDINGS.disappear.type
   }
 
-  return ENDINGS.death.type
+  return inferEndingTypeFromNarrative(snapshot.lastAssistantText ?? '') ?? ENDINGS.death.type
 }
-
-export const ENDING_BY_LABEL = Object.fromEntries(
-  Object.values(ENDINGS).map((ending) => [ending.label, ending])
-) as Record<EndingLabel, EndingDefinition>
 
 export const ENDING_BY_TYPE = Object.fromEntries(
   Object.values(ENDINGS).map((ending) => [ending.type, ending])
 ) as Record<EndingType, EndingDefinition>
 
-export const AI_STATE_BY_LABEL = Object.fromEntries(
-  Object.values(AI_STATES).map((aiState) => [aiState.label, aiState])
-) as Record<AiStateLabel, AiStateDefinition>
-
 export const AI_STATE_BY_TYPE = Object.fromEntries(
   Object.values(AI_STATES).map((aiState) => [aiState.type, aiState])
 ) as Record<AiStateType, AiStateDefinition>
 
-export const EMOTION_BY_LABEL = Object.fromEntries(
-  Object.values(EMOTIONS).map((emotion) => [emotion.label, emotion])
-) as Record<EmotionLabel, EmotionDefinition>
-
 export const EMOTION_BY_TYPE = Object.fromEntries(
   Object.values(EMOTIONS).map((emotion) => [emotion.type, emotion])
 ) as Record<EmotionType, EmotionDefinition>
-
-const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-
-const endingLabelPattern = Object.values(ENDINGS)
-  .map((ending) => escapeRegExp(ending.label))
-  .join('|')
-
-const aiStateLabelPattern = Object.values(AI_STATES)
-  .map((aiState) => escapeRegExp(aiState.label))
-  .join('|')
-
-const emotionLabelPattern = Object.values(EMOTIONS)
-  .map((emotion) => escapeRegExp(emotion.label))
-  .join('|')
-
-export const AFFECTION_BOOST_TAG_REGEX = new RegExp(escapeRegExp(MECHANIC_TAGS.affectionBoost), 'g')
-export const AI_STATE_TAG_REGEX = new RegExp(
-  `${escapeRegExp(MECHANIC_TAGS.aiStatePrefix)}(${aiStateLabelPattern})${escapeRegExp(MECHANIC_TAGS.endingSuffix)}`
-)
-export const ANY_AI_STATE_TAG_REGEX = /\[状态:.*?\]/g
-export const EMOTION_TAG_REGEX = new RegExp(
-  `${escapeRegExp(MECHANIC_TAGS.emotionPrefix)}(${emotionLabelPattern})${escapeRegExp(MECHANIC_TAGS.endingSuffix)}`
-)
-export const ANY_EMOTION_TAG_REGEX = /\[情绪:.*?\]/g
-export const ENDING_TAG_REGEX = new RegExp(
-  `${escapeRegExp(MECHANIC_TAGS.endingPrefix)}(${endingLabelPattern})${escapeRegExp(MECHANIC_TAGS.endingSuffix)}`
-)
-export const ANY_ENDING_TAG_REGEX = /\[结局:.*?\]/
 
 const AI_STATE_ORDER: Record<AiStateType, number> = {
   guarded: 0,
@@ -421,20 +413,20 @@ const isCriticalAiStateType = (aiStateType: AiStateType) =>
 export type VisualStateSource = 'ending' | 'aiState' | 'emotion'
 
 export interface VisualStateSnapshot {
-  roundCount: number;
-  affection: number;
-  isEnding: boolean;
-  endingType: EndingType | null;
-  aiStateType: AiStateType | null;
-  emotionType: EmotionType | null;
+  roundCount: number
+  affection: number
+  isEnding: boolean
+  endingType: EndingType | null
+  aiStateType: AiStateType | null
+  emotionType: EmotionType | null
 }
 
 export interface ResolvedVisualState {
-  source: VisualStateSource;
-  backgroundImage: string;
-  mobileBackgroundImage: string;
-  label: string;
-  aiStateType: AiStateType | null;
+  source: VisualStateSource
+  backgroundImage: string
+  mobileBackgroundImage: string
+  label: string
+  aiStateType: AiStateType | null
 }
 
 export const resolveWaitingBackground = (visualState: ResolvedVisualState): string => {
@@ -457,15 +449,22 @@ export const resolveWaitingMobileBackground = (visualState: ResolvedVisualState)
   return SCENE_MOBILE_BACKGROUNDS.smoke
 }
 
-export const deriveAiStateType = (snapshot: Pick<VisualStateSnapshot, 'roundCount' | 'affection'>): AiStateType => {
+export const deriveAiStateType = (
+  snapshot: Pick<VisualStateSnapshot, 'roundCount' | 'affection'>
+): AiStateType => {
   if (snapshot.roundCount <= 1) return AI_STATES.edge.type
-  if (snapshot.roundCount <= GAME_RULES.criticalPressureRoundCount && snapshot.affection < 20) return AI_STATES.edge.type
+  if (snapshot.roundCount <= GAME_RULES.criticalPressureRoundCount && snapshot.affection < 20) {
+    return AI_STATES.edge.type
+  }
   if (snapshot.affection >= 15) return AI_STATES.wavering.type
   if (snapshot.affection >= 5) return AI_STATES.watching.type
   return AI_STATES.guarded.type
 }
 
-const chooseEffectiveAiState = (explicitState: AiStateType | null, derivedState: AiStateType): AiStateType => {
+const chooseEffectiveAiState = (
+  explicitState: AiStateType | null,
+  derivedState: AiStateType
+): AiStateType => {
   if (!explicitState) return derivedState
   if (explicitState === AI_STATES.turnBack.type) {
     return derivedState === AI_STATES.edge.type ? explicitState : derivedState
@@ -489,12 +488,12 @@ export const resolveVisualState = (snapshot: VisualStateSnapshot): ResolvedVisua
   }
 
   const derivedAiState = deriveAiStateType(snapshot)
-  const explicitAiState = snapshot.aiStateType && AI_STATE_BY_TYPE[snapshot.aiStateType]
-    ? snapshot.aiStateType
-    : null
+  const explicitAiState =
+    snapshot.aiStateType && AI_STATE_BY_TYPE[snapshot.aiStateType] ? snapshot.aiStateType : null
   const effectiveAiState = chooseEffectiveAiState(explicitAiState, derivedAiState)
   const aiState = AI_STATE_BY_TYPE[effectiveAiState]
-  const aiStateLabel = effectiveAiState === AI_STATES.turnBack.type ? AI_STATES.edge.label : aiState.label
+  const aiStateLabel =
+    effectiveAiState === AI_STATES.turnBack.type ? AI_STATES.edge.label : aiState.label
 
   const emotion = snapshot.emotionType ? EMOTION_BY_TYPE[snapshot.emotionType] : null
   if (emotion && !isCriticalAiStateType(effectiveAiState)) {
@@ -503,16 +502,6 @@ export const resolveVisualState = (snapshot: VisualStateSnapshot): ResolvedVisua
       backgroundImage: emotion.backgroundImage,
       mobileBackgroundImage: emotion.mobileBackgroundImage,
       label: emotion.label,
-      aiStateType: effectiveAiState
-    }
-  }
-
-  if (isCriticalAiStateType(effectiveAiState)) {
-    return {
-      source: 'aiState',
-      backgroundImage: aiState.backgroundImage,
-      mobileBackgroundImage: aiState.mobileBackgroundImage,
-      label: aiStateLabel,
       aiStateType: effectiveAiState
     }
   }

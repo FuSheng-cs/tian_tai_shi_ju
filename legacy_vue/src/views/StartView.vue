@@ -70,11 +70,11 @@
             :key="slotId"
             type="button"
             class="save-slot-button"
-            :disabled="!hasLoadSlot(slotId)"
+            :disabled="!hasSlot(slotId)"
             @click="loadFromSlot(slotId)"
           >
-            <span class="save-slot-title">{{ getLoadSlotTitle(slotId) }}</span>
-            <span class="save-slot-status">{{ getLoadSlotStatus(slotId) }}</span>
+            <span class="save-slot-title">{{ getSlotTitle(slotId) }}</span>
+            <span class="save-slot-status">{{ getSlotStatus(slotId) }}</span>
           </button>
         </div>
       </section>
@@ -83,17 +83,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  CHAT_AFTER_SAVE_SLOT_SESSION_KEY,
-  GAME_ENTRY_SESSION_KEY,
+  CHAT_AFTER_SLOT_QUERY_KEY,
+  GAME_ENTRY_QUERY_KEY,
   GAME_ENTRY_TYPES,
   GAME_RULES
 } from '@/domain/gameContract'
 import { audioManager } from '@/modules/AudioManager'
-import { SAVE_SLOT_KINDS, SaveSystem, type SaveSlot } from '@/modules/SaveSystem'
+import { SAVE_SLOT_KINDS, SaveSystem } from '@/modules/SaveSystem'
 import { useGameStore } from '@/store/gameStore'
+import { useSaveSlots } from '@/composables/useSaveSlots'
 
 const router = useRouter()
 const gameStore = useGameStore()
@@ -109,15 +110,12 @@ const MENU_TITLE_WEBP_IMAGE = '/assets/images/menu_title.webp'
 const MENU_TITLE_IMAGE = '/assets/images/menu_title.png'
 
 const showLoadSlots = ref(false)
-const saveSlots = ref<SaveSlot[]>([])
-
-const saveSlotMap = computed(() => new Map(saveSlots.value.map((slot) => [slot.id, slot])))
+const { refreshSaveSlots, getSlot, hasSlot, getSlotTitle, getSlotStatus } = useSaveSlots()
 
 const startGame = () => {
   audioManager.playSfx('click')
   gameStore.resetGame()
-  sessionStorage.setItem(GAME_ENTRY_SESSION_KEY, GAME_ENTRY_TYPES.newGame)
-  router.push('/game')
+  router.push({ path: '/game', query: { [GAME_ENTRY_QUERY_KEY]: GAME_ENTRY_TYPES.newGame } })
 }
 
 const loadGame = () => {
@@ -126,43 +124,18 @@ const loadGame = () => {
   showLoadSlots.value = true
 }
 
-const refreshSaveSlots = () => {
-  saveSlots.value = SaveSystem.getSlots()
-}
-
-const formatSaveTime = (timestamp: number) =>
-  new Intl.DateTimeFormat('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(new Date(timestamp))
-
-const hasLoadSlot = (slotId: number) => saveSlotMap.value.has(slotId)
-
-const getLoadSlotStatus = (slotId: number) => {
-  const slot = saveSlotMap.value.get(slotId)
-  return slot ? `已有存档：${formatSaveTime(slot.timestamp)}` : '空栏位'
-}
-
-const getLoadSlotTitle = (slotId: number) => {
-  const slot = saveSlotMap.value.get(slotId)
-  return slot?.kind === SAVE_SLOT_KINDS.chatAfter ? `栏位 ${slotId}（日后谈）` : `栏位 ${slotId}`
-}
-
 const closeLoadSlots = () => {
   showLoadSlots.value = false
 }
 
 const loadFromSlot = (slotId: number) => {
   audioManager.playSfx('click')
-  if (!hasLoadSlot(slotId)) return
+  const slot = getSlot(slotId)
+  if (!slot) return
 
-  const slot = saveSlotMap.value.get(slotId)
-  if (slot?.kind === SAVE_SLOT_KINDS.chatAfter) {
+  if (slot.kind === SAVE_SLOT_KINDS.chatAfter) {
     if (SaveSystem.loadChatAfter(slotId)) {
-      sessionStorage.setItem(CHAT_AFTER_SAVE_SLOT_SESSION_KEY, String(slotId))
-      router.push('/chat-after')
+      router.push({ path: '/chat-after', query: { [CHAT_AFTER_SLOT_QUERY_KEY]: slotId } })
       return
     }
 
@@ -172,9 +145,7 @@ const loadFromSlot = (slotId: number) => {
   }
 
   if (SaveSystem.load(slotId)) {
-    sessionStorage.setItem(GAME_ENTRY_SESSION_KEY, GAME_ENTRY_TYPES.load)
-    sessionStorage.removeItem(CHAT_AFTER_SAVE_SLOT_SESSION_KEY)
-    router.push('/game')
+    router.push({ path: '/game', query: { [GAME_ENTRY_QUERY_KEY]: GAME_ENTRY_TYPES.load } })
   } else {
     alert('未找到有效存档。')
     refreshSaveSlots()
@@ -483,8 +454,7 @@ const MENU_ACTIONS = [
   place-items: center;
   padding: 24px;
   background:
-    radial-gradient(circle at center, rgba(84, 66, 118, 0.16), transparent 40%),
-    rgba(0, 0, 0, 0.66);
+    radial-gradient(circle at center, rgba(84, 66, 118, 0.16), transparent 40%), rgba(0, 0, 0, 0.66);
   backdrop-filter: blur(2px);
 }
 
@@ -726,6 +696,5 @@ const MENU_ACTIONS = [
     transform: none;
     filter: none;
   }
-
 }
 </style>

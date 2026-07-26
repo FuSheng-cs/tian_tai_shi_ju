@@ -63,6 +63,27 @@ describe('game contract', () => {
     }
   })
 
+  it('keeps ending thresholds aligned with the backend contract constants', () => {
+    const backendContract = readRepoFile('backend/llm/game_contract.go')
+    const thresholdPrefixes = {
+      disappear: 'EndingDisappear',
+      acquaintance: 'EndingAcquaintance'
+    } as const
+
+    for (const [endingKey, prefix] of Object.entries(thresholdPrefixes)) {
+      const threshold = ENDING_THRESHOLDS[endingKey as keyof typeof thresholdPrefixes]
+      expect(backendContract).toMatch(
+        new RegExp(`${prefix}MinAffection\\s*=\\s*${threshold.minAffection}\\b`)
+      )
+      expect(backendContract).toMatch(
+        new RegExp(`${prefix}MinAffectionBoostCount\\s*=\\s*${threshold.minAffectionBoostCount}\\b`)
+      )
+      expect(backendContract).toMatch(
+        new RegExp(`${prefix}MinTurnsUsed\\s*=\\s*${threshold.minTurnsUsed}\\b`)
+      )
+    }
+  })
+
   it('keeps current story docs aligned with the seen-not-seen character core', () => {
     const promptDoc = readRepoFile('docs/engineering/prompts_and_settings.md')
     const loreDoc = readRepoFile('docs/product/storyline_and_lore.md')
@@ -288,7 +309,23 @@ describe('game contract', () => {
       .toBe(ENDINGS.death.type)
   })
 
-  it('uses narrative ending inference before numeric fallback when tags are missing', () => {
+  it('ignores negated death keywords when inferring the narrative ending', () => {
+    const negatedDeathWithAcquaintance = '我不会跳下去。明天九点，天台见，别迟到。'
+    expect(inferEndingTypeFromNarrative(negatedDeathWithAcquaintance))
+      .toBe(ENDINGS.acquaintance.type)
+
+    expect(resolveFallbackEndingType({
+      affection: 0,
+      affectionBoostCount: 0,
+      turnsUsed: GAME_RULES.initialRoundCount,
+      lastAssistantText: negatedDeathWithAcquaintance
+    })).toBe(ENDINGS.acquaintance.type)
+
+    expect(inferEndingTypeFromNarrative('她松开手，从栏杆上跳下去了。'))
+      .toBe(ENDINGS.death.type)
+  })
+
+  it('uses narrative inference only when numeric thresholds are unmet', () => {
     expect(resolveFallbackEndingType({
       affection: 0,
       affectionBoostCount: 0,
@@ -302,5 +339,14 @@ describe('game contract', () => {
       turnsUsed: GAME_RULES.initialRoundCount,
       lastAssistantText: '她背靠着栏杆，转身往消防通道走去，没有回头。'
     })).toBe(ENDINGS.disappear.type)
+  })
+
+  it('lets met numeric thresholds override stray narrative death keywords', () => {
+    expect(resolveFallbackEndingType({
+      affection: ENDING_THRESHOLDS.acquaintance.minAffection,
+      affectionBoostCount: ENDING_THRESHOLDS.acquaintance.minAffectionBoostCount,
+      turnsUsed: ENDING_THRESHOLDS.acquaintance.minTurnsUsed,
+      lastAssistantText: '烟灰从指间滑落，她说：我不会跳下去。'
+    })).toBe(ENDINGS.acquaintance.type)
   })
 })

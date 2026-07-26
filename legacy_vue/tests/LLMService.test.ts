@@ -155,6 +155,23 @@ describe('LLMService', () => {
     expect(turn.evaluation.aiState).toBe(AI_STATES.edge.type)
   })
 
+  it('surfaces the error text when chat returns an error with an empty reply', async () => {
+    mockBackendResponse({
+      error: '无效的请求格式',
+      reply: ''
+    })
+
+    const turn = await LLMService.chat('hello', history, {
+      roundsLeft: 5,
+      affection: 0,
+      affectionBoostCount: 0,
+      turnsUsed: 5,
+      aiState: AI_STATES.guarded.type
+    })
+
+    expect(turn.reply).toBe('无效的请求格式')
+  })
+
   it('assembles the ending summary request and maps snake_case response fields', async () => {
     mockBackendResponse({
       turning_line: 'can I sit here?',

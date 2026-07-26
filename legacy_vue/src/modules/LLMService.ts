@@ -1,18 +1,18 @@
+import type { AiStateType } from '@/domain/gameContract'
 import {
-  AI_STATE_BY_TYPE,
-  AI_STATES,
-  EMOTION_BY_TYPE,
-  ENDING_BY_TYPE
-} from '@/domain/gameContract'
-import type { AiStateType, EndingType } from '@/domain/gameContract'
-import type {
-  AfterStoryContext,
-  ChatTurnResult,
-  EndingSummaryContext,
-  LLMConversationContext,
-  Message,
-  TurnEvaluation,
-  TurnEmotionType
+  createDefaultTurnEvaluation,
+  normalizeAffectionDelta,
+  normalizeAiStateType,
+  normalizeConfidence,
+  normalizeEndingType,
+  normalizePressureDelta,
+  normalizeTurnEmotionType,
+  type AfterStoryContext,
+  type ChatTurnResult,
+  type EndingSummaryContext,
+  type LLMConversationContext,
+  type Message,
+  type TurnEvaluation
 } from '@/domain/gameState'
 
 const LS_KEYS = {
@@ -36,17 +36,17 @@ export type LLMProviderId =
   | 'custom'
 
 export interface LLMProviderOption {
-  id: LLMProviderId;
-  name: string;
-  vendor: string;
-  region: 'domestic' | 'global' | 'custom';
-  protocol: 'openai-compatible' | 'anthropic';
-  defaultModel: string;
-  defaultBaseUrl: string;
-  keyPlaceholder: string;
-  credentialUrl: string;
-  hint: string;
-  models: string[];
+  id: LLMProviderId
+  name: string
+  vendor: string
+  region: 'domestic' | 'global' | 'custom'
+  protocol: 'openai-compatible' | 'anthropic'
+  defaultModel: string
+  defaultBaseUrl: string
+  keyPlaceholder: string
+  credentialUrl: string
+  hint: string
+  models: string[]
 }
 
 export const LLM_PROVIDERS: LLMProviderOption[] = [
@@ -134,12 +134,12 @@ export const LLM_PROVIDERS: LLMProviderOption[] = [
     vendor: 'Anthropic',
     region: 'global',
     protocol: 'anthropic',
-    defaultModel: 'claude-3-5-haiku-latest',
+    defaultModel: 'claude-sonnet-5',
     defaultBaseUrl: 'https://api.anthropic.com/v1',
     keyPlaceholder: 'sk-ant-xxxxxxxxxxxxxxxx',
     credentialUrl: 'console.anthropic.com',
     hint: '使用 Anthropic Messages API，后端会自动转换请求格式。',
-    models: ['claude-3-5-haiku-latest', 'claude-3-5-sonnet-latest', 'claude-3-opus-latest']
+    models: ['claude-sonnet-5', 'claude-opus-5', 'claude-haiku-4-5-20251001']
   },
   {
     id: 'custom',
@@ -170,15 +170,15 @@ export const getLLMProvider = (providerId: string) =>
   LLM_PROVIDER_BY_ID[normalizeProviderId(providerId)]
 
 export interface LLMConfig {
-  provider: string;
-  apiKey: string;
-  model: string;
-  baseUrl: string;
+  provider: string
+  apiKey: string
+  model: string
+  baseUrl: string
 }
 
 export interface EndingSummaryReview {
-  turningLine: string;
-  comment: string;
+  turningLine: string
+  comment: string
 }
 
 export function loadLLMConfig(): LLMConfig {
@@ -197,134 +197,89 @@ export function saveLLMConfig(cfg: LLMConfig) {
   localStorage.setItem(LS_KEYS.BASE_URL, cfg.baseUrl)
 }
 
-async function callBackend(endpoint: string, body: object): Promise<string> {
-  const url = `${BACKEND_URL}/api/${endpoint}`
+type BackendPayload = Record<string, unknown>
 
+async function postBackend(endpoint: string, body: object): Promise<BackendPayload | null> {
   try {
-    const response = await fetch(url, {
+    const response = await fetch(`${BACKEND_URL}/api/${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     })
 
-    const data = await response.json()
+    const data = (await response.json()) as BackendPayload
 
     if (data.error) {
       console.error(`[LLMService] Backend error on /${endpoint}:`, data.error)
-      return data.reply || data.error
     }
 
-    return data.reply ?? ''
-  } catch (e) {
-    console.error(`[LLMService] Network error on /${endpoint}:`, e)
-    return '网络连接失败，请检查后端服务是否启动。'
-  }
-}
-
-async function callBackendJson<T>(endpoint: string, body: object): Promise<T | null> {
-  const url = `${BACKEND_URL}/api/${endpoint}`
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    })
-
-    const data = await response.json()
-
-    if (data.error) {
-      console.error(`[LLMService] Backend error on /${endpoint}:`, data.error)
-      return null
-    }
-
-    return data as T
+    return data
   } catch (e) {
     console.error(`[LLMService] Network error on /${endpoint}:`, e)
     return null
   }
 }
 
-const normalizeAiStateType = (value: unknown, fallback: AiStateType = AI_STATES.guarded.type): AiStateType =>
-  typeof value === 'string' && value in AI_STATE_BY_TYPE ? value as AiStateType : fallback
-
-const normalizeEmotionType = (value: unknown): TurnEmotionType =>
-  value === 'normal' || (typeof value === 'string' && value in EMOTION_BY_TYPE)
-    ? value as TurnEmotionType
-    : 'normal'
-
-const normalizeEndingType = (value: unknown): EndingType | null =>
-  typeof value === 'string' && value in ENDING_BY_TYPE ? value as EndingType : null
-
-const normalizeAffectionDelta = (value: unknown): 0 | 5 =>
-  Number(value) >= 5 ? 5 : 0
-
-const normalizePressureDelta = (value: unknown): 0 | 1 | 2 => {
-  const numeric = Number(value)
-  if (numeric <= 0 || Number.isNaN(numeric)) return 0
-  if (numeric === 1) return 1
-  return 2
+async function callBackend(endpoint: string, body: object): Promise<string> {
+  const data = await postBackend(endpoint, body)
+  if (!data) return '网络连接失败，请检查后端服务是否启动。'
+  if (data.error) return (data.reply || data.error) as string
+  return (data.reply ?? '') as string
 }
 
-const normalizeConfidence = (value: unknown) => {
-  const numeric = Number(value)
-  if (Number.isNaN(numeric)) return 0
-  return Math.min(1, Math.max(0, numeric))
+async function callBackendJson<T>(endpoint: string, body: object): Promise<T | null> {
+  const data = await postBackend(endpoint, body)
+  if (!data || data.error) return null
+  return data as T
 }
-
-const createDefaultTurnEvaluation = (aiState?: AiStateType | null): TurnEvaluation => ({
-  emotion: 'normal',
-  aiState: aiState ?? AI_STATES.guarded.type,
-  affectionDelta: 0,
-  pressureDelta: 0,
-  endingType: null,
-  confidence: 0
-})
 
 const readEvaluationField = (raw: Record<string, unknown>, snakeKey: string, camelKey: string) =>
   raw[snakeKey] ?? raw[camelKey]
 
-const normalizeTurnEvaluation = (raw: unknown, fallbackAiState?: AiStateType | null): TurnEvaluation => {
+const normalizeTurnEvaluation = (
+  raw: unknown,
+  fallbackAiState?: AiStateType | null
+): TurnEvaluation => {
   const defaultEvaluation = createDefaultTurnEvaluation(fallbackAiState)
   if (!raw || typeof raw !== 'object') return defaultEvaluation
 
   const record = raw as Record<string, unknown>
   return {
-    emotion: normalizeEmotionType(readEvaluationField(record, 'emotion', 'emotion')),
-    aiState: normalizeAiStateType(readEvaluationField(record, 'ai_state', 'aiState'), defaultEvaluation.aiState),
-    affectionDelta: normalizeAffectionDelta(readEvaluationField(record, 'affection_delta', 'affectionDelta')),
-    pressureDelta: normalizePressureDelta(readEvaluationField(record, 'pressure_delta', 'pressureDelta')),
+    emotion: normalizeTurnEmotionType(readEvaluationField(record, 'emotion', 'emotion')),
+    aiState:
+      normalizeAiStateType(readEvaluationField(record, 'ai_state', 'aiState')) ??
+      defaultEvaluation.aiState,
+    affectionDelta: normalizeAffectionDelta(
+      readEvaluationField(record, 'affection_delta', 'affectionDelta')
+    ),
+    pressureDelta: normalizePressureDelta(
+      readEvaluationField(record, 'pressure_delta', 'pressureDelta')
+    ),
     endingType: normalizeEndingType(readEvaluationField(record, 'ending_type', 'endingType')),
     confidence: normalizeConfidence(readEvaluationField(record, 'confidence', 'confidence'))
   }
 }
 
-async function callBackendTurn(endpoint: string, body: object, fallbackAiState?: AiStateType | null): Promise<ChatTurnResult> {
-  const url = `${BACKEND_URL}/api/${endpoint}`
+async function callBackendTurn(
+  endpoint: string,
+  body: object,
+  fallbackAiState?: AiStateType | null
+): Promise<ChatTurnResult> {
+  const data = await postBackend(endpoint, body)
 
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    })
-
-    const data = await response.json()
-
-    if (data.error) {
-      console.error(`[LLMService] Backend error on /${endpoint}:`, data.error)
-    }
-
-    return {
-      reply: typeof data.reply === 'string' ? data.reply : (data.error ?? ''),
-      evaluation: normalizeTurnEvaluation(data.evaluation, fallbackAiState)
-    }
-  } catch (e) {
-    console.error(`[LLMService] Network error on /${endpoint}:`, e)
+  if (!data) {
     return {
       reply: '（她没有接话，只是看向远处的灯。）',
       evaluation: createDefaultTurnEvaluation(fallbackAiState)
     }
+  }
+
+  const replyText = typeof data.reply === 'string' ? data.reply : ''
+  const errorText = typeof data.error === 'string' ? data.error : ''
+
+  return {
+    reply: replyText || errorText,
+    evaluation: normalizeTurnEvaluation(data.evaluation, fallbackAiState)
   }
 }
 
@@ -338,34 +293,47 @@ const getRequestConfig = () => {
   }
 }
 
-const serializeAfterStoryContext = (context?: AfterStoryContext) => context
-  ? {
-      ending_type: context.endingType,
-      last_player_line: context.lastPlayerLine,
-      ending_reply: context.endingReply,
-      turning_line: context.turningLine,
-      ending_comment: context.endingComment,
-      rounds_used: context.roundsUsed,
-      affection_boost_count: context.affectionBoostCount,
-      affection: context.affection
-    }
-  : undefined
+const serializeAfterStoryContext = (context?: AfterStoryContext) =>
+  context
+    ? {
+        ending_type: context.endingType,
+        last_player_line: context.lastPlayerLine,
+        ending_reply: context.endingReply,
+        turning_line: context.turningLine,
+        ending_comment: context.endingComment,
+        rounds_used: context.roundsUsed,
+        affection_boost_count: context.affectionBoostCount,
+        affection: context.affection
+      }
+    : undefined
 
 export class LLMService {
-  static async chat(userMessage: string, history: Message[], loopContext: LLMConversationContext): Promise<ChatTurnResult> {
-    return callBackendTurn('chat', {
-      history: history,
-      user_message: userMessage,
-      rounds_left: loopContext.roundsLeft,
-      affection: loopContext.affection,
-      affection_boost_count: loopContext.affectionBoostCount,
-      turns_used: loopContext.turnsUsed,
-      ai_state: loopContext.aiState,
-      ...getRequestConfig()
-    }, loopContext.aiState)
+  static async chat(
+    userMessage: string,
+    history: Message[],
+    loopContext: LLMConversationContext
+  ): Promise<ChatTurnResult> {
+    return callBackendTurn(
+      'chat',
+      {
+        history: history,
+        user_message: userMessage,
+        rounds_left: loopContext.roundsLeft,
+        affection: loopContext.affection,
+        affection_boost_count: loopContext.affectionBoostCount,
+        turns_used: loopContext.turnsUsed,
+        ai_state: loopContext.aiState,
+        ...getRequestConfig()
+      },
+      loopContext.aiState
+    )
   }
 
-  static async chatAfterStory(userMessage: string, history: Message[], afterStoryContext?: AfterStoryContext): Promise<string> {
+  static async chatAfterStory(
+    userMessage: string,
+    history: Message[],
+    afterStoryContext?: AfterStoryContext
+  ): Promise<string> {
     return callBackend('chat-after', {
       history: history,
       user_message: userMessage,
@@ -381,8 +349,12 @@ export class LLMService {
     })
   }
 
-  static async getEndingSummary(history: Message[], endingContext: EndingSummaryContext): Promise<EndingSummaryReview | null> {
-    const result = await callBackendJson<{ turning_line?: string; comment?: string }>('ending-summary', {
+  static async getEndingSummary(
+    history: Message[],
+    endingContext: EndingSummaryContext
+  ): Promise<EndingSummaryReview | null> {
+    type EndingSummaryPayload = { turning_line?: string; comment?: string }
+    const result = await callBackendJson<EndingSummaryPayload>('ending-summary', {
       history: history,
       ending_type: endingContext.endingType,
       rounds_used: endingContext.roundsUsed,

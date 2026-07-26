@@ -4,9 +4,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import {
   AI_STATES,
+  CHAT_AFTER_SLOT_QUERY_KEY,
   DEATH_ENDING_SEQUENCE_FRAMES,
   ENDINGS,
-  GAME_ENTRY_SESSION_KEY,
+  GAME_ENTRY_QUERY_KEY,
   GAME_ENTRY_TYPES,
   OPENING_SEQUENCE_FRAMES,
   ROOFTOP_BGM_SRCS,
@@ -20,6 +21,7 @@ import StartView from '../src/views/StartView.vue'
 
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
+  route: { query: {} as Record<string, string> },
   playBgm: vi.fn(),
   preloadBgm: vi.fn(),
   stopBgm: vi.fn(),
@@ -36,6 +38,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('vue-router', () => ({
+  useRoute: () => mocks.route,
   useRouter: () => ({ push: mocks.push })
 }))
 
@@ -78,6 +81,9 @@ vi.mock('../src/modules/LLMService', () => ({
   }
 }))
 
+// jsdom does not implement matchMedia, which GameView uses to pick the preload image set.
+vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false })))
+
 const mountGameView = () => mount(GameView, {
   global: {
     stubs: {
@@ -104,15 +110,25 @@ describe('opening guide flow', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()
-    sessionStorage.clear()
     mocks.push.mockClear()
+    mocks.route.query = {}
     mocks.playBgm.mockClear()
     mocks.preloadBgm.mockClear()
     mocks.stopBgm.mockClear()
     mocks.playSfx.mockClear()
     mocks.playStairStep.mockClear()
     mocks.chat.mockReset()
-    mocks.chat.mockResolvedValue('她沉默了一会儿。')
+    mocks.chat.mockResolvedValue({
+      reply: '她沉默了一会儿。',
+      evaluation: {
+        emotion: 'normal',
+        aiState: AI_STATES.guarded.type,
+        affectionDelta: 0,
+        pressureDelta: 0,
+        endingType: null,
+        confidence: 1
+      }
+    })
     mocks.getSlots.mockClear()
     mocks.getSlots.mockReturnValue([{ id: 1, timestamp: 1710000000000, data: 'slot' }])
     mocks.load.mockClear()
@@ -134,8 +150,10 @@ describe('opening guide flow', () => {
 
     await wrapper.find('.menu-button-primary').trigger('click')
 
-    expect(sessionStorage.getItem(GAME_ENTRY_SESSION_KEY)).toBe(GAME_ENTRY_TYPES.newGame)
-    expect(mocks.push).toHaveBeenCalledWith('/game')
+    expect(mocks.push).toHaveBeenCalledWith({
+      path: '/game',
+      query: { [GAME_ENTRY_QUERY_KEY]: GAME_ENTRY_TYPES.newGame }
+    })
   })
 
   it('marks the next game entry as a loaded save when loading a slot', async () => {
@@ -144,8 +162,10 @@ describe('opening guide flow', () => {
     await wrapper.findAll('.menu-button')[1].trigger('click')
     await wrapper.find('.save-slot-button').trigger('click')
 
-    expect(sessionStorage.getItem(GAME_ENTRY_SESSION_KEY)).toBe(GAME_ENTRY_TYPES.load)
-    expect(mocks.push).toHaveBeenCalledWith('/game')
+    expect(mocks.push).toHaveBeenCalledWith({
+      path: '/game',
+      query: { [GAME_ENTRY_QUERY_KEY]: GAME_ENTRY_TYPES.load }
+    })
   })
 
   it('loads after-story save slots from the start screen', async () => {
@@ -170,15 +190,17 @@ describe('opening guide flow', () => {
     expect(slotButton.text()).toContain('栏位 2（日后谈）')
     await slotButton.trigger('click')
 
-    expect(sessionStorage.getItem('damo_chat_after_save_slot')).toBe('2')
     expect(mocks.load).not.toHaveBeenCalled()
     expect(mocks.loadChatAfter).toHaveBeenCalledWith(2)
-    expect(mocks.push).toHaveBeenCalledWith('/chat-after')
+    expect(mocks.push).toHaveBeenCalledWith({
+      path: '/chat-after',
+      query: { [CHAT_AFTER_SLOT_QUERY_KEY]: 2 }
+    })
   })
 
   it('shows the full opening sequence on every new game entry', async () => {
     localStorage.setItem('damo_opening_guide_seen_v1', '1')
-    sessionStorage.setItem(GAME_ENTRY_SESSION_KEY, GAME_ENTRY_TYPES.newGame)
+    mocks.route.query = { [GAME_ENTRY_QUERY_KEY]: GAME_ENTRY_TYPES.newGame }
     const wrapper = mountGameView()
     await nextTick()
 
@@ -194,7 +216,7 @@ describe('opening guide flow', () => {
   })
 
   it('does not play the opening sequence when entering from a loaded save', () => {
-    sessionStorage.setItem(GAME_ENTRY_SESSION_KEY, GAME_ENTRY_TYPES.load)
+    mocks.route.query = { [GAME_ENTRY_QUERY_KEY]: GAME_ENTRY_TYPES.load }
     const wrapper = mountGameView()
 
     expect(wrapper.find('[data-test="opening-sequence"]').exists()).toBe(false)
@@ -407,6 +429,38 @@ describe('opening guide flow', () => {
     expect(mocks.playStairStep).toHaveBeenLastCalledWith(OPENING_SEQUENCE_FRAMES.length - 1)
 
     await vi.advanceTimersByTimeAsync(640)
+    expect(wrapper.emitted('complete')).toHaveLength(1)
+  })
+
+  it('ignores extra skip clicks during the opening fade-out and still completes', async () => {
+    vi.useFakeTimers()
+    const wrapper = mount(OpeningSequenceOverlay, {
+      props: {
+        frames: OPENING_SEQUENCE_FRAMES
+      }
+    })
+
+    await wrapper.find('.skip-button').trigger('click')
+    await vi.advanceTimersByTimeAsync(220)
+    await wrapper.find('.skip-button').trigger('click')
+    await vi.advanceTimersByTimeAsync(420)
+
+    expect(wrapper.emitted('complete')).toHaveLength(1)
+  })
+
+  it('ignores extra skip clicks during the ending fade-out and still completes', async () => {
+    vi.useFakeTimers()
+    const wrapper = mount(EndingSequenceOverlay, {
+      props: {
+        frames: DEATH_ENDING_SEQUENCE_FRAMES
+      }
+    })
+
+    await wrapper.find('.ending-sequence-skip').trigger('click')
+    await vi.advanceTimersByTimeAsync(900)
+    await wrapper.find('.ending-sequence-skip').trigger('click')
+    await vi.advanceTimersByTimeAsync(420)
+
     expect(wrapper.emitted('complete')).toHaveLength(1)
   })
 

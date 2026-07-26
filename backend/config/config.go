@@ -25,9 +25,17 @@ var Cfg *Config
 
 // Load 从 .env 文件和环境变量中加载配置
 func Load() {
-	// 同时尝试加载当前目录和仓库根目录下 backend/.env，
+	// 逐个尝试加载当前目录和仓库根目录下 backend/.env，任一成功即可，
 	// 兼容在 backend/ 目录或项目根目录启动服务两种方式。
-	if err := godotenv.Load(".env", "backend/.env"); err != nil {
+	// （godotenv.Load 多参数形式在首个文件失败时会直接返回，不能一次传入多个路径。）
+	loaded := false
+	for _, path := range []string{".env", "backend/.env"} {
+		if err := godotenv.Load(path); err == nil {
+			log.Printf("[Config] Loaded env file: %s", path)
+			loaded = true
+		}
+	}
+	if !loaded {
 		log.Println("[Config] No .env file found, using environment variables only")
 	}
 

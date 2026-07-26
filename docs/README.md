@@ -7,11 +7,13 @@
 - [项目简介与 AI 原生说明](product/project_overview.md)：面向评审、活动投稿和对外介绍，重点说明创新性与社会价值。
 - [玩家阅读文档](product/player_guide.md)：面向玩家，介绍玩法、机制、优点和同类差异。
 - [故事线与世界观](product/storyline_and_lore.md)：记录角色、世界观、机制和结局设定。
+- [游戏设定集](product/game_setting_bible.md)：统一剧情、Prompt、美术、玩法与伦理边界的叙事正典。
 
 ## Engineering
 
 - [技术文档](engineering/technical_overview.md)：说明前后端结构、运行机制、状态管理、测试与工程状态。
-- [Prompt 与设定说明](engineering/prompts_and_settings.md)：集中记录主线对话、提示、后日谈和局后摘要 Prompt。
+- [Prompt 与设定说明](engineering/prompts_and_settings.md)：集中记录主线对话、回合裁判、提示、后日谈和局后摘要 Prompt。
+- [文档与 Prompt 一致性审查](engineering/document_prompt_audit_2026-06-29.md)：记录当前文档、后端 Prompt 与前端规则的差异及修复优先级。
 - [黑白灰情绪 CG 资源表](engineering/emotion_cg_assets.md)：记录情绪标签对应 CG 文件与生成提示词。
 - [优化建议](engineering/optimization_report.md)：按优先级列出产品、技术和工程优化项。
 

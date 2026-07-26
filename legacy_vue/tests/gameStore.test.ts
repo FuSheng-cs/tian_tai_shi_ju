@@ -231,6 +231,54 @@ describe('Game Store', () => {
     expect(store.endingType).toBe(ENDINGS.death.type)
   })
 
+  it('keeps real affection counters when the fallback ending is inferred from narrative', async () => {
+    const acquaintanceReply = '她把手机递过来：存个艾。明天九点，别迟到。'
+    vi.mocked(LLMService.chat).mockResolvedValue(createTurn(acquaintanceReply))
+    const store = useGameStore()
+
+    for (let i = 0; i < GAME_RULES.initialRoundCount; i += 1) {
+      await store.sendMessage(`ordinary line ${i + 1}`)
+    }
+
+    expect(store.isEnding).toBe(true)
+    expect(store.endingType).toBe(ENDINGS.acquaintance.type)
+    expect(store.affection).toBe(0)
+    expect(store.affectionBoostCount).toBe(0)
+  })
+
+  it('uses the last player line as the death turning line', async () => {
+    const store = useGameStore()
+    store.messages.push(
+      { role: 'user', content: '随便你怎么想，我都会一直陪着你' },
+      { role: 'assistant', content: '……' },
+      { role: 'user', content: '今晚风很冷，先下去喝口热水好吗' }
+    )
+    store.isEnding = true
+    store.endingType = ENDINGS.death.type
+
+    const summary = await store.generateEndingSummary()
+
+    expect(summary?.turningLine).toBe('今晚风很冷，先下去喝口热水好吗')
+  })
+
+  it('discards ending summary results that resolve after resetGame', async () => {
+    let resolveSummary: (value: { turningLine: string; comment: string }) => void = () => {}
+    vi.mocked(LLMService.getEndingSummary).mockImplementation(
+      () => new Promise((resolve) => { resolveSummary = resolve })
+    )
+    const store = useGameStore()
+    store.messages.push({ role: 'user', content: 'last line of the old run' })
+    store.isEnding = true
+    store.endingType = ENDINGS.acquaintance.type
+
+    const pending = store.generateEndingSummary()
+    store.resetGame()
+    resolveSummary({ turningLine: 'stale line', comment: 'stale comment' })
+
+    expect(await pending).toBeNull()
+    expect(store.endingSummary).toBeNull()
+  })
+
   it('keeps conservative fallback behavior when chat has no evaluation payload', async () => {
     vi.mocked(LLMService.chat).mockResolvedValue({
       reply: 'fallback reply',

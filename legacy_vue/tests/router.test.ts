@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import { CHAT_AFTER_SAVE_SLOT_SESSION_KEY, ENDINGS } from '../src/domain/gameContract'
+import { CHAT_AFTER_SLOT_QUERY_KEY, ENDINGS } from '../src/domain/gameContract'
 import { SaveSystem } from '../src/modules/SaveSystem'
 import { useGameStore } from '../src/store/gameStore'
 import { canEnterChatAfterStory, createAppRouter } from '../src/router'
@@ -16,7 +16,6 @@ describe('router guards', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()
-    sessionStorage.clear()
   })
 
   it('blocks direct access to after-story chat before the acquaintance ending', async () => {
@@ -41,7 +40,7 @@ describe('router guards', () => {
     expect(router.currentRoute.value.name).toBe('ChatAfter')
   })
 
-  it('allows after-story chat when loading a valid after-story save slot', async () => {
+  it('allows after-story chat when the slot query points to a valid after-story save', async () => {
     SaveSystem.saveChatAfter(2, {
       messages: [{ role: 'assistant', content: '我到楼下了。' }],
       afterStoryContext: {
@@ -55,12 +54,20 @@ describe('router guards', () => {
         affection: 24
       }
     })
-    sessionStorage.setItem(CHAT_AFTER_SAVE_SLOT_SESSION_KEY, '2')
     const router = createAppRouter(createMemoryHistory(), stubRoutes)
 
-    expect(canEnterChatAfterStory(useGameStore())).toBe(true)
-    await router.push('/chat-after')
+    expect(canEnterChatAfterStory(useGameStore(), '2')).toBe(true)
+    await router.push({ path: '/chat-after', query: { [CHAT_AFTER_SLOT_QUERY_KEY]: '2' } })
     await router.isReady()
     expect(router.currentRoute.value.name).toBe('ChatAfter')
+  })
+
+  it('blocks after-story chat when the slot query has no matching save', async () => {
+    const router = createAppRouter(createMemoryHistory(), stubRoutes)
+
+    expect(canEnterChatAfterStory(useGameStore(), '2')).toBe(false)
+    await router.push({ path: '/chat-after', query: { [CHAT_AFTER_SLOT_QUERY_KEY]: '2' } })
+    await router.isReady()
+    expect(router.currentRoute.value.name).toBe('Start')
   })
 })

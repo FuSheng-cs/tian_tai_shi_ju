@@ -1,5 +1,12 @@
-import { AI_STATES, EMOTIONS, ENDINGS, GAME_RULES, deriveAiStateType, type EmotionType } from '@/domain/gameContract'
-import type { GameState } from '@/domain/gameState'
+import {
+  AI_STATES,
+  EMOTIONS,
+  ENDINGS,
+  GAME_RULES,
+  deriveAiStateType,
+  type EmotionType
+} from '@/domain/gameContract'
+import { countPlayerMessages, type GameState } from '@/domain/gameState'
 import type { SaveSlot } from '@/modules/SaveSystem'
 
 const ACHIEVEMENT_KEY = 'damo_achievements'
@@ -8,21 +15,21 @@ const COMPLETE_ARCHIVE_ID = 'complete_archive'
 export type AchievementCategory = 'encounter' | 'listening' | 'pressure' | 'ending' | 'collection'
 
 export interface AchievementCategoryDefinition {
-  id: AchievementCategory;
-  label: string;
-  description: string;
+  id: AchievementCategory
+  label: string
+  description: string
 }
 
 export interface AchievementDefinition {
-  id: string;
-  name: string;
-  description: string;
-  category: AchievementCategory;
-  hidden: boolean;
-  lockedHint: string;
-  unlockText: string;
-  icon: string;
-  unlockedAt?: number;
+  id: string
+  name: string
+  description: string
+  category: AchievementCategory
+  hidden: boolean
+  lockedHint: string
+  unlockText: string
+  icon: string
+  unlockedAt?: number
 }
 
 export type Achievement = AchievementDefinition
@@ -271,9 +278,6 @@ const writeKnownIds = (ids: string[]) => {
   localStorage.setItem(ACHIEVEMENT_KEY, JSON.stringify(knownIds))
 }
 
-const getTurnsUsed = (state: GameState) =>
-  state.messages.filter((message) => message.role === 'user').length
-
 const hasEmotion = (state: GameState, emotion: EmotionType) =>
   state.emotionHistory.includes(emotion)
 
@@ -284,7 +288,8 @@ const isRescueEnding = (state: GameState) =>
 const hasEnteredEdgeState = (state: GameState) =>
   state.lastAiStateTag === AI_STATES.edge.type ||
   state.aiStateHistory.includes(AI_STATES.edge.type) ||
-  deriveAiStateType({ roundCount: state.roundCount, affection: state.affection }) === AI_STATES.edge.type
+  deriveAiStateType({ roundCount: state.roundCount, affection: state.affection }) ===
+    AI_STATES.edge.type
 
 const hasEnteredTurnBackState = (state: GameState) =>
   state.lastAiStateTag === AI_STATES.turnBack.type ||
@@ -306,61 +311,42 @@ export class AchievementTracker {
   }
 
   static unlock(id: string): boolean {
-    const achievement = this.getAchievement(id)
-    if (!achievement) return false
-
-    const unlocked = this.getUnlocked()
-    if (id === COMPLETE_ARCHIVE_ID) {
-      this.unlockCompleteArchiveIfReady(unlocked)
-      return !unlocked.includes(id) && this.getUnlocked().includes(id)
-    }
-
-    if (unlocked.includes(id)) return false
-
-    const nextUnlocked = [...unlocked, id]
-    writeKnownIds(nextUnlocked)
-    this.dispatchUnlock(achievement)
-    this.unlockCompleteArchiveIfReady(nextUnlocked)
-    return true
+    return this.unlockMany([id]).includes(id)
   }
 
   static evaluateFromState(state: GameState): string[] {
-    const before = this.getUnlocked()
-    const turnsUsed = getTurnsUsed(state)
+    const turnsUsed = countPlayerMessages(state.messages)
     const candidates: string[] = []
 
     if (turnsUsed >= 1) candidates.push('first_words')
-    if (turnsUsed >= 3 && state.hintCount === GAME_RULES.initialHintCount) candidates.push('silent_listener')
+    if (turnsUsed >= 3 && state.hintCount === GAME_RULES.initialHintCount) {
+      candidates.push('silent_listener')
+    }
     if (state.affectionBoostCount >= 1) candidates.push('first_affection')
     if (state.affectionBoostCount >= 3) candidates.push('three_affection')
     if (state.affectionBoostCount >= 5) candidates.push('five_affection')
-    if (Object.values(EMOTIONS).every((emotion) => hasEmotion(state, emotion.type))) candidates.push('all_emotions')
+    if (Object.values(EMOTIONS).every((emotion) => hasEmotion(state, emotion.type))) {
+      candidates.push('all_emotions')
+    }
     if (hasSoftAfterSting(state)) candidates.push('soft_after_sting')
     if (hasEnteredEdgeState(state)) candidates.push('edge_state')
     if (hasEnteredTurnBackState(state)) candidates.push('turn_back_state')
     if (isRescueEnding(state) && state.roundCount <= 1) candidates.push('last_sentence_rescue')
-    if (isRescueEnding(state) && state.hintCount === GAME_RULES.initialHintCount) candidates.push('no_hint_rescue')
+    if (isRescueEnding(state) && state.hintCount === GAME_RULES.initialHintCount) {
+      candidates.push('no_hint_rescue')
+    }
     if (state.isEnding && state.endingType) candidates.push(state.endingType)
 
-    for (const id of candidates) {
-      this.unlock(id)
-    }
-    this.unlockCompleteArchiveIfReady(this.getUnlocked())
-
-    const after = this.getUnlocked()
-    return after.filter((id) => !before.includes(id))
+    return this.unlockMany(candidates)
   }
 
   static evaluateSaveSlots(slots: SaveSlot[]): string[] {
-    const before = this.getUnlocked()
-    if (slots.length >= 1) this.unlock('first_save')
+    const candidates: string[] = []
+    if (slots.length >= 1) candidates.push('first_save')
     if (GAME_RULES.saveSlotIds.every((slotId) => slots.some((slot) => slot.id === slotId))) {
-      this.unlock('three_save_slots')
+      candidates.push('three_save_slots')
     }
-    this.unlockCompleteArchiveIfReady(this.getUnlocked())
-
-    const after = this.getUnlocked()
-    return after.filter((id) => !before.includes(id))
+    return this.unlockMany(candidates)
   }
 
   static getProgress(): { unlocked: number; total: number } {
@@ -379,28 +365,45 @@ export class AchievementTracker {
     }
   }
 
-  private static unlockCompleteArchiveIfReady(unlocked: string[]) {
-    if (unlocked.includes(COMPLETE_ARCHIVE_ID)) return
+  private static unlockMany(candidateIds: string[]): string[] {
+    const unlocked = new Set(this.getUnlocked())
+    const newlyUnlocked: string[] = []
 
-    const hasAllOtherAchievements = ACHIEVEMENTS
-      .filter((achievement) => achievement.id !== COMPLETE_ARCHIVE_ID)
-      .every((achievement) => unlocked.includes(achievement.id))
+    for (const id of candidateIds) {
+      if (id === COMPLETE_ARCHIVE_ID) continue
+      if (!knownAchievementIds.has(id) || unlocked.has(id)) continue
+      unlocked.add(id)
+      newlyUnlocked.push(id)
+    }
 
-    if (!hasAllOtherAchievements) return
+    const hasAllOtherAchievements = ACHIEVEMENTS.filter(
+      (achievement) => achievement.id !== COMPLETE_ARCHIVE_ID
+    ).every((achievement) => unlocked.has(achievement.id))
 
-    const nextUnlocked = [...unlocked, COMPLETE_ARCHIVE_ID]
-    writeKnownIds(nextUnlocked)
-    this.dispatchUnlock(ACHIEVEMENT_BY_ID[COMPLETE_ARCHIVE_ID])
+    if (!unlocked.has(COMPLETE_ARCHIVE_ID) && hasAllOtherAchievements) {
+      unlocked.add(COMPLETE_ARCHIVE_ID)
+      newlyUnlocked.push(COMPLETE_ARCHIVE_ID)
+    }
+
+    if (newlyUnlocked.length === 0) return []
+
+    writeKnownIds(Array.from(unlocked))
+    for (const id of newlyUnlocked) {
+      this.dispatchUnlock(ACHIEVEMENT_BY_ID[id])
+    }
+    return newlyUnlocked
   }
 
   private static dispatchUnlock(achievement: AchievementDefinition) {
     if (typeof window === 'undefined') return
 
-    window.dispatchEvent(new CustomEvent('achievement-unlocked', {
-      detail: {
-        id: achievement.id,
-        achievement
-      }
-    }))
+    window.dispatchEvent(
+      new CustomEvent('achievement-unlocked', {
+        detail: {
+          id: achievement.id,
+          achievement
+        }
+      })
+    )
   }
 }

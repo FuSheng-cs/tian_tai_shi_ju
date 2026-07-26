@@ -33,4 +33,14 @@ const (
 	EndingAcquaintanceType  = "end_acquaintance"
 	EndingAcquaintanceLabel = "相识"
 	EndingAcquaintanceTag   = "[结局:相识]"
+
+	// 结局数值门槛与前端 legacy_vue/src/domain/gameContract.ts 的 ENDING_THRESHOLDS 逐项对应，
+	// 改动必须两侧同步；一致性由 llm/game_contract_test.go 与
+	// legacy_vue/tests/gameContract.test.ts 各自断言。
+	EndingDisappearMinAffection              = 20
+	EndingDisappearMinAffectionBoostCount    = 4
+	EndingDisappearMinTurnsUsed              = 7
+	EndingAcquaintanceMinAffection           = 25
+	EndingAcquaintanceMinAffectionBoostCount = 5
+	EndingAcquaintanceMinTurnsUsed           = 7
 )

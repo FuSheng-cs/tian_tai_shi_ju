@@ -1,21 +1,25 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { CHAT_AFTER_SAVE_SLOT_SESSION_KEY, ENDINGS, GAME_RULES } from '../src/domain/gameContract'
+import { CHAT_AFTER_SLOT_QUERY_KEY, ENDINGS, GAME_RULES } from '../src/domain/gameContract'
 import { useGameStore } from '../src/store/gameStore'
 import ChatAfterStoryView from '../src/views/ChatAfterStoryView.vue'
 
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
+  replace: vi.fn(),
+  route: { query: {} as Record<string, string> },
   playSfx: vi.fn(),
   chatAfterStory: vi.fn(),
   getSlots: vi.fn(() => []),
   saveChatAfter: vi.fn(() => true),
-  loadChatAfter: vi.fn(() => null)
+  loadChatAfter: vi.fn(() => null),
+  evaluateSaveSlots: vi.fn()
 }))
 
 vi.mock('vue-router', () => ({
-  useRouter: () => ({ push: mocks.push })
+  useRoute: () => mocks.route,
+  useRouter: () => ({ push: mocks.push, replace: mocks.replace })
 }))
 
 vi.mock('../src/modules/AudioManager', () => ({
@@ -42,12 +46,19 @@ vi.mock('../src/modules/SaveSystem', () => ({
   }
 }))
 
+vi.mock('../src/modules/AchievementTracker', () => ({
+  AchievementTracker: {
+    evaluateSaveSlots: mocks.evaluateSaveSlots
+  }
+}))
+
 describe('ChatAfterStoryView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()
-    sessionStorage.clear()
     mocks.push.mockClear()
+    mocks.replace.mockClear()
+    mocks.route.query = {}
     mocks.playSfx.mockClear()
     mocks.chatAfterStory.mockReset()
     mocks.chatAfterStory.mockResolvedValue('还没，便利店门口风也挺大。')
@@ -57,6 +68,7 @@ describe('ChatAfterStoryView', () => {
     mocks.saveChatAfter.mockReturnValue(true)
     mocks.loadChatAfter.mockReset()
     mocks.loadChatAfter.mockReturnValue(null)
+    mocks.evaluateSaveSlots.mockClear()
     vi.stubGlobal('alert', vi.fn())
     vi.stubGlobal('confirm', vi.fn(() => true))
   })
@@ -137,11 +149,42 @@ describe('ChatAfterStoryView', () => {
         endingReply: '她把手机递过来：存个艾就行。'
       })
     })
-    expect(sessionStorage.getItem(CHAT_AFTER_SAVE_SLOT_SESSION_KEY)).toBe('2')
+    expect(mocks.replace).toHaveBeenCalledWith({ query: { [CHAT_AFTER_SLOT_QUERY_KEY]: 2 } })
+    expect(mocks.evaluateSaveSlots).toHaveBeenCalledWith([
+      { id: 2, timestamp: 1710000000000, data: 'slot', kind: 'game' }
+    ])
+  })
+
+  it('counts used turns from user messages when the ending summary is not ready', async () => {
+    const store = useGameStore()
+    store.endingType = ENDINGS.acquaintance.type
+    store.affection = 25
+    store.affectionBoostCount = 5
+    store.roundCount = 7
+    store.endingSummary = null
+    store.messages = [
+      ...Array.from({ length: 8 }, (_, index) => ({
+        role: 'user' as const,
+        content: `第 ${index + 1} 句`
+      })),
+      { role: 'assistant' as const, content: '她把手机递过来。' }
+    ]
+
+    const wrapper = mount(ChatAfterStoryView)
+
+    await wrapper.find('textarea').setValue('到家了吗？')
+    await wrapper.find('textarea').trigger('keydown.enter')
+    await flushPromises()
+
+    expect(mocks.chatAfterStory).toHaveBeenCalledWith(
+      '到家了吗？',
+      expect.anything(),
+      expect.objectContaining({ roundsUsed: 8 })
+    )
   })
 
   it('restores an after-story save without rebuilding the opening messages', () => {
-    sessionStorage.setItem(CHAT_AFTER_SAVE_SLOT_SESSION_KEY, '3')
+    mocks.route.query = { [CHAT_AFTER_SLOT_QUERY_KEY]: '3' }
     mocks.loadChatAfter.mockReturnValue({
       messages: [
         { role: 'assistant', content: '这是保存过的聊天。' },

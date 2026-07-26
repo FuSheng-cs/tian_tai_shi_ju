@@ -143,10 +143,11 @@ func HandleChat(c *gin.Context) {
 
 	clientCfg, ok := buildClientConfig(req.Provider, req.APIKey, req.Model, req.BaseURL)
 	if !ok {
-		// 无 API Key：返回保守剧情内兜底，避免把技术状态写进对白。
+		// 无 API Key：返回剧情内兜底台词，并以旁白括注标明这是模拟回复，
+		// 让玩家知道当前处于未配置 Key 的演示对话（设置页测试连接也依赖“模拟回复”字样）。
 		evaluation := llm.DefaultTurnEvaluation(req.AiState)
 		c.JSON(http.StatusOK, ChatResponse{
-			Reply:      "过去就像昨天的雨水，早就干了。你问这些做什么？",
+			Reply:      "过去就像昨天的雨水，早就干了。你问这些做什么？\n（模拟回复：尚未配置 API Key，当前为演示对话。）",
 			Evaluation: &evaluation,
 		})
 		return
@@ -159,7 +160,7 @@ func HandleChat(c *gin.Context) {
 		evaluation := llm.DefaultTurnEvaluation(req.AiState)
 		c.JSON(http.StatusOK, ChatResponse{
 			Error:      "LLM 调用失败: " + err.Error(),
-			Reply:      "（她沉默了一会儿，指尖的烟灰落进夜色里。）",
+			Reply:      llm.FallbackSilentReply,
 			Evaluation: &evaluation,
 		})
 		return

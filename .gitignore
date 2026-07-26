@@ -4,6 +4,8 @@
 .playwright-cli/
 .claude/
 output/
+test-results/
+tmp/
 Rubbish_backup/
 *.log
 .env
