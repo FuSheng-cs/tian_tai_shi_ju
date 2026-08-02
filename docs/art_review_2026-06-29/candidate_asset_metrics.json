@@ -1,0 +1,137 @@
+[
+  {
+    "filename": "review_candidates_2026-06-29/setting/ai_turnaround_sheet.png",
+    "width": 1672,
+    "height": 941,
+    "format": "png",
+    "aspectRatio": 1.7768,
+    "coloredPixelRatio": 0,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "review_candidates_2026-06-29/setting/ai_expression_sheet.png",
+    "width": 1672,
+    "height": 941,
+    "format": "png",
+    "aspectRatio": 1.7768,
+    "coloredPixelRatio": 0.0004,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "review_candidates_2026-06-29/setting/ai_outfit_props_sheet.png",
+    "width": 1672,
+    "height": 941,
+    "format": "png",
+    "aspectRatio": 1.7768,
+    "coloredPixelRatio": 0,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "review_candidates_2026-06-29/setting/ai_action_pose_sheet.png",
+    "width": 1672,
+    "height": 941,
+    "format": "png",
+    "aspectRatio": 1.7768,
+    "coloredPixelRatio": 0.0789,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "review_candidates_2026-06-29/setting/rooftop_environment_sheet.png",
+    "width": 1536,
+    "height": 1024,
+    "format": "png",
+    "aspectRatio": 1.5,
+    "coloredPixelRatio": 0.0094,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "review_candidates_2026-06-29/cg/candidate_char_states_4up.png",
+    "width": 1672,
+    "height": 940,
+    "format": "png",
+    "aspectRatio": 1.7787,
+    "coloredPixelRatio": 0.0016,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "review_candidates_2026-06-29/cg/candidate_opening_approach.png",
+    "width": 1672,
+    "height": 941,
+    "format": "png",
+    "aspectRatio": 1.7768,
+    "coloredPixelRatio": 0,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "review_candidates_2026-06-29/cg/candidate_emotions_4up.png",
+    "width": 1672,
+    "height": 941,
+    "format": "png",
+    "aspectRatio": 1.7768,
+    "coloredPixelRatio": 0.0003,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "review_candidates_2026-06-29/cg/candidate_pressure_near_railing.png",
+    "width": 1672,
+    "height": 941,
+    "format": "png",
+    "aspectRatio": 1.7768,
+    "coloredPixelRatio": 0.0008,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "review_candidates_2026-06-29/cg/candidate_pressure_turn_back.png",
+    "width": 1672,
+    "height": 941,
+    "format": "png",
+    "aspectRatio": 1.7768,
+    "coloredPixelRatio": 0.0001,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "review_candidates_2026-06-29/cg/candidate_end_disappear.png",
+    "width": 1672,
+    "height": 941,
+    "format": "png",
+    "aspectRatio": 1.7768,
+    "coloredPixelRatio": 0,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "review_candidates_2026-06-29/cg/candidate_end_acquaintance.png",
+    "width": 1672,
+    "height": 941,
+    "format": "png",
+    "aspectRatio": 1.7768,
+    "coloredPixelRatio": 0.019,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "review_candidates_2026-06-29/cg/candidate_end_acquaintance_9_16.png",
+    "width": 941,
+    "height": 1672,
+    "format": "png",
+    "aspectRatio": 0.5628,
+    "coloredPixelRatio": 0.0032,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "review_candidates_2026-06-29/cg/candidate_end_fall_storyboard.png",
+    "width": 864,
+    "height": 1821,
+    "format": "png",
+    "aspectRatio": 0.4745,
+    "coloredPixelRatio": 0.0028,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "review_candidates_2026-06-29/cg/candidate_end_fall_9_16.png",
+    "width": 941,
+    "height": 1672,
+    "format": "png",
+    "aspectRatio": 0.5628,
+    "coloredPixelRatio": 0,
+    "strongColoredPixelRatio": 0
+  }
+]

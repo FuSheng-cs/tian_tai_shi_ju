@@ -33,32 +33,34 @@ export const GAME_ENTRY_TYPES = {
   load: 'load'
 } as const
 
+const UNIFIED_GAME_CG_ROOT = '/assets/images/unified_image2_2026-07-31/game_cg'
+
 export const OPENING_SEQUENCE_FRAMES = [
   {
     id: 'stair-door',
-    image: '/assets/images/cg_opening_stair_01_16_9.webp',
+    image: `${UNIFIED_GAME_CG_ROOT}/opening/opening_01_1920.webp`,
     caption: '我只是想上来透口气，可门后的风声像是在提醒我：别出声。',
     chapterTitle: '序章',
     chapterMeta: '23:47 / 天台入口'
   },
   {
     id: 'door-open',
-    image: '/assets/images/cg_opening_stair_02_16_9.webp',
+    image: `${UNIFIED_GAME_CG_ROOT}/opening/opening_02_1920.webp`,
     caption: '我推开门，雨和城市的冷光一起涌进来。'
   },
   {
     id: 'rooftop-entry',
-    image: '/assets/images/cg_opening_stair_03_16_9.webp',
+    image: `${UNIFIED_GAME_CG_ROOT}/opening/opening_03_1920.webp`,
     caption: '栏杆边那个背影让我停住了脚步。是艾。'
   },
   {
     id: 'approach',
-    image: '/assets/images/cg_opening_stair_04_16_9.webp',
+    image: `${UNIFIED_GAME_CG_ROOT}/opening/opening_04_1920.webp`,
     caption: '她没有回头。烟头亮了一下，我忽然不知道第一句话该怎么说。'
   },
   {
     id: 'first-words',
-    image: '/assets/images/cg_opening_stair_05_16_9.webp',
+    image: `${UNIFIED_GAME_CG_ROOT}/opening/opening_05_1920.webp`,
     caption: '她坐在雨里，像城市忘了关掉的一盏冷灯。我把呼吸压低，怕再响一点，她就会被风带走。'
   }
 ] as const
@@ -66,34 +68,34 @@ export const OPENING_SEQUENCE_FRAMES = [
 export const DEATH_ENDING_SEQUENCE_FRAMES = [
   {
     id: 'fall-01-silence',
-    image: '/assets/images/cg_end_fall_seq_01_1600.webp',
-    mobileImage: '/assets/images/cg_end_fall_seq_01_900.webp',
+    image: `${UNIFIED_GAME_CG_ROOT}/ending/death_01_1600.webp`,
+    mobileImage: `${UNIFIED_GAME_CG_ROOT}/ending/death_01_900.webp`,
     caption: '她的手从栏杆上松开，烟先一步落进雨里。',
     chapterTitle: '结局',
     chapterMeta: '坠落'
   },
   {
     id: 'fall-02-step-back',
-    image: '/assets/images/cg_end_fall_seq_02_1600.webp',
-    mobileImage: '/assets/images/cg_end_fall_seq_02_900.webp',
+    image: `${UNIFIED_GAME_CG_ROOT}/ending/death_02_1600.webp`,
+    mobileImage: `${UNIFIED_GAME_CG_ROOT}/ending/death_02_900.webp`,
     caption: '栏杆湿得发亮，她的重心越过了最后一点边界。'
   },
   {
     id: 'fall-03-drop',
-    image: '/assets/images/cg_end_fall_seq_03_1600.webp',
-    mobileImage: '/assets/images/cg_end_fall_seq_03_900.webp',
+    image: `${UNIFIED_GAME_CG_ROOT}/ending/death_03_1600.webp`,
+    mobileImage: `${UNIFIED_GAME_CG_ROOT}/ending/death_03_900.webp`,
     caption: '风把她的外套和头发一起托起，城市忽然远得没有尽头。'
   },
   {
     id: 'fall-04-falling-wide',
-    image: '/assets/images/cg_end_fall_seq_04_1600.webp',
-    mobileImage: '/assets/images/cg_end_fall_seq_04_900.webp',
+    image: `${UNIFIED_GAME_CG_ROOT}/ending/death_04_1600.webp`,
+    mobileImage: `${UNIFIED_GAME_CG_ROOT}/ending/death_04_900.webp`,
     caption: '高楼的灯一层层掠过去，她变成雨夜里无法抓住的一点。'
   },
   {
     id: 'fall-05-empty-rooftop',
-    image: '/assets/images/cg_end_fall_seq_05_1600.webp',
-    mobileImage: '/assets/images/cg_end_fall_seq_05_900.webp',
+    image: `${UNIFIED_GAME_CG_ROOT}/ending/death_05_1600.webp`,
+    mobileImage: `${UNIFIED_GAME_CG_ROOT}/ending/death_05_900.webp`,
     caption: '天台又安静下来，只剩栏杆、雨和没有人接住的烟。'
   }
 ] as const
@@ -119,22 +121,22 @@ export const WAITING_TEXTS = [
 ] as const
 
 export const SCENE_BACKGROUNDS = {
-  smoke: '/assets/images/char_girl_smoke_1600.webp',
-  normal: '/assets/images/char_girl_normal_1600.webp',
-  sad: '/assets/images/char_girl_sad_1600.webp',
-  turnBack: '/assets/images/cg_pressure_turn_back_16_9.webp',
-  nearJump: '/assets/images/cg_pressure_near_jump_16_9.webp'
+  smoke: `${UNIFIED_GAME_CG_ROOT}/state/state_smoke_1600.webp`,
+  normal: `${UNIFIED_GAME_CG_ROOT}/state/state_guarded_1600.webp`,
+  sad: `${UNIFIED_GAME_CG_ROOT}/state/state_wavering_1600.webp`,
+  turnBack: `${UNIFIED_GAME_CG_ROOT}/state/state_turn_back_1600.webp`,
+  nearJump: `${UNIFIED_GAME_CG_ROOT}/state/state_edge_1600.webp`
 } as const
 
 export const SCENE_MOBILE_BACKGROUNDS = {
-  smoke: '/assets/images/char_girl_smoke_900.webp',
-  normal: '/assets/images/char_girl_normal_900.webp',
-  sad: '/assets/images/char_girl_sad_900.webp',
-  turnBack: SCENE_BACKGROUNDS.turnBack,
-  nearJump: SCENE_BACKGROUNDS.nearJump
+  smoke: `${UNIFIED_GAME_CG_ROOT}/state/state_smoke_900.webp`,
+  normal: `${UNIFIED_GAME_CG_ROOT}/state/state_guarded_900.webp`,
+  sad: `${UNIFIED_GAME_CG_ROOT}/state/state_wavering_900.webp`,
+  turnBack: `${UNIFIED_GAME_CG_ROOT}/state/state_turn_back_900.webp`,
+  nearJump: `${UNIFIED_GAME_CG_ROOT}/state/state_edge_900.webp`
 } as const
 
-export const CHAT_AVATAR_IMAGE = '/assets/images/char_girl_sneer_480.webp'
+export const CHAT_AVATAR_IMAGE = `${UNIFIED_GAME_CG_ROOT}/state/avatar_guarded_480.webp`
 
 export const MOBILE_BACKGROUND_MEDIA_QUERY = '(max-width: 768px)'
 
@@ -211,29 +213,29 @@ export const EMOTIONS = {
     type: 'sting',
     label: '刺痛',
     tag: '[情绪:刺痛]',
-    backgroundImage: '/assets/images/cg_emotion_sting_16_9.webp',
-    mobileBackgroundImage: '/assets/images/cg_emotion_sting_16_9.webp'
+    backgroundImage: `${UNIFIED_GAME_CG_ROOT}/emotion/emotion_sting_1600.webp`,
+    mobileBackgroundImage: `${UNIFIED_GAME_CG_ROOT}/emotion/emotion_sting_900.webp`
   },
   surprise: {
     type: 'surprise',
     label: '惊讶',
     tag: '[情绪:惊讶]',
-    backgroundImage: '/assets/images/cg_emotion_surprise_16_9.webp',
-    mobileBackgroundImage: '/assets/images/cg_emotion_surprise_16_9.webp'
+    backgroundImage: `${UNIFIED_GAME_CG_ROOT}/emotion/emotion_surprise_1600.webp`,
+    mobileBackgroundImage: `${UNIFIED_GAME_CG_ROOT}/emotion/emotion_surprise_900.webp`
   },
   soft: {
     type: 'soft',
     label: '柔软',
     tag: '[情绪:柔软]',
-    backgroundImage: '/assets/images/cg_emotion_soft_16_9.webp',
-    mobileBackgroundImage: '/assets/images/cg_emotion_soft_16_9.webp'
+    backgroundImage: `${UNIFIED_GAME_CG_ROOT}/emotion/emotion_soft_1600.webp`,
+    mobileBackgroundImage: `${UNIFIED_GAME_CG_ROOT}/emotion/emotion_soft_900.webp`
   },
   curiosity: {
     type: 'curiosity',
     label: '好奇',
     tag: '[情绪:好奇]',
-    backgroundImage: '/assets/images/cg_emotion_curiosity_16_9.webp',
-    mobileBackgroundImage: '/assets/images/cg_emotion_curiosity_16_9.webp'
+    backgroundImage: `${UNIFIED_GAME_CG_ROOT}/emotion/emotion_curiosity_1600.webp`,
+    mobileBackgroundImage: `${UNIFIED_GAME_CG_ROOT}/emotion/emotion_curiosity_900.webp`
   }
 } as const
 
@@ -254,16 +256,16 @@ export const ENDINGS = {
     label: '消失',
     tag: '[结局:消失]',
     achievementName: '消失',
-    backgroundImage: '/assets/images/cg_end_disappear_1600.webp',
-    mobileBackgroundImage: '/assets/images/cg_end_disappear_900.webp'
+    backgroundImage: `${UNIFIED_GAME_CG_ROOT}/ending/end_disappear_1600.webp`,
+    mobileBackgroundImage: `${UNIFIED_GAME_CG_ROOT}/ending/end_disappear_900.webp`
   },
   acquaintance: {
     type: 'end_acquaintance',
     label: '相识',
     tag: '[结局:相识]',
     achievementName: '相识',
-    backgroundImage: '/assets/images/cg_acquaintance_16_9.webp',
-    mobileBackgroundImage: '/assets/images/cg_acquaintance_16_9.webp'
+    backgroundImage: `${UNIFIED_GAME_CG_ROOT}/ending/end_acquaintance_1600.webp`,
+    mobileBackgroundImage: `${UNIFIED_GAME_CG_ROOT}/ending/end_acquaintance_900.webp`
   }
 } as const
 

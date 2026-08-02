@@ -1,0 +1,236 @@
+[
+  {
+    "filename": "char_girl_smoke.png",
+    "width": 2752,
+    "height": 1536,
+    "format": "png",
+    "aspectRatio": 1.7917,
+    "coloredPixelRatio": 0.0001,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "char_girl_normal.png",
+    "width": 2752,
+    "height": 1536,
+    "format": "png",
+    "aspectRatio": 1.7917,
+    "coloredPixelRatio": 0.0202,
+    "strongColoredPixelRatio": 0.0005
+  },
+  {
+    "filename": "char_girl_sad.png",
+    "width": 2752,
+    "height": 1536,
+    "format": "png",
+    "aspectRatio": 1.7917,
+    "coloredPixelRatio": 0.0202,
+    "strongColoredPixelRatio": 0.0005
+  },
+  {
+    "filename": "char_girl_sneer.png",
+    "width": 2752,
+    "height": 1536,
+    "format": "png",
+    "aspectRatio": 1.7917,
+    "coloredPixelRatio": 0,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg_opening_stair_01_16_9.webp",
+    "width": 1920,
+    "height": 1080,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg_opening_stair_02_16_9.webp",
+    "width": 1920,
+    "height": 1080,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0005,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg_opening_stair_03_16_9.webp",
+    "width": 1920,
+    "height": 1080,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0001,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg_opening_stair_04_16_9.webp",
+    "width": 1920,
+    "height": 1080,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg_opening_stair_05_16_9.webp",
+    "width": 1920,
+    "height": 1080,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0001,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg_emotion_sting_16_9.webp",
+    "width": 1678,
+    "height": 937,
+    "format": "webp",
+    "aspectRatio": 1.7908,
+    "coloredPixelRatio": 0,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg_emotion_surprise_16_9.webp",
+    "width": 1679,
+    "height": 937,
+    "format": "webp",
+    "aspectRatio": 1.7919,
+    "coloredPixelRatio": 0,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg_emotion_soft_16_9.webp",
+    "width": 1679,
+    "height": 937,
+    "format": "webp",
+    "aspectRatio": 1.7919,
+    "coloredPixelRatio": 0,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg_emotion_curiosity_16_9.webp",
+    "width": 1679,
+    "height": 937,
+    "format": "webp",
+    "aspectRatio": 1.7919,
+    "coloredPixelRatio": 0,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg_pressure_near_jump_16_9.webp",
+    "width": 1672,
+    "height": 941,
+    "format": "webp",
+    "aspectRatio": 1.7768,
+    "coloredPixelRatio": 0,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg_pressure_turn_back_16_9.webp",
+    "width": 1600,
+    "height": 900,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0001,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg_acquaintance_16_9.webp",
+    "width": 1920,
+    "height": 1080,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0006,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg_acquaintance_9_16.webp",
+    "width": 1080,
+    "height": 1920,
+    "format": "webp",
+    "aspectRatio": 0.5625,
+    "coloredPixelRatio": 1,
+    "strongColoredPixelRatio": 1
+  },
+  {
+    "filename": "cg_death_falling_16_9.webp",
+    "width": 1920,
+    "height": 1080,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.94,
+    "strongColoredPixelRatio": 0.4354
+  },
+  {
+    "filename": "cg_death_falling_9_16.webp",
+    "width": 1080,
+    "height": 1920,
+    "format": "webp",
+    "aspectRatio": 0.5625,
+    "coloredPixelRatio": 0.9438,
+    "strongColoredPixelRatio": 0.4312
+  },
+  {
+    "filename": "cg_end_disappear.png",
+    "width": 1672,
+    "height": 941,
+    "format": "png",
+    "aspectRatio": 1.7768,
+    "coloredPixelRatio": 0.0888,
+    "strongColoredPixelRatio": 0.0015
+  },
+  {
+    "filename": "cg_end_fall.png",
+    "width": 1672,
+    "height": 941,
+    "format": "png",
+    "aspectRatio": 1.7768,
+    "coloredPixelRatio": 0.0009,
+    "strongColoredPixelRatio": 0.0001
+  },
+  {
+    "filename": "cg_end_fall_seq_01_source.png",
+    "width": 1672,
+    "height": 941,
+    "format": "png",
+    "aspectRatio": 1.7768,
+    "coloredPixelRatio": 0.0037,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg_end_fall_seq_02_source.png",
+    "width": 1672,
+    "height": 941,
+    "format": "png",
+    "aspectRatio": 1.7768,
+    "coloredPixelRatio": 0.001,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg_end_fall_seq_03_source.png",
+    "width": 1672,
+    "height": 941,
+    "format": "png",
+    "aspectRatio": 1.7768,
+    "coloredPixelRatio": 0.0033,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg_end_fall_seq_04_source.png",
+    "width": 1672,
+    "height": 941,
+    "format": "png",
+    "aspectRatio": 1.7768,
+    "coloredPixelRatio": 0,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg_end_fall_seq_05_source.png",
+    "width": 1672,
+    "height": 941,
+    "format": "png",
+    "aspectRatio": 1.7768,
+    "coloredPixelRatio": 0.0009,
+    "strongColoredPixelRatio": 0.0001
+  }
+]

@@ -1,0 +1,344 @@
+[
+  {
+    "filename": "game_cg/opening/opening_01_1920.webp",
+    "width": 1920,
+    "height": 1080,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0005,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/opening/opening_02_1920.webp",
+    "width": 1920,
+    "height": 1080,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0894,
+    "strongColoredPixelRatio": 0.0123
+  },
+  {
+    "filename": "game_cg/opening/opening_03_1920.webp",
+    "width": 1920,
+    "height": 1080,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0112,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/opening/opening_04_1920.webp",
+    "width": 1920,
+    "height": 1080,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.1356,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/opening/opening_05_1920.webp",
+    "width": 1920,
+    "height": 1080,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0151,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/state/state_smoke_1600.webp",
+    "width": 1600,
+    "height": 900,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0096,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/state/state_smoke_900.webp",
+    "width": 900,
+    "height": 506,
+    "format": "webp",
+    "aspectRatio": 1.7787,
+    "coloredPixelRatio": 0.0097,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/state/state_guarded_1600.webp",
+    "width": 1600,
+    "height": 900,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0146,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/state/state_guarded_900.webp",
+    "width": 900,
+    "height": 506,
+    "format": "webp",
+    "aspectRatio": 1.7787,
+    "coloredPixelRatio": 0.0148,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/state/state_wavering_1600.webp",
+    "width": 1600,
+    "height": 900,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0057,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/state/state_wavering_900.webp",
+    "width": 900,
+    "height": 506,
+    "format": "webp",
+    "aspectRatio": 1.7787,
+    "coloredPixelRatio": 0.0063,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/state/state_turn_back_1600.webp",
+    "width": 1600,
+    "height": 900,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0006,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/state/state_turn_back_900.webp",
+    "width": 900,
+    "height": 506,
+    "format": "webp",
+    "aspectRatio": 1.7787,
+    "coloredPixelRatio": 0.0007,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/state/state_edge_1600.webp",
+    "width": 1600,
+    "height": 900,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0014,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/state/state_edge_900.webp",
+    "width": 900,
+    "height": 506,
+    "format": "webp",
+    "aspectRatio": 1.7787,
+    "coloredPixelRatio": 0.0017,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/emotion/emotion_sting_1600.webp",
+    "width": 1600,
+    "height": 900,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0053,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/emotion/emotion_sting_900.webp",
+    "width": 900,
+    "height": 506,
+    "format": "webp",
+    "aspectRatio": 1.7787,
+    "coloredPixelRatio": 0.0064,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/emotion/emotion_surprise_1600.webp",
+    "width": 1600,
+    "height": 900,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0022,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/emotion/emotion_surprise_900.webp",
+    "width": 900,
+    "height": 506,
+    "format": "webp",
+    "aspectRatio": 1.7787,
+    "coloredPixelRatio": 0.0024,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/emotion/emotion_soft_1600.webp",
+    "width": 1600,
+    "height": 900,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0076,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/emotion/emotion_soft_900.webp",
+    "width": 900,
+    "height": 506,
+    "format": "webp",
+    "aspectRatio": 1.7787,
+    "coloredPixelRatio": 0.008,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/emotion/emotion_curiosity_1600.webp",
+    "width": 1600,
+    "height": 900,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0093,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/emotion/emotion_curiosity_900.webp",
+    "width": 900,
+    "height": 506,
+    "format": "webp",
+    "aspectRatio": 1.7787,
+    "coloredPixelRatio": 0.0094,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/ending/death_01_1600.webp",
+    "width": 1600,
+    "height": 900,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0088,
+    "strongColoredPixelRatio": 0.0001
+  },
+  {
+    "filename": "game_cg/ending/death_01_900.webp",
+    "width": 900,
+    "height": 506,
+    "format": "webp",
+    "aspectRatio": 1.7787,
+    "coloredPixelRatio": 0.0084,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/ending/death_02_1600.webp",
+    "width": 1600,
+    "height": 900,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0006,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/ending/death_02_900.webp",
+    "width": 900,
+    "height": 506,
+    "format": "webp",
+    "aspectRatio": 1.7787,
+    "coloredPixelRatio": 0.0007,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/ending/death_03_1600.webp",
+    "width": 1600,
+    "height": 900,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0157,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/ending/death_03_900.webp",
+    "width": 900,
+    "height": 506,
+    "format": "webp",
+    "aspectRatio": 1.7787,
+    "coloredPixelRatio": 0.0165,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/ending/death_04_1600.webp",
+    "width": 1600,
+    "height": 900,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0002,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/ending/death_04_900.webp",
+    "width": 900,
+    "height": 506,
+    "format": "webp",
+    "aspectRatio": 1.7787,
+    "coloredPixelRatio": 0.0001,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/ending/death_05_1600.webp",
+    "width": 1600,
+    "height": 900,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0001,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/ending/death_05_900.webp",
+    "width": 900,
+    "height": 506,
+    "format": "webp",
+    "aspectRatio": 1.7787,
+    "coloredPixelRatio": 0.0001,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/ending/end_disappear_1600.webp",
+    "width": 1600,
+    "height": 900,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0012,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/ending/end_disappear_900.webp",
+    "width": 900,
+    "height": 506,
+    "format": "webp",
+    "aspectRatio": 1.7787,
+    "coloredPixelRatio": 0.0014,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/ending/end_acquaintance_1600.webp",
+    "width": 1600,
+    "height": 900,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0157,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/ending/end_acquaintance_900.webp",
+    "width": 900,
+    "height": 506,
+    "format": "webp",
+    "aspectRatio": 1.7787,
+    "coloredPixelRatio": 0.016,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "game_cg/state/avatar_guarded_480.webp",
+    "width": 480,
+    "height": 480,
+    "format": "webp",
+    "aspectRatio": 1,
+    "coloredPixelRatio": 0.0248,
+    "strongColoredPixelRatio": 0
+  }
+]

@@ -1,0 +1,83 @@
+[
+  {
+    "filename": "cover/cover_key_art_title_1920x1080.png",
+    "width": 1920,
+    "height": 1080,
+    "format": "png",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0207,
+    "strongColoredPixelRatio": 0.0062
+  },
+  {
+    "filename": "pv/pv_01_opening_doorway_1920x1080.webp",
+    "width": 1920,
+    "height": 1080,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0002,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "pv/pv_02_guarded_listening_1920x1080.webp",
+    "width": 1920,
+    "height": 1080,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0032,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "pv/pv_03_turn_back_1920x1080.webp",
+    "width": 1920,
+    "height": 1080,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0015,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg/cg_01_pressure_edge_1920x1080.webp",
+    "width": 1920,
+    "height": 1080,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0015,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg/cg_02_turn_back_1920x1080.webp",
+    "width": 1920,
+    "height": 1080,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0006,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg/cg_03_end_disappear_1920x1080.webp",
+    "width": 1920,
+    "height": 1080,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0012,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg/cg_04_end_acquaintance_1920x1080.webp",
+    "width": 1920,
+    "height": 1080,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.016,
+    "strongColoredPixelRatio": 0
+  },
+  {
+    "filename": "cg/cg_05_end_failure_aftermath_1920x1080.webp",
+    "width": 1920,
+    "height": 1080,
+    "format": "webp",
+    "aspectRatio": 1.7778,
+    "coloredPixelRatio": 0.0001,
+    "strongColoredPixelRatio": 0
+  }
+]

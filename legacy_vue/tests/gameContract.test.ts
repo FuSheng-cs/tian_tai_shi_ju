@@ -4,6 +4,7 @@ import { cwd } from 'node:process'
 import { describe, expect, it } from 'vitest'
 import {
   AI_STATES,
+  CHAT_AVATAR_IMAGE,
   DEATH_ENDING_SEQUENCE_FRAMES,
   ENDING_THRESHOLDS,
   EMOTIONS,
@@ -109,6 +110,18 @@ describe('game contract', () => {
       const assetPath = emotion.backgroundImage.replace('/assets/', 'legacy_vue/public/assets/')
       expect(existsSync(resolve(cwd(), '..', assetPath))).toBe(true)
     }
+  })
+
+  it('maps every ending and the chat avatar to existing unified CG assets', () => {
+    for (const ending of Object.values(ENDINGS)) {
+      for (const backgroundImage of [ending.backgroundImage, ending.mobileBackgroundImage]) {
+        const assetPath = backgroundImage.replace('/assets/', 'legacy_vue/public/assets/')
+        expect(existsSync(resolve(cwd(), '..', assetPath))).toBe(true)
+      }
+    }
+
+    const avatarPath = CHAT_AVATAR_IMAGE.replace('/assets/', 'legacy_vue/public/assets/')
+    expect(existsSync(resolve(cwd(), '..', avatarPath))).toBe(true)
   })
 
   it('maps every scene background to an existing asset', () => {
