@@ -1,30 +1,33 @@
 # 文档索引
 
-本目录按阅读对象拆分为产品文档、工程文档和归档文档。
+> 更新：2026-09-15。只链接受跟踪的仓库资料；被忽略的本地旧建议、营销稿或归档不作为 GitHub 文档入口。
 
-## Product
+## 当前状态
 
-- [项目简介与 AI 原生说明](product/project_overview.md)：面向评审、活动投稿和对外介绍，重点说明创新性与社会价值。
-- [玩家阅读文档](product/player_guide.md)：面向玩家，介绍玩法、机制、优点和同类差异。
-- [故事线与世界观](product/storyline_and_lore.md)：记录角色、世界观、机制和结局设定。
-- [游戏设定集](product/game_setting_bible.md)：统一剧情、Prompt、美术、玩法与伦理边界的叙事正典。
+- [项目状态与待办](STATUS.md)
+- [分支整合与验证](engineering/integration_2026-09-15.md)
 
-## Engineering
+## 产品与叙事
 
-- [技术文档](engineering/technical_overview.md)：说明前后端结构、运行机制、状态管理、测试与工程状态。
-- [Prompt 与设定说明](engineering/prompts_and_settings.md)：集中记录主线对话、回合裁判、提示、后日谈和局后摘要 Prompt。
-- [文档与 Prompt 一致性审查](engineering/document_prompt_audit_2026-06-29.md)：记录当前文档、后端 Prompt 与前端规则的差异及修复优先级。
-- [黑白灰情绪 CG 资源表](engineering/emotion_cg_assets.md)：记录情绪标签对应 CG 文件与生成提示词。
-- [优化建议](engineering/optimization_report.md)：按优先级列出产品、技术和工程优化项。
+- [项目简介](product/project_overview.md)
+- [玩家指南](product/player_guide.md)
+- [故事与世界观](product/storyline_and_lore.md)
+- [游戏设定集](product/game_setting_bible.md)：人物与伦理正典；设计要求不等于已经进入代码。
 
-## Archive
+## 工程与资源
 
-- [项目清理记录](archive/cleanup_changelog.md)：记录早期模块和文档清理背景。
-- [AI 原生说明备份](archive/project_overview_ai_native_backup.md)：保留上一版偏技术论证的项目简介。
+- [技术说明](engineering/technical_overview.md)
+- [五类 Prompt 与结算](engineering/prompts_and_settings.md)
+- [统一游戏 CG 清单](art_review_2026-07-31/unified_game_cg_manifest.md)
+- [image2 资源与候选清单](art_review_2026-07-31/unified_image2_manifest.md)
 
-## 维护原则
+## 历史审查
 
-- 根目录 `README.md` 只保留项目入口信息。
-- 产品表达放在 `docs/product/`。
-- 技术、Prompt、优化建议放在 `docs/engineering/`。
-- 旧稿和历史记录放在 `docs/archive/`。
+- [2026-06-29 文档与 Prompt 审查](engineering/document_prompt_audit_2026-06-29.md)：保留原始证据，复核状态见文首。
+- [2026-06-29 CG 审查](art_review_2026-06-29/cg_consistency_audit.md)：旧资产快照，当前映射以 gameContract.ts 为准。
+
+## 维护边界
+
+master 维护经验证的 v1；v2/roadmap 单独保存 v2 全案、根 README TODO 和后续实现。v2 的芯片、碎片、多 NPC 与循环不自动成为 v1 正典。
+
+更新顺序：代码契约和设定集 → 技术/Prompt → 产品说明 → 验证。历史建议不能冒充当前事实。

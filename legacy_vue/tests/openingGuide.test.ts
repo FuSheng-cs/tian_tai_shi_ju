@@ -145,6 +145,24 @@ describe('opening guide flow', () => {
     vi.useRealTimers()
   })
 
+  it('keeps the Web menu navigation and reviewed save controls together', async () => {
+    const wrapper = mount(StartView)
+    expect(wrapper.find('[aria-label="关于游戏"]').exists()).toBe(true)
+    expect(wrapper.findAll('.menu-button').map((button) => button.text())).toEqual([
+      '开始游戏', '读取存档', '成就图鉴', '游戏设置'
+    ])
+    await wrapper.findAll('.menu-button')[2].trigger('click')
+    expect(mocks.push).toHaveBeenLastCalledWith('/achievements')
+    await wrapper.findAll('.menu-button')[3].trigger('click')
+    expect(mocks.push).toHaveBeenLastCalledWith('/settings')
+    await wrapper.findAll('.menu-button')[1].trigger('click')
+    expect(wrapper.findAll('.save-slot-button')).toHaveLength(3)
+    expect(wrapper.findAll('.save-slot-button')[2].attributes('disabled')).toBeDefined()
+    await wrapper.find('.save-slot-header button').trigger('click')
+    expect(wrapper.find('.save-slot-overlay').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
   it('marks the next game entry as a new game from the start screen', async () => {
     const wrapper = mount(StartView)
 

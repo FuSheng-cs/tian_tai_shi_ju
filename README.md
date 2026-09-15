@@ -6,7 +6,9 @@
 [![Vue](https://img.shields.io/badge/Frontend-Vue%203-4FC08D?logo=vue.js)](https://vuejs.org/)
 [![Vite](https://img.shields.io/badge/Build-Vite-646CFF?logo=vite)](https://vite.dev/)
 
-在线体验：http://tiantaishiju.top
+试玩地址（本次未验证部署状态）：http://tiantaishiju.top
+
+> 版本状态（2026-09-15）：v1 核心玩法 Demo 已完成，当前整合了代码审查修复、统一 CG 与 Web 首页。最新检查与待办见 [项目状态](docs/STATUS.md)。v2 单独维护在 `v2/roadmap` 分支，不代表已实现。
 
 ## 项目简介
 
@@ -27,7 +29,7 @@
 ## 技术栈
 
 ```text
-backend/     Go 1.22 + Gin + OpenAI-compatible Chat Completions
+backend/     Go 1.22 + Gin + OpenAI-compatible / Anthropic Messages
 legacy_vue/  Vue 3 + Vite + TypeScript + Pinia + Tailwind CSS + Howler
 docs/        产品、技术、Prompt 与优化文档
 ```
@@ -37,15 +39,15 @@ docs/        产品、技术、Prompt 与优化文档
 ### 环境要求
 
 - Go 1.22+
-- Node.js 20+
+- Node.js 24（当前验证环境；旧版 Node 20 不一定满足锁定依赖的要求）
 
 ### 启动后端
 
 ```bash
 cd backend
 cp .env.example .env
-go mod tidy
-go run main.go
+go mod download
+go run .
 ```
 
 后端默认运行在 `http://localhost:8080`。
@@ -56,7 +58,7 @@ go run main.go
 
 ```bash
 cd legacy_vue
-npm install
+npm ci
 npm run dev
 ```
 
@@ -98,7 +100,8 @@ VITE_BACKEND_URL=http://localhost:8080
 - [技术文档](docs/engineering/technical_overview.md)
 - [Prompt 与设定说明](docs/engineering/prompts_and_settings.md)
 - [文档与 Prompt 一致性审查](docs/engineering/document_prompt_audit_2026-06-29.md)
-- [优化建议](docs/engineering/optimization_report.md)
+- [项目状态与待办](docs/STATUS.md)
+- [分支整合与验证记录](docs/engineering/integration_2026-09-15.md)
 
 ## 常用命令
 
@@ -108,19 +111,23 @@ cd legacy_vue
 npm test -- --run
 
 # 前端构建
+npm run lint
 npm run build
 
 # 后端构建
 cd ../backend
+go test ./...
 go build ./...
 ```
 
 ## 隐私与安全
 
-- 玩家填写的 API Key 只保存在玩家自己的浏览器 `localStorage`。
+- 玩家填写的 API Key 持久化在浏览器 `localStorage`，请求时会发送给本项目后端，再由后端调用所选服务商；并非“不会离开浏览器”。部署应使用 HTTPS，勿导出或提交真实密钥。
 - 服务器侧兜底 API Key 只通过后端环境变量读取，不暴露给前端。
 - 游戏存档和成就均保存在本地浏览器。
 
 ## 当前状态
 
-当前版本已经完成核心闭环：标题页、天台主对话、提示系统、动态回合、多结局、成就、存档和后日谈聊天。后续重点是多模态交互、生成式结局、路由守卫、设置持久化与工程化清理。
+当前版本已完成标题页、主对话、提示、动态回合、三结局、成就、三栏位主线/后日谈存档，以及后日谈路由守卫。主线采用“角色自然回复 + 独立 JSON 裁判”双调用；打字机是本地显示效果，还不是真正网络流式输出。
+
+当前仍需补齐音量/显示设置持久化、设定集到 Prompt 的完整映射、公网安全与成本控制、真实模型端到端验收。多模态、循环叙事和碎片系统不计入已完成范围。

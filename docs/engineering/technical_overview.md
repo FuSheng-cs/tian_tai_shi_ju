@@ -1,304 +1,75 @@
 # 技术文档
 
-## 1. 项目概览
-
-项目当前是一个“前端负责交互和状态、后端负责 Prompt 保护与模型转发”的 AI 叙事游戏。
-
-主运行栈：
-
-- 前端：Vue 3 + Vite + TypeScript + Pinia + Tailwind CSS v4 + Howler
-- 后端：Go 1.22 + Gin
-- AI 接口：OpenAI 兼容 Chat Completions 协议
-- 存储：浏览器 `localStorage`
-- 部署假设：生产环境前后端同源，由 Nginx 代理 `/api/*`
-
-仓库内同时存在两套前端痕迹：
-
-- `legacy_vue/`：当前真实可运行、与后端配套的主前端
-- `next_temp/`：未接管的 Next.js 模板目录，仍是默认脚手架内容
-
-因此，技术上应将 `legacy_vue` 视为当前主工程，将 `next_temp` 视为未清理的迁移/试验残留。
-
-## 2. 目录与职责
-
-### 根目录
-
-- `backend/`：Go 后端，负责配置加载、路由和 LLM 转发
-- `legacy_vue/`：Vue 主前端，负责场景渲染、状态管理、存档与设置
-- `docs/`：叙事、Prompt、清理记录等文档
-- `next_temp/`：未投入使用的 Next.js 模板工程
+> 更新：2026-09-15。以可执行代码为准；验证见 [整合记录](integration_2026-09-15.md)，待办见 [项目状态](../STATUS.md)。历史审查不等于当前缺陷清单。
 
-### `backend/`
+## 1. 工程结构
 
-- `main.go`：启动 Gin 服务，挂载 CORS 中间件和 API 路由
-- `config/config.go`：读取环境变量与 `.env`
-- `handlers/game.go`：解析前端请求，构建客户端配置，调用 LLM 服务层
-- `llm/service.go`：封装模型请求、保存主线 Prompt / 提示 Prompt / 后日谈 Prompt
+主前端为 `legacy_vue/`（Vue 3、TypeScript、Pinia、Vite 8、Tailwind CSS、Howler），后端为 `backend/`（Go 1.22 模块、Gin）。仓库已无受跟踪的 `next_temp/` 工程。
 
-### `legacy_vue/src/`
+| 位置 | 职责 |
+| --- | --- |
+| `backend/config/` | 环境变量、.env、服务器默认模型 |
+| `backend/handlers/` | HTTP 校验、配置选择、错误/无密钥兜底 |
+| `backend/llm/` | Provider 适配、五类 Prompt、裁判与规则归一化 |
+| `legacy_vue/src/views/` | 首页、主线、设置、成就、后日谈 |
+| `legacy_vue/src/domain/` | 契约、状态类型、阈值、CG 映射 |
+| `legacy_vue/src/store/` | 主线状态机、运行期音量/显示设置 |
+| `legacy_vue/src/modules/` | API、音频、存档、成就 |
+| `legacy_vue/src/composables/` | 共用存档栏位与开场/结局演出 |
 
-- `views/StartView.vue`：标题页、入口导航
-- `views/GameView.vue`：主游戏场景、提示、输入框、结局承接
-- `views/SettingsView.vue`：模型配置、音频与显示设置
-- `views/AchievementsView.vue`：成就图鉴
-- `views/ChatAfterStoryView.vue`：相识结局后的续聊页
-- `store/gameStore.ts`：游戏主状态机
-- `store/settingsStore.ts`：UI 设置状态
-- `modules/LLMService.ts`：前端请求代理层
-- `modules/SaveSystem.ts`：本地存档
-- `modules/AchievementTracker.ts`：成就追踪
-- `modules/AudioManager.ts`：BGM / SFX 控制
-- `components/TypewriterText.vue`：打字机效果
-- `components/ProgressBar.vue`：顶部剩余回合进度条
+## 2. 主线请求与结算
 
-## 3. 运行机制
+1. `gameStore.sendMessage()` 写入玩家本句并扣 1 次机会。发送的历史排除本句，避免与 `user_message` 重复。
+2. `LLMService.chat()` 请求 `POST /api/chat`，携带历史、本句、剩余机会、好感、触动次数、发言次数、姿态及模型配置。
+3. 后端 `Chat()` 先调用角色模型（温度 0.8），只生成自然回复。清理旧机制标签和乱码，空回复使用统一兜底台词。
+4. `EvaluateTurn()` 把最近 4 条历史、本句、角色回复和当前数值交给裁判（温度 0.2）。这是同一次 HTTP 请求内的第二次顺序模型调用。
+5. JSON 字段为 `emotion`、`ai_state`、`affection_delta`、`pressure_delta`、`ending_type`、`confidence`。后端归一化枚举、增量与结局门槛，未被否定的回身叙事可兜底纠正姿态。
+6. 前端将 snake_case 规范化为 camelCase，消费 `{ reply, evaluation }`；正文标签不再是机制事实源。
+7. 先额外扣压力（0/1/2 次机会），再处理触动（好感 +5、触动次数 +1、机会 +1）。裁判有结局则采用，否则机会耗尽时执行本地阈值兜底。
+8. CG 由 `resolveVisualState()` 和游戏页等待/演出状态协调：结局、临界或回身、瞬时情绪、基础姿态；资源路径在 `gameContract.ts` 中统一管理。
 
-### 3.1 主对话流程
+初始机会 10、提示 3、存档栏位 1–3。消失数值门槛为好感 ≥20、触动 ≥4、发言 ≥7；相识为好感 ≥25、触动 ≥5、发言 ≥7。机会耗尽时先按这些门槛判断，再尝试最后回复的叙事关键词推断，仍无结果才默认死亡。因此叙事兜底也可能给出成功结局，数值门槛并非所有路径的硬约束，详见 Prompt 第 7 节。
 
-主对话完整链路如下：
+## 3. API 与 Prompt
 
-1. 玩家在 `GameView.vue` 输入文本。
-2. `gameStore.sendMessage()` 先把玩家消息压入本地消息列表，并消耗 1 次回合。
-3. 前端通过 `LLMService.chat()` 向 `/api/chat` 发送：
-   - 历史消息
-   - 当前玩家输入
-   - 剩余回合
-   - 当前好感度
-   - 好感触发次数
-   - 玩家已发言次数
-   - 当前持续人物状态 `ai_state`
-   - 玩家本地保存的模型配置
-4. 后端 `handlers.HandleChat()` 调用 `llm.Chat()`。
-5. `llm.Chat()` 用当前回合数和好感度拼接系统 Prompt，再转发到外部模型。
-6. 模型返回文本后，前端解析其中的系统标签：
-   - `[好感度+5]`
-   - `[状态:戒备]`
-   - `[状态:观察]`
-   - `[状态:动摇]`
-   - `[状态:临界]`
-   - `[情绪:刺痛]`
-   - `[情绪:惊讶]`
-   - `[情绪:柔软]`
-   - `[情绪:好奇]`
-   - `[结局:死亡]`
-   - `[结局:消失]`
-   - `[结局:相识]`
-7. 前端根据标签更新：
-   - `affection`
-   - `roundCount`
-   - `lastEmotionTag`
-   - `emotionHistory`
-   - `lastAiStateTag`
-   - `aiStateHistory`
-   - `isEnding`
-   - `endingType`
-8. 最终由 `resolveVisualState()` 统一判定 CG：结局 CG > 临界状态/句数压力 CG > 情绪 CG > 人物状态基础 CG；`GameView.vue` 只消费判定结果。
+| API | 用途 |
+| --- | --- |
+| `GET /api/health` | 健康检查 |
+| `POST /api/chat` | 角色 + 裁判双调用 |
+| `POST /api/hint` | 方向性提示 |
+| `POST /api/chat-after` | 携带真实结局上下文的后日谈 |
+| `POST /api/ending-summary` | 关键句和短评；死亡摘要由前端本地生成 |
 
-### 3.2 提示流程
+五类 Prompt（角色、裁判、提示、后日谈、摘要）详见 [Prompt 说明](prompts_and_settings.md)。当前是完整响应后本地打字机播放，未实现 SSE/网络流式协议。
 
-提示按钮会调用 `/api/hint`，后端使用单独的“导演/旁白 Prompt”生成一句方向性建议。提示不会直接给标准答案，而是给一个切入方向。
+## 4. 模型配置与错误边界
 
-### 3.3 后日谈流程
+- 配置支持 qwen、deepseek、doubao、kimi、zhipu、openai、claude、custom。这是代码提供的配置类型，不保证每个预设模型当前可用，需按账户权限核实。
+- 大部分使用 OpenAI-compatible Chat Completions；Claude 使用独立 Anthropic Messages 适配。
+- 玩家有 Key 时使用玩家配置；无 Key 时完整切换服务器 Provider/Key/模型/Base URL，避免混用。
+- 两侧都无 Key 时提供标注“模拟回复”的演示，而不是完整 AI 试玩。
+- 后端共享 HTTP 客户端单次超时 60 秒；两次顺序调用不等于整轮最多 60 秒。
+- 裁判失败时保持姿态、零增量、无结局；角色失败时后端可返回 HTTP 200 携带 error 与兜底回复，不能只凭状态码判成功。
 
-“相识”结局后，页面会跳转到 `/chat-after`。这一页调用 `/api/chat-after`，使用更轻松、偏日常聊天的 Prompt，模拟关系建立后的持续交流。
+## 5. 存档、设置与路由
 
-## 4. Prompt 设计
+- `SaveSystem` 使用 localStorage 与 CRC32，区分主线/后日谈栏位。CRC32 是完整性检测，不是密码学签名或安全防作弊。
+- 成就本地持久化。后日谈路由守卫要求相识结局状态或可读的后日谈存档。
+- Key/Provider/模型/Base URL 已持久化；音量、字号、行高等 settingsStore 设置尚无刷新恢复。
+- 后日谈携带关键句、最后一句、结局回复、短评和统计，避免重置为陌生人聊天。
 
-当前项目有四套核心 Prompt，且都放在后端。角色名、结局名、机制标签由后端 `backend/llm/game_contract.go` 和前端 `legacy_vue/src/domain/gameContract.ts` 的契约常量维护，避免 Prompt、UI 和状态解析各自手写。
+## 6. 开发与验证
 
-### 4.1 主线 Prompt
+当前验证环境使用 Node.js 24、Go 1.25.7（Go 模块最低声明 1.22）。前端 npm ci 后执行 npm run lint、npm test -- --run、npm run build；后端执行 go test ./...、go build ./...。
 
-职责：
+ESLint 使用 eslint.config.mjs 的 flat config，保留 Vue essential、TypeScript recommended 和禁止显式 any；格式检查与逻辑 lint 分离，不做全仓库格式重写。迁移依据：[ESLint 官方指南](https://eslint.org/docs/latest/use/configure/migration-guide)。
 
-- 定义“艾”的角色核心设定
-- 明确十句话规则
-- 要求回复尽量简短
-- 通过标签控制好感与结局
+测试涵盖状态结算、存档校验、API 转换、路由、成就、烟 HUD、开场/死亡演出、后日谈和首页整合回归。数量、截图及限制见本次整合记录；旧文档“2 文件/4 用例”已过时。
 
-这是项目最关键的设计点。它把 LLM 从单纯“生成台词”，提升为“生成带机制语义的状态输出”。
+## 7. 部署边界
 
-### 4.2 提示 Prompt
+默认后端 8080、Vite 开发 5173；开发配置 VITE_BACKEND_URL，生产可同源代理 /api/*。刷新子路由需要 SPA history fallback。
 
-职责：
+尚未具备完整限流、认证、服务端权威会话、调用预算和自定义 Base URL 安全约束。玩家 Key 会经过后端及模型服务，应使用 HTTPS，不提交环境文件、真实密钥或敏感原始日志。
 
-- 站在旁白/导演视角
-- 结合历史对话给方向
-- 控制输出很短
-
-这套 Prompt 用来降低玩家卡关概率，改善自由输入带来的“无从开口”问题。
-
-### 4.3 后日谈 Prompt
-
-职责：
-
-- 将“艾”从濒临轻生的状态，切换为暂时离开栏杆后的日常聊天状态
-- 降低情绪强度，转入更生活化的关系表达
-
-### 4.4 局后摘要 Prompt
-
-职责：
-
-- 从本局玩家发言中评选关键转折句
-- 生成一句简短局后评语
-- 只返回结构化 JSON，便于前端稳定渲染结局摘要
-
-## 5. 状态与本地数据
-
-### 5.1 游戏状态
-
-`gameStore.ts` 维护核心状态：
-
-- `roundCount`
-- `hintCount`
-- `affection`
-- `messages`
-- `isWaiting`
-- `waitingText`
-- `isEnding`
-- `endingType`
-
-这使得前端具备较清晰的状态边界，主场景 UI 不需要自己维护复杂局部状态。
-
-### 5.2 存档
-
-`SaveSystem.ts` 使用 `localStorage` 保存存档，并用 `CRC32` 做完整性校验。当前设计具备基本的防随手篡改能力，适合轻量单机网页游戏。
-
-### 5.3 设置
-
-LLM 配置保存在浏览器本地，主要包括：
-
-- `provider`
-- `apiKey`
-- `model`
-- `baseUrl`
-
-项目设计上支持两种模式：
-
-- 玩家自带 Key
-- 服务器提供兜底 Key
-
-这一点对 demo 部署非常重要，因为它决定线上站点能否直接试玩完整 AI 版本。
-
-## 6. 前端表现层设计
-
-项目的前端不是传统表单式聊天页，而是明显按叙事情绪来组织：
-
-- 标题页强调夜景、霓虹、雨幕和高压短句概念
-- 游戏页将对话框固定在底部，保留大面积氛围场景
-- 用打字机效果增强角色开口时的节奏感
-- 用顶部剩余机会条强化“十句话”这一玩法压力
-- 用不同背景图和结局按钮收束情绪高潮
-
-从产品实现上看，前端最大优点不是复杂，而是聚焦：所有界面几乎都围绕“深夜天台的一次关键对话”展开，没有把系统层做得过重。
-
-## 7. 后端实现特点
-
-### 优点
-
-- Prompt 放在后端，避免直接暴露在前端
-- 支持多 Provider，接口形式统一
-- 支持自定义 Base URL，兼容中转或私有代理
-- 超时配置明确，结构简单，便于部署
-
-### 当前边界
-
-- 没有做会话裁剪，历史越长，Token 成本越高
-- 没有细粒度监控、限流与审计
-- 依赖前端传入状态，属于轻后端架构
-
-这说明它目前更像一个高可读、低复杂度的原型后端，而不是一个已经面向大规模公网流量的生产服务。
-
-## 8. 测试与工程状态
-
-### 8.1 前端测试
-
-在 `legacy_vue/` 中执行：
-
-```bash
-npm test -- --run
-```
-
-结果：
-
-- 2 个测试文件通过
-- 4 个测试用例通过
-
-当前测试主要覆盖：
-
-- `gameStore` 的基础初始化与重置
-- `SaveSystem` 的保存、读取与篡改校验
-
-### 8.2 前端构建
-
-在 `legacy_vue/` 中执行：
-
-```bash
-npm run build
-```
-
-结果：
-
-- 构建成功
-- PWA 资源生成成功
-
-### 8.3 后端构建
-
-在 `backend/` 中执行：
-
-```bash
-go build ./...
-```
-
-结果：
-
-- 构建成功
-
-
-
-
-
-## 9. 当前架构的优点
-
-### 1. 原型价值很高
-
-项目已经清楚证明了一件事：AI 自由对话可以和回合、结局、提示、续聊页结合成一个完整的游戏闭环。
-
-### 2. 架构简单，可读性强
-
-前端和后端都不复杂，阅读成本低，适合快速迭代 Prompt 和交互。
-
-### 3. 产品定位明确
-
-它不是大而全的聊天平台，而是一个围绕单一强情境构建的 AI 叙事游戏，因此技术实现没有被无关功能拖散。
-
-## 11. 当前主要技术债
-
-从技术视角看，当前技术债主要集中在四类：
-
-- 状态与解锁规则仍有遗漏
-- 资产和配置存在历史残留
-- 工程化工具链没有完全跟上依赖升级
-- 仓库里存在未清理的模板目录和过期分支痕迹
-
-这些问题不影响项目“作为可运行原型”的成立，但会影响它向正式可维护版本演进。
-
-## 12. 结论
-
-《天台十句》当前已经完成了一个非常清晰的 AI 叙事游戏原型：
-
-- 玩法闭环成立
-- 情绪氛围成立
-- 前后端职责清晰
-- 构建与基础测试可通过
-
-但它距离更完整、更稳健的正式版本，还需要继续补齐以下能力：
-
-- 线上完整可玩性
-- 路由与解锁一致性
-- 设置与存档完整性
-- 资产与工程配置收口
-- 中长期的内容和 Prompt 统一管理
-
-如果后续要继续投入，这个项目最值得保留和继续深化的，不是某个具体页面，而是它已经验证成功的核心命题：
-
-“自由对话本身，可以成为游戏机制，而不只是表现形式。”
+本地单测和构建不等于线上部署、真实模型质量、成本或叙事安全验收。

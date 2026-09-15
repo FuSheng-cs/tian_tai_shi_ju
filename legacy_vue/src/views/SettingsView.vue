@@ -340,7 +340,7 @@ const testConnection = async () => {
     } else {
       testResult.value = { ok: false, msg: '请检查 API Key 或服务商配置' }
     }
-  } catch (e) {
+  } catch {
     testResult.value = { ok: false, msg: '连接失败，请检查后端或网络' }
   } finally {
     isTesting.value = false

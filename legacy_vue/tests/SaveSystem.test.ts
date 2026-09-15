@@ -148,7 +148,6 @@ describe('Save System', () => {
   })
 
   it('fails to load if data is tampered', () => {
-    const store = useGameStore()
     SaveSystem.save(1)
     
     // Tamper data
