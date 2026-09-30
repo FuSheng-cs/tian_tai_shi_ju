@@ -49,6 +49,10 @@
 
 本文件不把构建、静态 UI 或 Mock 单测解释为线上/真实模型验收。
 
+## 后续分支清理（2026-10-01）
+
+在确认 `master` 已包含旧 v1 分支的提交后，删除了 `Client`、`Web`、`codex/4_20`、`refactor/review-fixes`、`release/consolidate-2026-09-15`、`trae/0.3.0`、`trae/hanyi-pixel-font` 和 `trae/solo-agent-FZwhRd`。`trae/0.3.0` 与 `trae/solo-agent-FZwhRd` 的分支尖端分别保存在 `archive/trae-0.3.0` 与 `archive/trae-solo-agent-FZwhRd` 标签中；`v2/roadmap` 与 `refactor/architecture-reset` 继续作为活动分支保留。
+
 ## 仍存在的边界
 
 - 网络流式、多模态、v2 碎片与循环尚未实现。

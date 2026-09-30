@@ -26,10 +26,9 @@ v1 核心闭环已完成，处于 Demo 整合与打磨期，不是已完成公�
 ## 分支职责
 
 - master：验证后合入的最新 v1。
-- release/consolidate-2026-09-15：本次整合与验证来源。
-- refactor/review-fixes：原始代码修复/CG 两笔提交，已推送。
 - v2/roadmap：独立设计与 TODO，未实现项不合入 v1。
-- 其他旧分支保留追溯，依据见 [整合记录](engineering/integration_2026-09-15.md)。
+- refactor/architecture-reset：正在进行的 v2 架构重构，尚未合入 v1。
+- 已合入 v1 的临时分支已在 2026-10-01 清理；需要追溯的两个未合入尖端保存在 `archive/trae-0.3.0` 和 `archive/trae-solo-agent-FZwhRd` 标签中。历史整合依据见 [整合记录](engineering/integration_2026-09-15.md)。
 
 ## 验证边界
 
