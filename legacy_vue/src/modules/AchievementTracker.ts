@@ -9,10 +9,10 @@ import {
 import { countPlayerMessages, type GameState } from '@/domain/gameState'
 import type { SaveSlot } from '@/modules/SaveSystem'
 
-const ACHIEVEMENT_KEY = 'damo_achievements'
+const ACHIEVEMENT_KEY = 'tiantaishiju_safety_achievements'
 const COMPLETE_ARCHIVE_ID = 'complete_archive'
 
-export type AchievementCategory = 'encounter' | 'listening' | 'pressure' | 'ending' | 'collection'
+export type AchievementCategory = 'encounter' | 'listening' | 'safety' | 'ending' | 'collection'
 
 export interface AchievementCategoryDefinition {
   id: AchievementCategory
@@ -45,15 +45,15 @@ export const ACHIEVEMENT_CATEGORIES: Record<AchievementCategory, AchievementCate
     label: '倾听',
     description: '她的防备、停顿和微小松动，都被收入档案。'
   },
-  pressure: {
-    id: 'pressure',
-    label: '压力',
-    description: '风更冷的时候，栏杆边的距离也会改变。'
+  safety: {
+    id: 'safety',
+    label: '安全',
+    description: '记录那些让对话走向安全地方的选择。'
   },
   ending: {
     id: 'ending',
     label: '结局',
-    description: '今晚最终留下的三种可能。'
+    description: '今晚最终留下的两种可能。'
   },
   collection: {
     id: 'collection',
@@ -65,7 +65,7 @@ export const ACHIEVEMENT_CATEGORIES: Record<AchievementCategory, AchievementCate
 export const ACHIEVEMENT_CATEGORY_ORDER: AchievementCategory[] = [
   'encounter',
   'listening',
-  'pressure',
+  'safety',
   'ending',
   'collection'
 ]
@@ -77,7 +77,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     description: '第一次在天台遇见她。',
     category: 'encounter',
     hidden: false,
-    lockedHint: '走上天台，见到那个坐在栏杆边的人。',
+    lockedHint: '走上天台，见到那个坐在远离门口的人。',
     unlockText: '你推开了通往天台的门。',
     icon: 'door'
   },
@@ -93,16 +93,16 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
   },
   {
     id: 'silent_listener',
-    name: '没有急着借答案',
+    name: '先听她说',
     description: '前三句话里没有使用线索。',
     category: 'encounter',
     hidden: false,
     lockedHint: '试着先靠自己听完前三句话。',
-    unlockText: '你没有把别人的答案递给她。',
+    unlockText: '你没有把标准答案递给她。',
     icon: 'ear'
   },
   {
-    id: 'first_affection',
+    id: 'first_trust',
     name: '她听见了',
     description: '第一次让她产生“这个人在听”的感觉。',
     category: 'listening',
@@ -112,9 +112,9 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     icon: 'heart'
   },
   {
-    id: 'three_affection',
+    id: 'three_trust',
     name: '裂缝里的光',
-    description: '本局累计触发 3 次好感。',
+    description: '本局累计触发 3 次信任度提升。',
     category: 'listening',
     hidden: true,
     lockedHint: '有些回应会在沉默里留下细小裂缝。',
@@ -122,13 +122,13 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     icon: 'spark'
   },
   {
-    id: 'five_affection',
-    name: '临界留存',
-    description: '本局累计触发 5 次好感。',
+    id: 'five_trust',
+    name: '愿意多停一会儿',
+    description: '本局累计触发 5 次信任度提升。',
     category: 'listening',
     hidden: true,
     lockedHint: '最难的不是靠近，而是让她仍愿意停留。',
-    unlockText: '她还没有好，但她停住了。',
+    unlockText: '她还没有准备好，但她愿意多停一会儿。',
     icon: 'moon'
   },
   {
@@ -152,83 +152,73 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     icon: 'cloud'
   },
   {
-    id: 'edge_state',
-    name: '风把她往外推',
-    description: '她进入了临界状态。',
-    category: 'pressure',
+    id: 'wavering_state',
+    name: '开始松动',
+    description: '她进入了动摇状态。',
+    category: 'safety',
     hidden: true,
-    lockedHint: '当句数越来越少，风会替沉默说话。',
-    unlockText: '栏杆外的风变近了。',
+    lockedHint: '当她感到被听见，防备会出现一点松动。',
+    unlockText: '她的防备出现了一道缝。',
     icon: 'wind'
   },
   {
-    id: 'turn_back_state',
-    name: '背向城市',
-    description: '她转身面向楼外。',
-    category: 'pressure',
+    id: 'crying_state',
+    name: '眼泪先抵达',
+    description: '她在对话中哭了出来。',
+    category: 'safety',
     hidden: true,
-    lockedHint: '有一刻，她会把背影留给你。',
-    unlockText: '她把脸转向了城市外侧。',
-    icon: 'rotate'
+    lockedHint: '有时眼泪是终于不用再独自撑住的信号。',
+    unlockText: '她终于哭了出来。',
+    icon: 'cloud'
   },
   {
-    id: 'last_sentence_rescue',
-    name: '最后一线',
-    description: '剩余 0 或 1 句话时达成非死亡结局。',
-    category: 'pressure',
+    id: 'last_sentence_safety',
+    name: '最后一句也在场',
+    description: '剩余 0 或 1 句话时完成一次结局。',
+    category: 'safety',
     hidden: true,
-    lockedHint: '最后一口气里，也可能留下一个选择。',
-    unlockText: '最后一线没有断。',
+    lockedHint: '最后一句话也可以留下陪伴。',
+    unlockText: '你把最后一句话也留给了她。',
     icon: 'thread'
   },
   {
-    id: 'no_hint_rescue',
+    id: 'no_hint_safety',
     name: '不借来的答案',
-    description: '未使用线索达成消失或相识结局。',
-    category: 'pressure',
+    description: '未使用线索完成一次安全对话。',
+    category: 'safety',
     hidden: true,
     lockedHint: '不借来答案，也许能留下更像自己的话。',
     unlockText: '今晚留下她的，是你自己的话。',
     icon: 'eye'
   },
   {
-    id: ENDINGS.death.type,
-    name: ENDINGS.death.achievementName,
-    description: '未能触及她的内心，她选择了离开这个世界。',
+    id: ENDINGS.safeExit.type,
+    name: ENDINGS.safeExit.achievementName,
+    description: '艾哭了，并愿意和你一起离开天台。',
     category: 'ending',
     hidden: true,
-    lockedHint: '有些沉默会一直坠下去。',
-    unlockText: '你记住了坠落之后的空白。',
-    icon: 'fall'
-  },
-  {
-    id: ENDINGS.disappear.type,
-    name: ENDINGS.disappear.achievementName,
-    description: '你让她今晚离开栏杆，但她没有留下联系方式。',
-    category: 'ending',
-    hidden: true,
-    lockedHint: '她也许会离开栏杆，但不一定留下名字。',
-    unlockText: '她从消防通道离开，没有回头。',
+    lockedHint: '陪她走到下一个安全的地方。',
+    unlockText: '她哭了，但愿意和你一起离开天台。',
     icon: 'footsteps'
   },
   {
-    id: ENDINGS.acquaintance.type,
-    name: ENDINGS.acquaintance.achievementName,
-    description: '她暂时留下，并愿意继续和你联系。',
+    id: ENDINGS.refusal.type,
+    name: ENDINGS.refusal.achievementName,
+    description: '艾不再回应，并拒绝离开天台。',
     category: 'ending',
     hidden: true,
-    lockedHint: '让她今晚留下，已经是一件很难的事。',
-    unlockText: '她没有被治好，但愿意继续说话。',
+    lockedHint: '有些时候，她还没有准备好离开。',
+    unlockText: '她不再搭理你，仍然拒绝离开天台。',
     icon: 'star'
   },
   {
     id: 'first_save',
-    name: '夹在烟盒里的便签',
+    name: '夹在便签里的夜晚',
     description: '第一次成功保存这一夜。',
     category: 'collection',
     hidden: false,
     lockedHint: '把某个分岔保存下来。',
-    unlockText: '你把这一刻夹进了烟盒。',
+    unlockText: '你把这一刻夹进了便签。',
     icon: 'save'
   },
   {
@@ -243,12 +233,12 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
   },
   {
     id: COMPLETE_ARCHIVE_ID,
-    name: '雨夜全档案',
-    description: '点亮其余所有雨夜档案。',
+    name: '安全对话全档案',
+    description: '点亮其余所有安全对话档案。',
     category: 'collection',
     hidden: true,
-    lockedHint: '还有未被记录的雨声。',
-    unlockText: '这场雨夜的档案完整了。',
+    lockedHint: '还有未被记录的回应。',
+    unlockText: '这场对话的档案完整了。',
     icon: 'archive'
   }
 ]
@@ -278,28 +268,15 @@ const writeKnownIds = (ids: string[]) => {
   localStorage.setItem(ACHIEVEMENT_KEY, JSON.stringify(knownIds))
 }
 
-const hasEmotion = (state: GameState, emotion: EmotionType) =>
-  state.emotionHistory.includes(emotion)
+const hasEmotion = (state: GameState, emotion: EmotionType) => state.emotionHistory.includes(emotion)
 
-const isRescueEnding = (state: GameState) =>
-  state.isEnding &&
-  (state.endingType === ENDINGS.disappear.type || state.endingType === ENDINGS.acquaintance.type)
+const hasEnteredState = (state: GameState, stateType: keyof typeof AI_STATES) =>
+  state.lastAiStateTag === AI_STATES[stateType].type ||
+  state.aiStateHistory.includes(AI_STATES[stateType].type)
 
-const hasEnteredEdgeState = (state: GameState) =>
-  state.lastAiStateTag === AI_STATES.edge.type ||
-  state.aiStateHistory.includes(AI_STATES.edge.type) ||
-  deriveAiStateType({ roundCount: state.roundCount, affection: state.affection }) ===
-    AI_STATES.edge.type
-
-const hasEnteredTurnBackState = (state: GameState) =>
-  state.lastAiStateTag === AI_STATES.turnBack.type ||
-  state.aiStateHistory.includes(AI_STATES.turnBack.type)
-
-const hasSoftAfterSting = (state: GameState) => {
-  const stingIndex = state.emotionHistory.indexOf(EMOTIONS.sting.type)
-  if (stingIndex < 0) return false
-  return state.emotionHistory.slice(stingIndex + 1).includes(EMOTIONS.soft.type)
-}
+const hasEnteredWaveringState = (state: GameState) =>
+  hasEnteredState(state, 'wavering') ||
+  deriveAiStateType({ roundCount: state.roundCount, trust: state.trust }) === AI_STATES.wavering.type
 
 export class AchievementTracker {
   static getAchievement(id: string): AchievementDefinition | null {
@@ -322,18 +299,18 @@ export class AchievementTracker {
     if (turnsUsed >= 3 && state.hintCount === GAME_RULES.initialHintCount) {
       candidates.push('silent_listener')
     }
-    if (state.affectionBoostCount >= 1) candidates.push('first_affection')
-    if (state.affectionBoostCount >= 3) candidates.push('three_affection')
-    if (state.affectionBoostCount >= 5) candidates.push('five_affection')
+    if (state.trustGainCount >= 1) candidates.push('first_trust')
+    if (state.trustGainCount >= 3) candidates.push('three_trust')
+    if (state.trustGainCount >= 5) candidates.push('five_trust')
     if (Object.values(EMOTIONS).every((emotion) => hasEmotion(state, emotion.type))) {
       candidates.push('all_emotions')
     }
     if (hasSoftAfterSting(state)) candidates.push('soft_after_sting')
-    if (hasEnteredEdgeState(state)) candidates.push('edge_state')
-    if (hasEnteredTurnBackState(state)) candidates.push('turn_back_state')
-    if (isRescueEnding(state) && state.roundCount <= 1) candidates.push('last_sentence_rescue')
-    if (isRescueEnding(state) && state.hintCount === GAME_RULES.initialHintCount) {
-      candidates.push('no_hint_rescue')
+    if (hasEnteredWaveringState(state)) candidates.push('wavering_state')
+    if (hasEnteredState(state, 'crying')) candidates.push('crying_state')
+    if (state.isEnding && state.roundCount <= 1) candidates.push('last_sentence_safety')
+    if (state.isEnding && state.hintCount === GAME_RULES.initialHintCount) {
+      candidates.push('no_hint_safety')
     }
     if (state.isEnding && state.endingType) candidates.push(state.endingType)
 
@@ -406,4 +383,10 @@ export class AchievementTracker {
       })
     )
   }
+}
+
+const hasSoftAfterSting = (state: GameState) => {
+  const stingIndex = state.emotionHistory.indexOf(EMOTIONS.sting.type)
+  if (stingIndex < 0) return false
+  return state.emotionHistory.slice(stingIndex + 1).includes(EMOTIONS.soft.type)
 }

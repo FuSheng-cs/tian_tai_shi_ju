@@ -26,11 +26,11 @@ type ChatRequest struct {
 	// 当前用户发送的消息
 	UserMessage string `json:"user_message" binding:"required"`
 	// 游戏状态
-	RoundsLeft          int    `json:"rounds_left"`
-	Affection           int    `json:"affection"`
-	AffectionBoostCount int    `json:"affection_boost_count"`
-	TurnsUsed           int    `json:"turns_used"`
-	AiState             string `json:"ai_state"`
+	RoundsLeft     int    `json:"rounds_left"`
+	Trust          int    `json:"trust"`
+	TrustGainCount int    `json:"trust_gain_count"`
+	TurnsUsed      int    `json:"turns_used"`
+	AiState        string `json:"ai_state"`
 	// 玩家提供的 LLM 配置
 	Provider string `json:"provider"`
 	APIKey   string `json:"api_key"`
@@ -60,14 +60,15 @@ type ChatAfterRequest struct {
 
 // EndingSummaryRequest 是 /api/ending-summary 的请求体
 type EndingSummaryRequest struct {
-	History             []Message `json:"history"`
-	EndingType          string    `json:"ending_type"`
-	RoundsUsed          int       `json:"rounds_used"`
-	AffectionBoostCount int       `json:"affection_boost_count"`
-	Provider            string    `json:"provider"`
-	APIKey              string    `json:"api_key"`
-	Model               string    `json:"model"`
-	BaseURL             string    `json:"base_url"`
+	History        []Message `json:"history"`
+	EndingType     string    `json:"ending_type"`
+	RoundsUsed     int       `json:"rounds_used"`
+	TrustGainCount int       `json:"trust_gain_count"`
+	Trust          int       `json:"trust"`
+	Provider       string    `json:"provider"`
+	APIKey         string    `json:"api_key"`
+	Model          string    `json:"model"`
+	BaseURL        string    `json:"base_url"`
 }
 
 // ChatResponse 是统一的 API 响应体
@@ -154,7 +155,7 @@ func HandleChat(c *gin.Context) {
 	}
 
 	history := convertMessages(req.History)
-	result, err := llm.Chat(clientCfg, req.UserMessage, history, req.RoundsLeft, req.Affection, req.AffectionBoostCount, req.TurnsUsed, req.AiState)
+	result, err := llm.Chat(clientCfg, req.UserMessage, history, req.RoundsLeft, req.Trust, req.TrustGainCount, req.TurnsUsed, req.AiState)
 	if err != nil {
 		log.Printf("[HandleChat] LLM error: %v", err)
 		evaluation := llm.DefaultTurnEvaluation(req.AiState)
@@ -250,7 +251,7 @@ func HandleEndingSummary(c *gin.Context) {
 	}
 
 	history := convertMessages(req.History)
-	summary, err := llm.BuildEndingSummary(clientCfg, history, req.EndingType, req.RoundsUsed, req.AffectionBoostCount)
+	summary, err := llm.BuildEndingSummary(clientCfg, history, req.EndingType, req.RoundsUsed, req.TrustGainCount, req.Trust)
 	if err != nil {
 		log.Printf("[HandleEndingSummary] LLM error: %v", err)
 		c.JSON(http.StatusOK, EndingSummaryResponse{Error: "结局摘要生成失败: " + err.Error()})

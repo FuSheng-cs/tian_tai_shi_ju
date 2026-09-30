@@ -50,7 +50,7 @@ describe('LLMService', () => {
       evaluation: {
         emotion: EMOTIONS.soft.type,
         ai_state: AI_STATES.watching.type,
-        affection_delta: 5,
+        trust_delta: 5,
         pressure_delta: 1,
         ending_type: null,
         confidence: 0.8
@@ -59,8 +59,8 @@ describe('LLMService', () => {
 
     const turn = await LLMService.chat('are you okay?', history, {
       roundsLeft: 8,
-      affection: 5,
-      affectionBoostCount: 1,
+      trust: 5,
+      trustGainCount: 1,
       turnsUsed: 3,
       aiState: AI_STATES.watching.type
     })
@@ -70,7 +70,7 @@ describe('LLMService', () => {
       evaluation: {
         emotion: EMOTIONS.soft.type,
         aiState: AI_STATES.watching.type,
-        affectionDelta: 5,
+        trustDelta: 5,
         pressureDelta: 1,
         endingType: null,
         confidence: 0.8
@@ -84,8 +84,8 @@ describe('LLMService', () => {
       history,
       user_message: 'are you okay?',
       rounds_left: 8,
-      affection: 5,
-      affection_boost_count: 1,
+      trust: 5,
+      trust_gain_count: 1,
       turns_used: 3,
       ai_state: AI_STATES.watching.type,
       provider: 'openai',
@@ -101,7 +101,7 @@ describe('LLMService', () => {
       evaluation: {
         emotion: 'angry',
         ai_state: 'bad-state',
-        affection_delta: 7,
+        trust_delta: 7,
         pressure_delta: 9,
         ending_type: 'not-an-ending',
         confidence: 2
@@ -110,8 +110,8 @@ describe('LLMService', () => {
 
     const turn = await LLMService.chat('I will not rush you', history, {
       roundsLeft: 6,
-      affection: 0,
-      affectionBoostCount: 0,
+      trust: 0,
+      trustGainCount: 0,
       turnsUsed: 2,
       aiState: AI_STATES.wavering.type
     })
@@ -121,7 +121,7 @@ describe('LLMService', () => {
       evaluation: {
         emotion: 'normal',
         aiState: AI_STATES.wavering.type,
-        affectionDelta: 5,
+        trustDelta: 5,
         pressureDelta: 2,
         endingType: null,
         confidence: 1
@@ -135,8 +135,8 @@ describe('LLMService', () => {
       reply: 'fallback reply',
       evaluation: {
         emotion: 'normal',
-        ai_state: AI_STATES.edge.type,
-        affection_delta: 0,
+        ai_state: AI_STATES.wavering.type,
+        trust_delta: 0,
         pressure_delta: 0,
         ending_type: null,
         confidence: 0
@@ -145,14 +145,14 @@ describe('LLMService', () => {
 
     const turn = await LLMService.chat('hello', history, {
       roundsLeft: 1,
-      affection: 0,
-      affectionBoostCount: 0,
+      trust: 0,
+      trustGainCount: 0,
       turnsUsed: 9,
-      aiState: AI_STATES.edge.type
+      aiState: AI_STATES.wavering.type
     })
 
     expect(turn.reply).toBe('fallback reply')
-    expect(turn.evaluation.aiState).toBe(AI_STATES.edge.type)
+    expect(turn.evaluation.aiState).toBe(AI_STATES.wavering.type)
   })
 
   it('surfaces the error text when chat returns an error with an empty reply', async () => {
@@ -163,8 +163,8 @@ describe('LLMService', () => {
 
     const turn = await LLMService.chat('hello', history, {
       roundsLeft: 5,
-      affection: 0,
-      affectionBoostCount: 0,
+      trust: 0,
+      trustGainCount: 0,
       turnsUsed: 5,
       aiState: AI_STATES.guarded.type
     })
@@ -179,9 +179,9 @@ describe('LLMService', () => {
     })
 
     const summary = await LLMService.getEndingSummary(history, {
-      endingType: ENDINGS.acquaintance.type,
+      endingType: ENDINGS.safeExit.type,
       roundsUsed: 2,
-      affectionBoostCount: 1
+      trustGainCount: 1
     })
 
     expect(summary).toEqual({
@@ -194,9 +194,9 @@ describe('LLMService', () => {
     }))
     expect(getLastRequestBody()).toEqual({
       history,
-      ending_type: ENDINGS.acquaintance.type,
+      ending_type: ENDINGS.safeExit.type,
       rounds_used: 2,
-      affection_boost_count: 1,
+      trust_gain_count: 1,
       provider: 'openai',
       api_key: 'test-key',
       model: 'gpt-test',
@@ -208,14 +208,14 @@ describe('LLMService', () => {
     mockBackendResponse({ reply: 'I am still thinking about that line.' })
 
     const afterStoryContext = {
-      endingType: ENDINGS.acquaintance.type,
+      endingType: ENDINGS.safeExit.type,
       lastPlayerLine: 'I will sit here first.',
       endingReply: 'she hands over her phone',
       turningLine: 'I will sit here first.',
       endingComment: 'she is willing to keep talking',
       roundsUsed: 9,
-      affectionBoostCount: 5,
-      affection: 26
+      trustGainCount: 5,
+      trust: 26
     }
 
     const reply = await LLMService.chatAfterStory('home yet?', history, afterStoryContext)
@@ -229,14 +229,14 @@ describe('LLMService', () => {
       history,
       user_message: 'home yet?',
       after_story_context: {
-        ending_type: ENDINGS.acquaintance.type,
+        ending_type: ENDINGS.safeExit.type,
         last_player_line: 'I will sit here first.',
         ending_reply: 'she hands over her phone',
         turning_line: 'I will sit here first.',
         ending_comment: 'she is willing to keep talking',
         rounds_used: 9,
-        affection_boost_count: 5,
-        affection: 26
+        trust_gain_count: 5,
+        trust: 26
       },
       provider: 'openai',
       api_key: 'test-key',

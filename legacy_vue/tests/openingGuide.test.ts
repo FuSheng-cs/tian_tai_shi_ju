@@ -5,11 +5,11 @@ import { nextTick } from 'vue'
 import {
   AI_STATES,
   CHAT_AFTER_SLOT_QUERY_KEY,
-  DEATH_ENDING_SEQUENCE_FRAMES,
   ENDINGS,
   GAME_ENTRY_QUERY_KEY,
   GAME_ENTRY_TYPES,
   OPENING_SEQUENCE_FRAMES,
+  SAFE_EXIT_SEQUENCE_FRAMES,
   ROOFTOP_BGM_SRCS,
   SCENE_BACKGROUNDS
 } from '../src/domain/gameContract'
@@ -95,7 +95,7 @@ const mountGameView = () => mount(GameView, {
       EndingSequenceOverlay: {
         name: 'EndingSequenceOverlay',
         props: ['frames'],
-        template: '<button data-test="death-ending-sequence" :data-frame-count="frames.length" @click="$emit(\'complete\')">death</button>'
+        template: '<button data-test="safe-ending-sequence" :data-frame-count="frames.length" @click="$emit(\'complete\')">safe exit</button>'
       },
       TypewriterText: {
         props: ['text'],
@@ -123,7 +123,7 @@ describe('opening guide flow', () => {
       evaluation: {
         emotion: 'normal',
         aiState: AI_STATES.guarded.type,
-        affectionDelta: 0,
+        trustDelta: 0,
         pressureDelta: 0,
         endingType: null,
         confidence: 1
@@ -191,14 +191,14 @@ describe('opening guide flow', () => {
     mocks.loadChatAfter.mockReturnValue({
       messages: [{ role: 'assistant', content: '我到楼下了。' }],
       afterStoryContext: {
-        endingType: ENDINGS.acquaintance.type,
+        endingType: ENDINGS.safeExit.type,
         lastPlayerLine: '我在这里。',
         endingReply: '她把手机递过来。',
         turningLine: '我在这里。',
         endingComment: '她记住了这句话。',
         roundsUsed: 8,
-        affectionBoostCount: 4,
-        affection: 24
+        trustGainCount: 4,
+        trust: 24
       }
     })
     const wrapper = mount(StartView)
@@ -247,14 +247,14 @@ describe('opening guide flow', () => {
     expect(mocks.unlock).toHaveBeenCalledWith('first_try')
   })
 
-  it('uses the smoking CG while waiting for the LLM response', () => {
+  it('uses the current state CG while waiting for the LLM response', () => {
     const store = useGameStore()
     store.lastAiStateTag = AI_STATES.wavering.type
     store.isWaiting = true
 
     const wrapper = mountGameView()
 
-    expect(wrapper.find('img[alt="Background"]').attributes('src')).toBe(SCENE_BACKGROUNDS.smoke)
+    expect(wrapper.find('img[alt="Background"]').attributes('src')).toBe(SCENE_BACKGROUNDS.wavering)
   })
 
   it('does not flash the critical CG while waiting on a provisional chance decrement', async () => {
@@ -275,15 +275,15 @@ describe('opening guide flow', () => {
 
     expect(store.roundCount).toBe(2)
     expect(store.isWaiting).toBe(true)
-    expect(wrapper.find('img[alt="Background"]').attributes('src')).toBe(SCENE_BACKGROUNDS.smoke)
-    expect(wrapper.find('img[alt="Background"]').attributes('src')).not.toBe(AI_STATES.edge.backgroundImage)
+    expect(wrapper.find('img[alt="Background"]').attributes('src')).toBe(SCENE_BACKGROUNDS.guarded)
+    expect(wrapper.find('img[alt="Background"]').attributes('src')).not.toBe(AI_STATES.wavering.backgroundImage)
 
     resolveChat({
       reply: '她沉默了一会儿。',
       evaluation: {
         emotion: 'normal',
         aiState: AI_STATES.guarded.type,
-        affectionDelta: 5,
+        trustDelta: 5,
         pressureDelta: 0,
         endingType: null,
         confidence: 1
@@ -291,7 +291,7 @@ describe('opening guide flow', () => {
     })
     await flushPromises()
 
-    expect(store.roundCount).toBe(3)
+    expect(store.roundCount).toBe(2)
     expect(store.isWaiting).toBe(false)
   })
 
@@ -310,62 +310,72 @@ describe('opening guide flow', () => {
   it('unlocks ending achievements after the ending text completes', async () => {
     const store = useGameStore()
     store.isEnding = true
-    store.endingType = ENDINGS.acquaintance.type
-    store.messages = [{ role: 'assistant', content: '她把烟按灭了。' }]
+    store.endingType = ENDINGS.safeExit.type
+    store.messages = [{ role: 'assistant', content: '她哭了，和你一起离开天台。' }]
 
     const wrapper = mountGameView()
     await wrapper.find('.typewriter-text').trigger('click')
 
-    expect(mocks.unlock).toHaveBeenCalledWith(ENDINGS.acquaintance.type)
+    expect(mocks.unlock).toHaveBeenCalledWith(ENDINGS.safeExit.type)
     expect(mocks.evaluateFromState).toHaveBeenCalled()
     expect(wrapper.find('[data-test="death-ending-sequence"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="safe-ending-sequence"]').attributes('data-frame-count')).toBe('3')
+    expect(wrapper.find('[data-test="ending-settlement"]').exists()).toBe(false)
+    await wrapper.find('[data-test="safe-ending-sequence"]').trigger('click')
+    expect(wrapper.find('[data-test="ending-settlement"]').exists()).toBe(true)
+    expect(wrapper.find('picture img').attributes('src')).toBe(ENDINGS.safeExit.backgroundImage)
+    const replay = wrapper.findAll('button').find((button) => button.text() === '重看结局画面')!
+    await replay.trigger('click')
+    expect(wrapper.find('[data-test="safe-ending-sequence"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="ending-settlement"]').exists()).toBe(false)
+    wrapper.unmount()
   })
 
-  it('plays the death ending sequence before showing settlement for a new death ending', async () => {
+  it('plays the safe exit sequence after a newly generated ending, without spending more turns', async () => {
+    useGameStore().trust = 10
     mocks.chat.mockResolvedValueOnce({
-      reply: 'death reply',
-      evaluation: {
-        emotion: 'normal',
-        aiState: AI_STATES.edge.type,
-        affectionDelta: 0,
-        pressureDelta: 0,
-        endingType: ENDINGS.death.type,
-        confidence: 1
-      }
+      reply: '艾哭了，抹了一下眼泪，和你一起走进楼梯间。',
+      evaluation: { emotion: 'soft', aiState: 'leaving', trustDelta: 5, pressureDelta: 0, endingType: ENDINGS.safeExit.type, confidence: 1 }
     })
     const wrapper = mountGameView()
-
     await wrapper.find('.typewriter-text').trigger('click')
-    await nextTick()
+    await wrapper.find('input').setValue('我们一起到楼梯间歇一会。')
+    await wrapper.find('input').trigger('keyup.enter')
+    await flushPromises()
+    expect(wrapper.find('[data-test="safe-ending-sequence"]').exists()).toBe(false)
+    await wrapper.find('.typewriter-text').trigger('click')
+    expect(wrapper.find('[data-test="safe-ending-sequence"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="ending-settlement"]').exists()).toBe(false)
+    const rounds = useGameStore().roundCount
+    await wrapper.find('[data-test="safe-ending-sequence"]').trigger('click')
+    expect(wrapper.find('[data-test="ending-settlement"]').exists()).toBe(true)
+    expect(useGameStore().roundCount).toBe(rounds)
+    expect(mocks.chat).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
+
+  it('shows refusal settlement without a death animation', async () => {
+    mocks.chat.mockResolvedValueOnce({
+      reply: '艾不再回应，拒绝离开天台。',
+      evaluation: { emotion: 'normal', aiState: 'guarded', trustDelta: 0, pressureDelta: 0, endingType: ENDINGS.refusal.type, confidence: 1 }
+    })
+    const wrapper = mountGameView()
+    await wrapper.find('.typewriter-text').trigger('click')
     await wrapper.find('input').setValue('ordinary line')
     await wrapper.find('input').trigger('keyup.enter')
     await flushPromises()
-
-    expect(wrapper.find('img[alt="Background"]').attributes('src')).toBe(AI_STATES.edge.backgroundImage)
-    expect(wrapper.find('img[alt="Background"]').attributes('src')).not.toBe(ENDINGS.death.backgroundImage)
-    expect(wrapper.find('img[alt="Background"]').classes()).toContain('death-cinematic-background')
-
     await wrapper.find('.typewriter-text').trigger('click')
-    await nextTick()
-
-    const sequence = wrapper.find('[data-test="death-ending-sequence"]')
-    expect(sequence.exists()).toBe(true)
-    expect(sequence.attributes('data-frame-count')).toBe('5')
-    expect(wrapper.find('[data-test="ending-settlement"]').exists()).toBe(false)
-    expect(mocks.stopBgm).toHaveBeenCalledTimes(1)
-
-    await sequence.trigger('click')
-    await nextTick()
-
-    expect(wrapper.find('[data-test="death-ending-sequence"]').exists()).toBe(false)
     expect(wrapper.find('[data-test="ending-settlement"]').exists()).toBe(true)
-    expect(wrapper.find('img[alt="Background"]').attributes('src')).toBe(DEATH_ENDING_SEQUENCE_FRAMES[4].image)
+    expect(wrapper.text()).toContain('拒绝离开天台')
+    expect(wrapper.find('[data-test="death-ending-sequence"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('查看安全回访')
+    expect(wrapper.find('[data-test="safe-ending-sequence"]').exists()).toBe(false)
   })
 
   it('does not replay the death sequence for an already loaded death ending', async () => {
     const store = useGameStore()
     store.isEnding = true
-    store.endingType = ENDINGS.death.type
+    store.endingType = ENDINGS.refusal.type
     store.messages = [{ role: 'assistant', content: 'death reply' }]
 
     const wrapper = mountGameView()
@@ -470,7 +480,7 @@ describe('opening guide flow', () => {
     vi.useFakeTimers()
     const wrapper = mount(EndingSequenceOverlay, {
       props: {
-        frames: DEATH_ENDING_SEQUENCE_FRAMES
+        frames: OPENING_SEQUENCE_FRAMES
       }
     })
 
@@ -482,29 +492,29 @@ describe('opening guide flow', () => {
     expect(wrapper.emitted('complete')).toHaveLength(1)
   })
 
-  it('advances the death ending overlay by click, keyboard, and final completion', async () => {
+  it('shows crying, wiping tears and leaving in order before completing', async () => {
     vi.useFakeTimers()
     const wrapper = mount(EndingSequenceOverlay, {
       props: {
-        frames: DEATH_ENDING_SEQUENCE_FRAMES
+        frames: SAFE_EXIT_SEQUENCE_FRAMES
       }
     })
 
-    expect(wrapper.find('.ending-sequence-caption').text()).toBe(DEATH_ENDING_SEQUENCE_FRAMES[0].caption)
+    expect(wrapper.find('.ending-sequence-caption').text()).toBe(SAFE_EXIT_SEQUENCE_FRAMES[0].caption)
+    expect(wrapper.find('.cinematic-frame-active img').attributes('src')).toBe(SAFE_EXIT_SEQUENCE_FRAMES[0].image)
 
     await wrapper.find('.ending-sequence').trigger('keydown.enter')
-    expect(wrapper.find('.ending-sequence-caption').text()).toBe(DEATH_ENDING_SEQUENCE_FRAMES[1].caption)
+    expect(wrapper.find('.ending-sequence-caption').text()).toBe(SAFE_EXIT_SEQUENCE_FRAMES[1].caption)
+    expect(wrapper.find('.cinematic-frame-active img').attributes('src')).toBe(SAFE_EXIT_SEQUENCE_FRAMES[1].image)
 
     await wrapper.find('.ending-sequence').trigger('keydown.space')
-    expect(wrapper.find('.ending-sequence-caption').text()).toBe(DEATH_ENDING_SEQUENCE_FRAMES[2].caption)
+    expect(wrapper.find('.ending-sequence-caption').text()).toBe(SAFE_EXIT_SEQUENCE_FRAMES[2].caption)
 
-    for (let index = 3; index < DEATH_ENDING_SEQUENCE_FRAMES.length; index += 1) {
+    for (let index = 3; index < SAFE_EXIT_SEQUENCE_FRAMES.length; index += 1) {
       await wrapper.find('.ending-sequence-continue').trigger('click')
     }
-    expect(wrapper.find('.ending-sequence-caption').text()).toBe(DEATH_ENDING_SEQUENCE_FRAMES[DEATH_ENDING_SEQUENCE_FRAMES.length - 1].caption)
-    expect(mocks.playSfx).toHaveBeenCalledWith('fall_impact')
-    expect(mocks.playSfx.mock.calls.filter(([name]) => name === 'fall_impact')).toHaveLength(1)
-    expect(wrapper.find('.ending-sequence-red-impact').classes()).toContain('ending-sequence-red-impact-active')
+    expect(wrapper.find('.ending-sequence-caption').text()).toBe(SAFE_EXIT_SEQUENCE_FRAMES[2].caption)
+    expect(mocks.playSfx).not.toHaveBeenCalledWith('fall_impact')
 
     await wrapper.find('.ending-sequence-continue').trigger('click')
     await vi.advanceTimersByTimeAsync(420)
