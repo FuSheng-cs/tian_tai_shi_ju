@@ -144,9 +144,9 @@ HTTP / WebSocket -> application -> domain
 
 ### API
 
-- `POST /v2/sessions`：创建会话，返回 `session_id`、版本和公开状态；
-- `GET /v2/sessions/{id}`：读取公开状态；
-- `POST /v2/sessions/{id}/turns`：提交玩家命令，支持 `Idempotency-Key`；
+- `POST /api/v2/sessions`：创建会话，返回 `session_id`、版本和公开状态；
+- `GET /api/v2/sessions/{id}`：读取公开状态；
+- `POST /api/v2/sessions/{id}/turns`：提交玩家命令，服务端以 `command_id` 幂等；
 - `POST /v2/sessions/{id}/hints`：消耗提示并返回提示事件；
 - `POST /v2/sessions/{id}/after-story/messages`：只允许相识结局；
 - `GET /v2/sessions/{id}/events`：管理员或本地调试模式使用的回放接口。
@@ -176,16 +176,19 @@ legacy_vue/src/
 
 ## 迁移顺序
 
-### 阶段 A：建立不变量（当前分支）
+### 阶段 A：建立不变量（当前分支已完成）
 
 - 以 `backend/game` 建立纯 Go 领域引擎和表格测试；
 - 用 `contracts/game.v2.json` 固定命令、公开状态和评估建议的边界；
 - 将结构性诊断、事件模型和迁移门槛写入本文档；
 - 不改变 master 的线上 v1。
 
-### 阶段 B：切断客户端权威
+### 阶段 B：切断客户端权威（当前分支进行中）
 
-- 增加 `SessionService`、内存 `EventStore` 和 `/v2` API；
+- 已增加 `SessionService`、进程内会话存储、事件回放和 `/api/v2` API；
+- 已将服务端模型配置接入 `Narrator` 端口；无 Key 或模型失败时以 `narrative.degraded` 安全降级，仍由领域引擎结算；
+- 已覆盖乐观并发、幂等收据、命令载荷冲突、未知 JSON 字段和事件副本隔离；
+- 仍需增加持久化 `EventStore`、前端 v2 client adapter 和旧存档的 transcript-only 导入；
 - 前端增加 v2 client adapter，先只承载新会话；
 - 为旧存档提供一次性导入：只导入 transcript，重新由引擎验证并标记为 `legacy_import`；
 - 禁止旧客户端向 v2 发送计数和结局字段。

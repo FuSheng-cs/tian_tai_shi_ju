@@ -19,35 +19,20 @@ func ApplyTurn(state *State, command SubmitTurn, assessment TurnAssessment, now 
 	if err := state.Validate(); err != nil {
 		return TurnResult{}, err
 	}
-	if state.ProcessedCommand == nil {
-		state.ProcessedCommand = make(map[string]CommandReceipt)
-	}
-	if strings.TrimSpace(command.CommandID) == "" {
-		return TurnResult{}, ErrCommandRequired
-	}
-	if command.SessionID != state.SessionID {
-		return TurnResult{}, fmt.Errorf("%w: session id mismatch", ErrInvalidCommand)
-	}
 	if receipt, ok := state.ProcessedCommand[command.CommandID]; ok {
+		if receipt.ExpectedRevision != command.ExpectedRevision || receipt.Text != strings.TrimSpace(command.Text) {
+			return TurnResult{}, ErrCommandConflict
+		}
 		result := receipt.Result
 		result.Replay = true
-		return result, nil
+		return cloneTurnResult(result), nil
 	}
-	if state.Phase != PhasePlaying {
-		return TurnResult{}, ErrSessionEnded
+	text, err := validateCommand(state, command)
+	if err != nil {
+		return TurnResult{}, err
 	}
-	if command.ExpectedRevision != state.Revision {
-		return TurnResult{}, fmt.Errorf("%w: expected=%d actual=%d", ErrRevisionConflict, command.ExpectedRevision, state.Revision)
-	}
-	text := strings.TrimSpace(command.Text)
-	if text == "" {
-		return TurnResult{}, ErrTextRequired
-	}
-	if len([]rune(text)) > MaxPlayerRunes {
-		return TurnResult{}, fmt.Errorf("%w: player text is too long", ErrInvalidCommand)
-	}
-	if state.Opportunities <= 0 {
-		return TurnResult{}, ErrOutOfOpportunities
+	if state.ProcessedCommand == nil {
+		state.ProcessedCommand = make(map[string]CommandReceipt)
 	}
 
 	pressure := clampPressure(assessment.PressureDelta)
@@ -84,8 +69,15 @@ func ApplyTurn(state *State, command SubmitTurn, assessment TurnAssessment, now 
 		Type:     "turn.accepted",
 		Data: map[string]string{
 			"command_id": command.CommandID,
+			"text": text,
+			"reply": normalizeReply(assessment.Reply),
 			"pressure_delta": fmt.Sprintf("%d", pressure),
 			"touch": fmt.Sprintf("%t", touch),
+			"opportunities": fmt.Sprintf("%d", state.Opportunities),
+			"touches": fmt.Sprintf("%d", state.Touches),
+			"affection": fmt.Sprintf("%d", state.Affection),
+			"emotion": string(state.Emotion),
+			"ai_state": string(state.AiState),
 		},
 		At: now.UTC(),
 	}}
@@ -108,7 +100,7 @@ func ApplyTurn(state *State, command SubmitTurn, assessment TurnAssessment, now 
 
 	var ending *EndingType
 	turnsUsed := countPlayerMessages(state.Messages)
-	if candidate := resolveEnding(state, assessment, recovery, opportunities, turnsUsed); candidate != nil {
+	if candidate := resolveEnding(state, assessment, recovery, opportunities, turnsUsed, pressure); candidate != nil {
 		ending = candidate
 		state.Ending = candidate
 		state.Phase = PhaseEnded
@@ -120,6 +112,11 @@ func ApplyTurn(state *State, command SubmitTurn, assessment TurnAssessment, now 
 		})
 	}
 	state.Position = resolvePosition(state, recovery, ending)
+	acceptedEvents[0].Data["position"] = string(state.Position)
+	acceptedEvents[0].Data["phase"] = string(state.Phase)
+	if state.Ending != nil {
+		acceptedEvents[0].Data["ending"] = string(*state.Ending)
+	}
 
 	state.Events = append(state.Events, acceptedEvents...)
 	result := TurnResult{
@@ -127,15 +124,46 @@ func ApplyTurn(state *State, command SubmitTurn, assessment TurnAssessment, now 
 		Revision:  state.Revision,
 		Reply:     state.Messages[len(state.Messages)-1].Content,
 		Ending:    cloneEnding(ending),
-		Events:    append([]Event(nil), acceptedEvents...),
+		Events:    cloneEvents(acceptedEvents),
 		State:     state.Public(),
 	}
-	state.ProcessedCommand[command.CommandID] = CommandReceipt{CommandID: command.CommandID, Result: result}
+	state.ProcessedCommand[command.CommandID] = CommandReceipt{
+		CommandID:        command.CommandID,
+		ExpectedRevision: command.ExpectedRevision,
+		Text:             text,
+		Result:           cloneTurnResult(result),
+	}
 
 	if err := state.Validate(); err != nil {
 		return TurnResult{}, err
 	}
-	return result, nil
+	return cloneTurnResult(result), nil
+}
+
+func validateCommand(state *State, command SubmitTurn) (string, error) {
+	if strings.TrimSpace(command.CommandID) == "" {
+		return "", ErrCommandRequired
+	}
+	if command.SessionID != state.SessionID {
+		return "", fmt.Errorf("%w: session id mismatch", ErrInvalidCommand)
+	}
+	if state.Phase != PhasePlaying {
+		return "", ErrSessionEnded
+	}
+	if command.ExpectedRevision != state.Revision {
+		return "", fmt.Errorf("%w: expected=%d actual=%d", ErrRevisionConflict, command.ExpectedRevision, state.Revision)
+	}
+	text := strings.TrimSpace(command.Text)
+	if text == "" {
+		return "", ErrTextRequired
+	}
+	if len([]rune(text)) > MaxPlayerRunes {
+		return "", fmt.Errorf("%w: player text is too long", ErrInvalidCommand)
+	}
+	if state.Opportunities <= 0 {
+		return "", ErrOutOfOpportunities
+	}
+	return text, nil
 }
 
 func normalizeReply(value string) string {
@@ -186,8 +214,11 @@ func resolveAiState(state *State, assessment TurnAssessment, touch, recovery boo
 	if !validAiState(candidate) {
 		candidate = deriveAiState(state)
 	}
-	if recovery && state.AiState == AiStateEdge {
+	if recovery {
 		return AiStateTurnBack
+	}
+	if candidate == AiStateTurnBack {
+		return deriveAiState(state)
 	}
 	if state.Opportunities <= 1 && candidate != AiStateTurnBack {
 		return AiStateEdge
@@ -214,9 +245,14 @@ func resolvePosition(state *State, recovery bool, ending *EndingType) Position {
 	return state.Position
 }
 
-func resolveEnding(state *State, assessment TurnAssessment, recovery bool, opportunities, turnsUsed int) *EndingType {
+func resolveEnding(state *State, assessment TurnAssessment, recovery bool, opportunities, turnsUsed, pressure int) *EndingType {
 	// Recovery and contact are evidence signals. They are never sufficient by
 	// themselves; all quantitative and phase guards remain in this function.
+	if opportunities <= 0 || (assessment.FatalSignal && pressure >= 2 && opportunities <= 2 &&
+		(state.Position == PositionRooftopEdge || state.AiState == AiStateEdge)) {
+		ending := EndingDeath
+		return &ending
+	}
 	if turnsUsed >= MinTurnsForEnding && state.Touches >= 5 && state.Affection >= 25 &&
 		recovery && assessment.ContactExchangeSignal {
 		ending := EndingAcquaintance
@@ -227,16 +263,12 @@ func resolveEnding(state *State, assessment TurnAssessment, recovery bool, oppor
 		ending := EndingDisappear
 		return &ending
 	}
-	if opportunities <= 0 || (assessment.FatalSignal && assessment.PressureDelta >= 2 && state.Opportunities <= 2) {
-		ending := EndingDeath
-		return &ending
-	}
 	return nil
 }
 
 func acceptsRecoverySignal(state *State, assessment TurnAssessment) bool {
 	return assessment.RecoverySignal &&
-		(state.Position == PositionRooftopEdge || state.AiState == AiStateEdge || assessment.AiState == AiStateTurnBack)
+		(state.Position == PositionRooftopEdge || state.AiState == AiStateEdge)
 }
 
 func countPlayerMessages(messages []Message) int {

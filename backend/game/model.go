@@ -22,12 +22,16 @@ const (
 )
 
 var (
-	ErrInvalidState      = errors.New("game: invalid state")
-	ErrInvalidCommand    = errors.New("game: invalid command")
-	ErrRevisionConflict  = errors.New("game: revision conflict")
-	ErrSessionEnded      = errors.New("game: session is already ended")
-	ErrCommandRequired   = errors.New("game: command id is required")
-	ErrTextRequired      = errors.New("game: player text is required")
+	ErrInvalidState       = errors.New("game: invalid state")
+	ErrInvalidCommand     = errors.New("game: invalid command")
+	ErrRevisionConflict   = errors.New("game: revision conflict")
+	ErrSessionEnded       = errors.New("game: session is already ended")
+	ErrCommandRequired    = errors.New("game: command id is required")
+	ErrCommandConflict    = errors.New("game: command id was already used with different input")
+	ErrCommandInProgress  = errors.New("game: another command is being assessed")
+	ErrSessionNotFound    = errors.New("game: session not found")
+	ErrSessionExists      = errors.New("game: session already exists")
+	ErrTextRequired       = errors.New("game: player text is required")
 	ErrOutOfOpportunities = errors.New("game: no opportunities remain")
 )
 
@@ -116,8 +120,10 @@ type State struct {
 }
 
 type CommandReceipt struct {
-	CommandID string     `json:"command_id"`
-	Result    TurnResult `json:"result"`
+	CommandID        string     `json:"command_id"`
+	ExpectedRevision uint64     `json:"expected_revision"`
+	Text             string     `json:"text"`
+	Result           TurnResult `json:"result"`
 }
 
 type PublicState struct {
@@ -187,7 +193,15 @@ func NewState(sessionID string, now time.Time) (State, error) {
 		Events:           make([]Event, 0, InitialOpportunities*3),
 		ProcessedCommand: make(map[string]CommandReceipt),
 	}
-	state.Events = append(state.Events, Event{Revision: 0, Type: "session.created", At: now.UTC()})
+	state.Events = append(state.Events, Event{
+		Revision: 0,
+		Type:     "session.created",
+		Data: map[string]string{
+			"schema_version": fmt.Sprintf("%d", SchemaVersion),
+			"session_id":     sessionID,
+		},
+		At: now.UTC(),
+	})
 	return state, nil
 }
 
@@ -204,7 +218,7 @@ func (s State) Public() PublicState {
 		AiState:        s.AiState,
 		Emotion:        s.Emotion,
 		Position:       s.Position,
-		Messages:       append([]Message(nil), s.Messages...),
+		Messages:       append([]Message{}, s.Messages...),
 		Ending:         cloneEnding(s.Ending),
 	}
 }
@@ -242,12 +256,43 @@ func (s State) Validate() error {
 	if s.Phase == PhasePlaying && s.Ending != nil {
 		return fmt.Errorf("%w: playing session already has ending", ErrInvalidState)
 	}
+	if s.Ending != nil && !validEnding(*s.Ending) {
+		return fmt.Errorf("%w: unknown ending %q", ErrInvalidState, *s.Ending)
+	}
+	if len(s.Messages)%2 != 0 || uint64(len(s.Messages)/2) != s.Revision {
+		return fmt.Errorf("%w: revision does not match transcript", ErrInvalidState)
+	}
+	if s.Phase == PhaseEnded {
+		switch *s.Ending {
+		case EndingDeath:
+			if s.Position != PositionRooftopEdge {
+				return fmt.Errorf("%w: death must remain at rooftop edge", ErrInvalidState)
+			}
+		case EndingDisappear:
+			if s.Position != PositionLeftAlone {
+				return fmt.Errorf("%w: disappear must leave the rooftop", ErrInvalidState)
+			}
+		case EndingAcquaintance:
+			if s.Position != PositionContactExchanged {
+				return fmt.Errorf("%w: acquaintance must exchange contact", ErrInvalidState)
+			}
+		}
+	}
 	for _, message := range s.Messages {
 		if (message.Role != RoleUser && message.Role != RoleAssistant) || strings.TrimSpace(message.Content) == "" {
 			return fmt.Errorf("%w: invalid transcript message", ErrInvalidState)
 		}
 	}
 	return nil
+}
+
+func validEnding(value EndingType) bool {
+	switch value {
+	case EndingDeath, EndingDisappear, EndingAcquaintance:
+		return true
+	default:
+		return false
+	}
 }
 
 func validPosition(value Position) bool {

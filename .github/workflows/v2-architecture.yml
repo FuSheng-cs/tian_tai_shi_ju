@@ -7,9 +7,14 @@ on:
   pull_request:
     paths:
       - "backend/game/**"
+      - "backend/handlers/**"
+      - "backend/main.go"
       - "contracts/**"
       - "docs/architecture/**"
       - ".github/workflows/v2-architecture.yml"
+
+permissions:
+  contents: read
 
 jobs:
   domain:
@@ -22,7 +27,8 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-      - run: go test ./game
+      - run: go test ./game ./handlers
+      - run: go test -race ./game ./handlers
 
   contract:
     runs-on: ubuntu-latest
@@ -30,3 +36,5 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate JSON contract
         run: python -m json.tool contracts/game.v2.json >/dev/null
+      - name: Validate v2 definitions and required fields
+        run: python contracts/validate_game_v2.py

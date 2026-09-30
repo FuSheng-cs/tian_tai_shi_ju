@@ -15,7 +15,18 @@
       "required": ["role", "content"],
       "properties": {
         "role": {"type": "string", "enum": ["user", "assistant"]},
-        "content": {"type": "string", "minLength": 1, "maxLength": 2000}
+        "content": {"type": "string", "minLength": 1, "maxLength": 400}
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revision", "type", "at"],
+      "properties": {
+        "revision": {"type": "integer", "minimum": 0},
+        "type": {"type": "string", "minLength": 1},
+        "data": {"type": "object", "additionalProperties": {"type": "string"}},
+        "at": {"type": "string", "format": "date-time"}
       }
     },
     "submit_turn": {
@@ -35,7 +46,7 @@
       "required": ["schema_version", "session_id", "revision", "phase", "opportunities", "hints_remaining", "touches", "affection", "ai_state", "emotion", "position", "messages", "ending"],
       "properties": {
         "schema_version": {"const": 2},
-        "session_id": {"type": "string"},
+        "session_id": {"type": "string", "minLength": 8, "maxLength": 80},
         "revision": {"type": "integer", "minimum": 0},
         "phase": {"$ref": "#/$defs/phase"},
         "opportunities": {"type": "integer", "minimum": 0, "maximum": 10},
@@ -63,6 +74,41 @@
         "contact_exchange_signal": {"type": "boolean"},
         "fatal_signal": {"type": "boolean"},
         "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "turn_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command_id", "revision", "replay", "reply", "ending", "events", "state"],
+      "properties": {
+        "command_id": {"type": "string", "minLength": 8, "maxLength": 80},
+        "revision": {"type": "integer", "minimum": 0},
+        "replay": {"type": "boolean"},
+        "reply": {"type": "string", "minLength": 1, "maxLength": 200},
+        "ending": {"anyOf": [{"$ref": "#/$defs/ending"}, {"type": "null"}]},
+        "events": {"type": "array", "items": {"$ref": "#/$defs/event"}},
+        "state": {"$ref": "#/$defs/public_state"}
+      }
+    },
+    "session_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state"],
+      "properties": {"state": {"$ref": "#/$defs/public_state"}}
+    },
+    "events_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["events"],
+      "properties": {"events": {"type": "array", "items": {"$ref": "#/$defs/event"}}}
+    },
+    "error_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "message": {"type": "string", "minLength": 1}
       }
     }
   }
