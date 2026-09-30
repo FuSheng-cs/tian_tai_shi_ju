@@ -1,0 +1,32 @@
+name: v2 architecture slice
+
+on:
+  push:
+    branches:
+      - refactor/architecture-reset
+  pull_request:
+    paths:
+      - "backend/game/**"
+      - "contracts/**"
+      - "docs/architecture/**"
+      - ".github/workflows/v2-architecture.yml"
+
+jobs:
+  domain:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - run: go test ./game
+
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate JSON contract
+        run: python -m json.tool contracts/game.v2.json >/dev/null

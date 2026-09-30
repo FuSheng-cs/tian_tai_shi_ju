@@ -18,6 +18,8 @@
 
 - [技术说明](engineering/technical_overview.md)
 - [五类 Prompt 与结算](engineering/prompts_and_settings.md)
+- [架构重置方案](architecture/ARCHITECTURE_RESET.md)：`refactor/architecture-reset` 上的事实来源、领域引擎与迁移设计
+- [v2 协议 Schema](../contracts/game.v2.json)：命令、公开状态和模型建议的边界
 - [统一游戏 CG 清单](art_review_2026-07-31/unified_game_cg_manifest.md)
 - [image2 资源与候选清单](art_review_2026-07-31/unified_image2_manifest.md)
 
@@ -28,6 +30,6 @@
 
 ## 维护边界
 
-master 维护经验证的 v1；v2/roadmap 单独保存 v2 全案、根 README TODO 和后续实现。v2 的芯片、碎片、多 NPC 与循环不自动成为 v1 正典。
+master 维护经验证的 v1；v2/roadmap 单独保存 v2 全案、根 README TODO 和后续实现。`refactor/architecture-reset` 先验证领域引擎与协议边界，不改变 master 的线上 v1。v2 的芯片、碎片、多 NPC 与循环不自动成为 v1 正典。
 
 更新顺序：代码契约和设定集 → 技术/Prompt → 产品说明 → 验证。历史建议不能冒充当前事实。
