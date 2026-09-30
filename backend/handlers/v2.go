@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"crypto/subtle"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -123,6 +124,10 @@ func RegisterV2Routes(group *gin.RouterGroup, service *game.SessionService) {
 		c.JSON(http.StatusOK, v2SessionResponse{State: state})
 	})
 	v2.GET("/sessions/:sessionID/events", func(c *gin.Context) {
+		if !v2EventsAuthorized(c) {
+			c.JSON(http.StatusForbidden, v2ErrorResponse{Code: "events_forbidden", Message: "event projection is disabled or unauthorized"})
+			return
+		}
 		events, err := service.Events(c.Request.Context(), c.Param("sessionID"))
 		if err != nil {
 			writeV2Error(c, err)
@@ -147,6 +152,18 @@ func RegisterV2Routes(group *gin.RouterGroup, service *game.SessionService) {
 		}
 		c.JSON(http.StatusOK, result)
 	})
+}
+
+func v2EventsAuthorized(c *gin.Context) bool {
+	if config.Cfg == nil || strings.TrimSpace(config.Cfg.V2AdminToken) == "" {
+		return false
+	}
+	provided := strings.TrimSpace(strings.TrimPrefix(c.GetHeader("Authorization"), "Bearer "))
+	expected := strings.TrimSpace(config.Cfg.V2AdminToken)
+	if provided == "" || expected == "" || len(provided) != len(expected) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(provided), []byte(expected)) == 1
 }
 
 func newSessionID() (string, error) {

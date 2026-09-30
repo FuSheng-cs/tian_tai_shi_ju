@@ -15,7 +15,7 @@ game -> Go standard library only
 
 ## 当前已经接入
 
-1. `backend/handlers/v2.go` 提供 `POST /api/v2/sessions`、`GET /api/v2/sessions/{id}`、`POST /api/v2/sessions/{id}/turns` 和事件读取。
+1. `backend/handlers/v2.go` 提供 `POST /api/v2/sessions`、`GET /api/v2/sessions/{id}`、`POST /api/v2/sessions/{id}/turns`；事件读取是由 `V2_ADMIN_TOKEN` 保护的诊断投影。
 2. v2 请求只携带命令身份、期望版本和玩家文本；服务端从会话快照构造上下文，不接受浏览器计数、历史、结局或 API Key。
 3. 模型适配器通过 `Narrator` 端口进入；没有服务端 Key 或模型失败时，记录 `narrative.degraded` 并用零触达安全短回复完成合法回合。
 4. `Replay` 从不可变事件流重建公开状态，测试覆盖重放、并发预留、错误降级和改变载荷的幂等键。

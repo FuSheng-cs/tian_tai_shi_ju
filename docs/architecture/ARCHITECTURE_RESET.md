@@ -147,9 +147,9 @@ HTTP / WebSocket -> application -> domain
 - `POST /api/v2/sessions`：创建会话，返回 `session_id`、版本和公开状态；
 - `GET /api/v2/sessions/{id}`：读取公开状态；
 - `POST /api/v2/sessions/{id}/turns`：提交玩家命令，服务端以 `command_id` 幂等；
-- `POST /v2/sessions/{id}/hints`：消耗提示并返回提示事件；
-- `POST /v2/sessions/{id}/after-story/messages`：只允许相识结局；
-- `GET /v2/sessions/{id}/events`：管理员或本地调试模式使用的回放接口。
+- `POST /api/v2/sessions/{id}/hints`：消耗提示并返回提示事件（后续阶段）；
+- `POST /api/v2/sessions/{id}/after-story/messages`：只允许相识结局（后续阶段）；
+- `GET /api/v2/sessions/{id}/events`：仅带 `V2_ADMIN_TOKEN` 的管理员/本地调试请求可读，用于回放与排障。
 
 旧 `/api/chat` 等接口可以在迁移期保留适配器，但它们只能把旧请求转换成命令，不能继续让旧请求体直接进入领域引擎。
 

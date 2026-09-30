@@ -3,6 +3,7 @@ package game
 import (
 	"context"
 	"errors"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -28,6 +29,27 @@ func TestReplayRebuildsPublicStateWithoutNarrator(t *testing.T) {
 	}
 	if err := replayed.Validate(); err != nil {
 		t.Fatalf("replayed state invalid: %v", err)
+	}
+}
+
+func TestReplayIsStableAcrossOneHundredRuns(t *testing.T) {
+	state := newTestState(t)
+	for i := 0; i < 7; i++ {
+		apply(t, &state, "stable-"+string(rune('a'+i)), TurnAssessment{
+			Reply:       "我还在这里。",
+			TouchSignal: i < 5,
+			AiState:     AiStateWavering,
+		})
+	}
+	want := state.Public()
+	for i := 0; i < 100; i++ {
+		replayed, err := Replay(state.Events)
+		if err != nil {
+			t.Fatalf("Replay run %d: %v", i, err)
+		}
+		if !reflect.DeepEqual(replayed.Public(), want) {
+			t.Fatalf("replay run %d changed the projection", i)
+		}
 	}
 }
 

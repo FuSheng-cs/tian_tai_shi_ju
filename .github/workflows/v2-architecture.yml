@@ -8,6 +8,7 @@ on:
     paths:
       - "backend/game/**"
       - "backend/handlers/**"
+      - "backend/config/**"
       - "backend/main.go"
       - "contracts/**"
       - "docs/architecture/**"
@@ -27,8 +28,8 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-      - run: go test ./game ./handlers
-      - run: go test -race ./game ./handlers
+      - run: go test ./game ./handlers ./config
+      - run: go test -race ./game ./handlers ./config
 
   contract:
     runs-on: ubuntu-latest
