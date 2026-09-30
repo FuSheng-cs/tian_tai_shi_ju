@@ -1,0 +1,108 @@
+Tiantai Shiju Source-Available License v1.0
+
+Copyright (c) 2026 FuSheng-cs. All Rights Reserved.
+
+This repository is source-available, but it is NOT open-source software.
+Except for third-party materials governed by their own licenses, all rights
+not expressly granted below are reserved by the copyright holder.
+
+1. Definitions
+
+"Project" means the Tian Tai Shi Ju / 天台十句 repository and the materials
+contained in it.
+
+"Source Code" means the software source code, scripts, configuration, and
+developer documentation authored for the Project.
+
+"Game Content" means the Project's story, characters, dialogue, prompts,
+worldbuilding, game design content, artwork, CGs, audio, music, visual assets,
+text, and other non-code creative materials.
+
+"Contribution" means a change intentionally submitted to the official Project
+repository for inclusion in the Project, including through a pull request,
+patch, or other contribution mechanism accepted by the copyright holder.
+
+2. Limited Permission for Contributing
+
+Subject to this License, you are granted a limited, non-exclusive,
+non-transferable, and non-sublicensable permission to:
+
+- view the Source Code;
+- fork the repository using GitHub's repository functionality;
+- clone and reproduce the Source Code locally;
+- modify, build, run, and test the Source Code;
+
+solely for the purpose of evaluating, preparing, testing, or submitting a
+Contribution to the official Project.
+
+You may share your proposed modifications only as reasonably necessary to
+submit or discuss a Contribution with the Project, including through a GitHub
+fork or pull request.
+
+No permission is granted for any other use.
+
+3. Restrictions
+
+Unless you have separate written permission from the copyright holder, you
+may not:
+
+- use the Project or any substantial portion of it in another project,
+  application, game, service, product, or business;
+- use the Project for commercial purposes or monetary gain;
+- publish, redistribute, mirror, sell, sublicense, rent, lease, host, or
+  otherwise provide the Project or modified versions of it to third parties,
+  except as expressly permitted for Contributions in Section 2;
+- create or distribute a standalone or competing product derived from the
+  Project;
+- remove or alter copyright, license, attribution, or proprietary notices;
+- use Game Content except to the minimum extent reasonably necessary to run
+  and test a proposed Contribution to the Project.
+
+Possession of a copy of the repository, including a GitHub fork, does not
+grant any rights beyond those expressly stated in this License.
+
+4. Contributions
+
+Contributions are accepted only under the Contributor License Agreement in
+CLA.md. By intentionally submitting a Contribution to the official Project,
+you agree to the terms of CLA.md as they apply to that Contribution.
+
+If you do not agree to CLA.md, do not submit a Contribution.
+
+5. Game Content
+
+Game Content is not licensed for reuse, adaptation, redistribution, or
+commercial use. Except for the narrow testing permission in Section 2, all
+rights in Game Content are reserved.
+
+6. Third-Party Materials
+
+Third-party libraries, code, fonts, assets, services, and other materials are
+not relicensed by this License. They remain subject to their respective
+licenses and terms. Where a third-party license conflicts with this License
+for that third-party material, the third-party license controls for that
+material only.
+
+7. Trademarks and Names
+
+No trademark, trade name, logo, branding, or similar rights are granted by
+this License.
+
+8. Termination
+
+Any permission granted by this License terminates automatically if you breach
+its terms. Upon termination, you must cease all use permitted only by this
+License and delete or destroy copies made under that permission, except where
+retention is required by law or GitHub platform functionality.
+
+9. Disclaimer
+
+THE PROJECT IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. TO THE MAXIMUM EXTENT
+PERMITTED BY LAW, THE COPYRIGHT HOLDER SHALL NOT BE LIABLE FOR ANY CLAIM,
+DAMAGES, OR OTHER LIABILITY ARISING FROM OR RELATED TO THE PROJECT OR THIS
+LICENSE.
+
+For permissions beyond this License, obtain separate written authorization
+from the copyright holder.
