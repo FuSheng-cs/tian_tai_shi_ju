@@ -19,22 +19,22 @@ describe('AchievementsView', () => {
   })
 
   it('groups achievements and shows overall progress', () => {
-    localStorage.setItem('damo_achievements', JSON.stringify(['first_try', ENDINGS.death.type]))
+    localStorage.setItem('tiantaishiju_safety_achievements', JSON.stringify(['first_try', ENDINGS.refusal.type]))
 
     const wrapper = mount(AchievementsView)
 
     expect(wrapper.classes()).toContain('overflow-y-scroll')
-    expect(wrapper.text()).toContain('雨夜档案')
-    expect(wrapper.text()).toContain('已点亮 2 / 18')
+    expect(wrapper.text()).toContain('安全对话档案')
+    expect(wrapper.text()).toContain('已点亮 2 / 17')
     expect(wrapper.text()).toContain('相遇')
     expect(wrapper.text()).toContain('倾听')
-    expect(wrapper.text()).toContain('压力')
+    expect(wrapper.text()).toContain('安全')
     expect(wrapper.text()).toContain('结局')
     expect(wrapper.text()).toContain('收藏')
   })
 
   it('shows unlocked archive text and hides locked hidden achievement names', () => {
-    localStorage.setItem('damo_achievements', JSON.stringify(['first_try']))
+    localStorage.setItem('tiantaishiju_safety_achievements', JSON.stringify(['first_try']))
 
     const wrapper = mount(AchievementsView)
 
@@ -42,6 +42,6 @@ describe('AchievementsView', () => {
     expect(wrapper.text()).toContain('第一次在天台遇见她。')
     expect(wrapper.text()).toContain('???')
     expect(wrapper.text()).not.toContain('相识')
-    expect(wrapper.text()).toContain('让她今晚留下，已经是一件很难的事。')
+    expect(wrapper.text()).toContain('陪她走到下一个安全的地方。')
   })
 })

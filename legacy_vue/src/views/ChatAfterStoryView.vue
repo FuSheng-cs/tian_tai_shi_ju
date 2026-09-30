@@ -221,9 +221,8 @@ const buildAfterStoryContext = (): AfterStoryContext => {
     turningLine: gameStore.endingSummary?.turningLine ?? lastPlayerLine,
     endingComment: gameStore.endingSummary?.comment ?? '',
     roundsUsed: getTurnsUsed(),
-    affectionBoostCount:
-      gameStore.endingSummary?.affectionBoostCount ?? gameStore.affectionBoostCount,
-    affection: gameStore.affection
+    trustGainCount: gameStore.endingSummary?.trustGainCount ?? gameStore.trustGainCount,
+    trust: gameStore.trust
   }
 }
 
@@ -231,7 +230,7 @@ const buildInitialMessages = (context: AfterStoryContext): Message[] => {
   const keyLine = normalizeLine(context.turningLine || context.lastPlayerLine, 34)
 
   return [
-    { role: 'assistant', content: '我到楼下了。刚才天台上的风还在耳边。' },
+    { role: 'assistant', content: '我们到楼下了。刚才天台上的风还在耳边。' },
     {
       role: 'assistant',
       content: keyLine ? `你刚才说的「${keyLine}」，我还在想。` : '刚才的事，我还在慢慢消化。'

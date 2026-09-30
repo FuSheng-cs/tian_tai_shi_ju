@@ -1,5 +1,5 @@
 import CRC32 from 'crc-32'
-import { GAME_RULES } from '@/domain/gameContract'
+import { ENDINGS, GAME_RULES } from '@/domain/gameContract'
 import type {
   AfterStoryContext,
   Message,
@@ -8,7 +8,8 @@ import type {
 } from '@/domain/gameState'
 import { useGameStore } from '@/store/gameStore'
 
-const SAVE_KEY_PREFIX = 'damo_save_'
+// Keep pre-competition saves intact, but do not replay their removed story content.
+const SAVE_KEY_PREFIX = 'tiantaishiju_safety_save_'
 
 export const SAVE_SLOT_KINDS = {
   game: 'game',
@@ -91,16 +92,17 @@ const isMessageArray = (value: unknown): value is Message[] =>
 
 const isAfterStoryContext = (value: unknown): value is AfterStoryContext => {
   if (!value || typeof value !== 'object') return false
-  const context = value as Partial<AfterStoryContext>
+  const context = value as Partial<AfterStoryContext> & Record<string, unknown>
   return (
-    'endingType' in context &&
+    context.endingType === ENDINGS.safeExit.type &&
     typeof context.lastPlayerLine === 'string' &&
     typeof context.endingReply === 'string' &&
     typeof context.turningLine === 'string' &&
     typeof context.endingComment === 'string' &&
     typeof context.roundsUsed === 'number' &&
-    typeof context.affectionBoostCount === 'number' &&
-    typeof context.affection === 'number'
+    (typeof context.trustGainCount === 'number' ||
+      typeof context.affectionBoostCount === 'number') &&
+    (typeof context.trust === 'number' || typeof context.affection === 'number')
   )
 }
 
@@ -113,9 +115,9 @@ export class SaveSystem {
       const stateToSave: StablePersistedGameState = {
         roundCount: gameStore.roundCount,
         hintCount: gameStore.hintCount,
-        affection: gameStore.affection,
-        affectionBoostCount: gameStore.affectionBoostCount,
-        affectionBoostMessages: [...gameStore.affectionBoostMessages],
+        trust: gameStore.trust,
+        trustGainCount: gameStore.trustGainCount,
+        trustGainMessages: [...gameStore.trustGainMessages],
         lastAiStateTag: gameStore.lastAiStateTag,
         aiStateHistory: [...gameStore.aiStateHistory],
         lastEmotionTag: gameStore.lastEmotionTag,
@@ -216,9 +218,15 @@ export class SaveSystem {
         return null
       }
 
+      const context = state.afterStoryContext as AfterStoryContext & Record<string, unknown>
       return {
         messages: state.messages,
-        afterStoryContext: state.afterStoryContext
+        afterStoryContext: {
+          ...context,
+          trustGainCount:
+            context.trustGainCount ?? Number(context.affectionBoostCount ?? 0),
+          trust: Math.min(GAME_RULES.maxTrust, Math.max(0, context.trust ?? Number(context.affection ?? 0)))
+        }
       }
     } catch (e) {
       console.error('Failed to load after-story chat:', e)

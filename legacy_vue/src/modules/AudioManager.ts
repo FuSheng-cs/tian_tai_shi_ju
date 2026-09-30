@@ -1,10 +1,8 @@
 import { Howl, Howler } from 'howler'
 import { useSettingsStore } from '@/store/settingsStore'
-import { FALL_IMPACT_SFX_SRC, ROOFTOP_BGM_SRCS, STAIR_STEP_SFX_SRCS } from '@/domain/gameContract'
+import { ROOFTOP_BGM_SRCS, STAIR_STEP_SFX_SRCS } from '@/domain/gameContract'
 
 const STAIR_STEP_VOLUME_SCALE = 0.48
-const FALL_IMPACT_VOLUME_SCALE = 0.82
-const FALL_IMPACT_SFX_KEY = 'fall_impact'
 type AudioSource = string | readonly string[]
 
 const normalizeAudioSources = (src: AudioSource) => (Array.isArray(src) ? [...src] : [src])
@@ -34,12 +32,6 @@ class AudioManager {
     this.sfxMap.typewriter = new Howl({
       src: ['/assets/audio/typing_click.mp3'],
       volume: settingsStore.textVolume,
-      loop: false
-    })
-
-    this.sfxMap[FALL_IMPACT_SFX_KEY] = new Howl({
-      src: [FALL_IMPACT_SFX_SRC],
-      volume: settingsStore.sfxVolume * FALL_IMPACT_VOLUME_SCALE,
       loop: false
     })
 
@@ -103,8 +95,7 @@ class AudioManager {
     const settingsStore = useSettingsStore()
     const sfx = this.sfxMap[name]
     if (sfx) {
-      const volumeScale = name === FALL_IMPACT_SFX_KEY ? FALL_IMPACT_VOLUME_SCALE : 1
-      sfx.volume(settingsStore.sfxVolume * volumeScale)
+      sfx.volume(settingsStore.sfxVolume)
       sfx.rate(1)
       sfx.play()
     }
@@ -142,11 +133,7 @@ class AudioManager {
 
     Object.entries(this.sfxMap).forEach(([key, sfx]) => {
       const volumeScale =
-        key === FALL_IMPACT_SFX_KEY
-          ? FALL_IMPACT_VOLUME_SCALE
-          : this.stairStepSfxKeys.includes(key)
-            ? STAIR_STEP_VOLUME_SCALE
-            : 1
+        this.stairStepSfxKeys.includes(key) ? STAIR_STEP_VOLUME_SCALE : 1
       sfx.volume(settingsStore.sfxVolume * volumeScale)
     })
 

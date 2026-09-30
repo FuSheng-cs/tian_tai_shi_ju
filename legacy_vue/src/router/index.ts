@@ -42,7 +42,7 @@ export const canEnterChatAfterStory = (
   state: Pick<GameState, 'isEnding' | 'endingType'>,
   slotValue: unknown = null
 ) =>
-  (state.isEnding && state.endingType === ENDINGS.acquaintance.type) ||
+  (state.isEnding && state.endingType === ENDINGS.safeExit.type) ||
   canLoadChatAfterStoryFromSlot(slotValue)
 
 export const createAppRouter = (

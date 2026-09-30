@@ -3,14 +3,11 @@ package llm
 import (
 	"os"
 	"path/filepath"
-	"regexp"
-	"strconv"
+	"strings"
 	"testing"
 )
 
-// TestEndingThresholdsMatchFrontendGameContract 断言后端结局门槛常量与前端
-// legacy_vue/src/domain/gameContract.ts 中 ENDING_THRESHOLDS 的当前值一致。
-func TestEndingThresholdsMatchFrontendGameContract(t *testing.T) {
+func TestFrontendAndBackendThemeContract(t *testing.T) {
 	contractPath := filepath.Join("..", "..", "legacy_vue", "src", "domain", "gameContract.ts")
 	content, err := os.ReadFile(contractPath)
 	if err != nil {
@@ -18,40 +15,31 @@ func TestEndingThresholdsMatchFrontendGameContract(t *testing.T) {
 	}
 	frontend := string(content)
 
-	cases := []struct {
-		ending                 string
-		minAffection           int
-		minAffectionBoostCount int
-		minTurnsUsed           int
-	}{
-		{"disappear", EndingDisappearMinAffection, EndingDisappearMinAffectionBoostCount, EndingDisappearMinTurnsUsed},
-		{"acquaintance", EndingAcquaintanceMinAffection, EndingAcquaintanceMinAffectionBoostCount, EndingAcquaintanceMinTurnsUsed},
+	required := []string{
+		`你不需要说出十句正确的话，只需要陪一个人找到下一个安全的地方。`,
+		`trustBoostValue: 5`,
+		`safeExit:`,
+		`refusal:`,
+		`end_safe_exit`,
+		`end_refusal`,
+	}
+	for _, item := range required {
+		if !strings.Contains(frontend, item) {
+			t.Fatalf("frontend contract is missing %q", item)
+		}
 	}
 
-	for _, tc := range cases {
-		pattern := regexp.MustCompile(
-			tc.ending + `:\s*\{\s*minAffection:\s*(\d+),\s*minAffectionBoostCount:\s*(\d+),\s*minTurnsUsed:\s*(\d+)`,
-		)
-		match := pattern.FindStringSubmatch(frontend)
-		if match == nil {
-			t.Fatalf("frontend ENDING_THRESHOLDS.%s not found in %s", tc.ending, contractPath)
+	forbidden := []string{"ENDINGS.death", "affection", "char_girl_smoke"}
+	for _, item := range forbidden {
+		if strings.Contains(frontend, item) {
+			t.Fatalf("frontend contract still contains removed concept %q", item)
 		}
+	}
 
-		got := make([]int, 3)
-		for i, raw := range match[1:] {
-			value, err := strconv.Atoi(raw)
-			if err != nil {
-				t.Fatalf("failed to parse frontend %s threshold %q: %v", tc.ending, raw, err)
-			}
-			got[i] = value
-		}
-
-		want := []int{tc.minAffection, tc.minAffectionBoostCount, tc.minTurnsUsed}
-		for i, name := range []string{"minAffection", "minAffectionBoostCount", "minTurnsUsed"} {
-			if got[i] != want[i] {
-				t.Fatalf("ENDING_THRESHOLDS.%s.%s = %d in frontend, backend constant is %d",
-					tc.ending, name, got[i], want[i])
-			}
-		}
+	if InitialRoundCount != 10 || TrustBoostValue != 5 {
+		t.Fatalf("unexpected backend core values: rounds=%d trust=%d", InitialRoundCount, TrustBoostValue)
+	}
+	if EndingSafeExitType == EndingRefusalType {
+		t.Fatal("ending types must be distinct")
 	}
 }

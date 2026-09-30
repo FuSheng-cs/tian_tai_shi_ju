@@ -1,11 +1,13 @@
 # 文档索引
 
-> 更新：2026-09-15。只链接受跟踪的仓库资料；被忽略的本地旧建议、营销稿或归档不作为 GitHub 文档入口。
+> 更新：2026-09-19。只链接受跟踪的仓库资料；被忽略的本地旧建议、营销稿或归档不作为 GitHub 文档入口。
 
 ## 当前状态
 
 - [项目状态与待办](STATUS.md)
 - [分支整合与验证](engineering/integration_2026-09-15.md)
+- [数媒赛版分支说明](submission/branch-shumei.md)
+- [数媒赛版更改说明](submission/change-log-shumei.md)
 
 ## 产品与叙事
 

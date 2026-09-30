@@ -146,7 +146,7 @@
                   <p>密钥入口：{{ currentProvider.credentialUrl || '由你的中转服务提供' }}</p>
                   <p v-if="currentProvider.id === 'custom'">自定义服务需兼容 OpenAI Chat Completions 响应结构。</p>
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="flex min-w-0 flex-wrap items-center gap-3">
                   <button
                     type="button"
                     @click="testConnection"
@@ -157,7 +157,7 @@
                     <PlugZap v-else class="h-4 w-4" aria-hidden="true" />
                     {{ isTesting ? '测试中' : '测试连接' }}
                   </button>
-                  <span v-if="testResult" :class="testResult.ok ? 'text-green-400' : 'text-red-400'" class="text-sm">
+                  <span v-if="testResult" role="status" :class="testResult.ok ? 'text-green-400' : 'text-red-400'" class="min-w-0 break-words text-sm">
                     {{ testResult.msg }}
                   </span>
                 </div>
@@ -320,8 +320,8 @@ const testConnection = async () => {
         history: [],
         user_message: '连接测试',
         rounds_left: GAME_RULES.initialRoundCount,
-        affection: 0,
-        affection_boost_count: 0,
+        trust: 0,
+        trust_gain_count: 0,
         turns_used: 1,
         provider: llmConfig.value.provider,
         api_key: llmConfig.value.apiKey,
@@ -330,7 +330,17 @@ const testConnection = async () => {
       })
     })
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    if (!res.ok) {
+      const reason = res.status === 404
+        ? '未找到后端 API，请检查本地代理或后端地址'
+        : res.status === 502 || res.status === 503 || res.status === 504
+          ? '后端暂时不可用，请确认服务已启动'
+          : '后端请求失败'
+      throw new Error(`${reason}（HTTP ${res.status}）`)
+    }
+    if (!res.headers.get('content-type')?.includes('application/json')) {
+      throw new Error('返回的不是 API 数据，请检查本地代理或后端地址')
+    }
     const data = await res.json()
 
     if (data.error) {
@@ -340,8 +350,15 @@ const testConnection = async () => {
     } else {
       testResult.value = { ok: false, msg: '请检查 API Key 或服务商配置' }
     }
-  } catch {
-    testResult.value = { ok: false, msg: '连接失败，请检查后端或网络' }
+  } catch (error) {
+    testResult.value = {
+      ok: false,
+      msg: error instanceof TypeError
+        ? '无法连接后端，请确认服务已启动并检查网络'
+        : error instanceof Error
+          ? error.message
+          : '连接测试失败，请稍后重试'
+    }
   } finally {
     isTesting.value = false
   }

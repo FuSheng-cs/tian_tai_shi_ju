@@ -25,11 +25,7 @@
         </picture>
         <p class="tagline">
           <span class="quote-mark quote-mark-open" aria-hidden="true">“</span>
-          <span class="quote-copy">
-            <span class="quote-copy-prefix">你只有</span>
-            <strong>十句话</strong>
-            <span class="quote-copy-suffix">的时间，去救下这个女孩</span>
-          </span>
+          <span class="quote-copy">{{ GAME_ROLE.tagline }}</span>
           <span class="quote-mark quote-mark-close" aria-hidden="true">”</span>
         </p>
       </div>
@@ -40,17 +36,20 @@
           <span>关于游戏</span>
         </header>
         <p>
-          在这个霓虹闪烁的深夜，你来到了天台。坐在围栏边缘的女孩名叫{{ GAME_ROLE.characterName }}。
-          她厌倦世界，也厌倦被人用标准答案拯救。
+          在这个下过雨的深夜，你来到了天台。坐在远离门口地面的大学生名叫{{ GAME_ROLE.characterName }}。
+          她正在承受学业压力、网络欺凌、家庭冲突和长期孤独。
         </p>
         <p>
-          你的目标：用有限的 {{ GAME_RULES.initialRoundCount }} 句话靠近她的内心，把她从边缘拉回来。
+          你的目标：用有限的 {{ GAME_RULES.initialRoundCount }} 句话陪她离开不安全环境。
+          对话过程中，避免说教和否定，先让她知道自己被听见。
         </p>
         <ul class="intro-list">
-          <li>每一句话都可能改变她的情绪与选择。</li>
-          <li>倾听比说教更重要，敷衍会让她离你更远。</li>
-          <li>不同回应会导向不同结局与后续相遇。</li>
+          <li>每一句话都可能改变她的信任度与选择。</li>
+          <li>AI 会根据你的回应决定剧情走向。</li>
         </ul>
+        <p class="safety-note">
+          如果现实中有人正处于危险，请及时联系可信任的成年人、学校心理中心或当地紧急援助服务。
+        </p>
       </article>
 
       <nav class="action-menu" aria-label="主菜单">
@@ -255,30 +254,7 @@ const goToAchievements = () => {
 
 .character-layer {
   z-index: 4;
-  background-image: url('/assets/images/char_girl_smoke_1600.webp');
-  background-image: image-set(
-    url('/assets/images/char_girl_smoke_1600.webp') type('image/webp'),
-    url('/assets/images/char_girl_smoke.png') type('image/png')
-  );
-  background-position: center 52%;
-  background-size: cover;
-  opacity: 0.42;
-  filter: grayscale(0.12) saturate(0.72) contrast(1.08) brightness(0.74);
-  mix-blend-mode: normal;
-  -webkit-mask-image: radial-gradient(
-    ellipse 42% 68% at 58% 55%,
-    black 0%,
-    black 42%,
-    rgba(0, 0, 0, 0.46) 62%,
-    transparent 82%
-  );
-  mask-image: radial-gradient(
-    ellipse 42% 68% at 58% 55%,
-    black 0%,
-    black 42%,
-    rgba(0, 0, 0, 0.46) 62%,
-    transparent 82%
-  );
+  display: none;
 }
 
 .rain-layer {
@@ -407,12 +383,12 @@ const goToAchievements = () => {
 
 .quote-copy {
   min-width: 0;
-  display: inline-flex;
+  display: block;
   align-items: baseline;
   justify-content: center;
   gap: 0.26em;
   flex: 1;
-  white-space: nowrap;
+  white-space: normal;
   color: rgba(238, 233, 248, 0.82);
   text-shadow:
     0 1px 2px rgba(0, 0, 0, 0.88),
@@ -435,8 +411,8 @@ const goToAchievements = () => {
 .intro-card {
   position: absolute;
   left: 13.9%;
-  top: 46.4%;
-  width: 30.4cqw;
+  top: 44%;
+  width: 34cqw;
   max-width: none;
   padding: 1.5cqw 1.9cqw 1.65cqw;
   color: var(--menu-muted);
@@ -477,6 +453,14 @@ const goToAchievements = () => {
   padding: 0.96cqw 0 0;
   border-top: 1px dashed rgba(216, 182, 255, 0.24);
   list-style: none;
+}
+
+.intro-card .safety-note {
+  margin-top: 12px;
+  margin-bottom: 0;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: rgba(231, 226, 240, 0.6);
 }
 
 .intro-list li {
@@ -792,15 +776,7 @@ const goToAchievements = () => {
   }
 
   .character-layer {
-    opacity: 0.2;
-    background-image: url('/assets/images/char_girl_smoke_900.webp');
-    background-image: image-set(
-      url('/assets/images/char_girl_smoke_900.webp') type('image/webp'),
-      url('/assets/images/char_girl_smoke.png') type('image/png')
-    );
-    background-position: center;
-    -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 20%, black 70%, transparent 100%);
-    mask-image: linear-gradient(180deg, transparent 0%, black 20%, black 70%, transparent 100%);
+    display: none;
   }
 
   .menu-shade {

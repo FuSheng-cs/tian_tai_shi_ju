@@ -23,12 +23,11 @@
     />
 
     <EndingSequenceOverlay
-      v-if="isDeathEndingSequenceActive"
-      :frames="DEATH_ENDING_SEQUENCE_FRAMES"
-      @complete="completeDeathEndingSequence"
+      v-if="isSafeExitSequenceActive"
+      :frames="SAFE_EXIT_SEQUENCE_FRAMES"
+      aria-label="好结局：落泪、抹泪、一起离开"
+      @complete="completeSafeExitSequence"
     />
-
-    <!-- Character layer removed since the new images are full-scene compositions -->
 
     <!-- Top UI -->
     <div
@@ -38,7 +37,24 @@
         <div
           class="rounded-md border border-white/10 bg-black/35 px-2 py-1.5 shadow-[0_0_18px_rgba(0,0,0,0.45)] backdrop-blur-[2px]"
         >
-          <ChanceCigarettes :value="gameStore.roundCount" :max="GAME_RULES.initialRoundCount" />
+          <DialogueChances :value="gameStore.roundCount" :max="GAME_RULES.initialRoundCount" />
+        </div>
+
+        <div
+          class="trust-hud rounded-md border border-white/10 bg-black/35 px-3 py-2 shadow-[0_0_18px_rgba(0,0,0,0.45)] backdrop-blur-[2px]"
+          role="status"
+          :aria-label="`信任度 ${gameStore.trust}`"
+        >
+          <div class="trust-hud__header">
+            <span>信任度</span>
+            <strong>{{ gameStore.trust }} / {{ GAME_RULES.maxTrust }}</strong>
+          </div>
+          <div class="trust-hud__track" aria-hidden="true">
+            <span
+              class="trust-hud__fill"
+              :style="{ width: `${Math.min(100, (gameStore.trust / GAME_RULES.maxTrust) * 100)}%` }"
+            ></span>
+          </div>
         </div>
 
         <div
@@ -172,7 +188,7 @@
                 @keyup.enter="handleSend"
                 type="text"
                 class="dialog-input"
-                placeholder="对她说点什么..."
+                placeholder="对艾说点什么..."
                 autofocus
               />
               <button
@@ -200,21 +216,32 @@
           </div>
 
           <div v-if="canShowEndingSettlement" class="mt-6 space-y-4" data-test="ending-settlement">
+            <button
+              v-if="gameStore.endingType === ENDINGS.safeExit.type"
+              class="quiet-frame-button"
+              type="button"
+              @click="isSafeExitSequenceActive = true"
+            >重看结局画面</button>
             <div
               v-if="endingDefinition"
               class="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
               :class="{
                 'border-red-300/35 bg-red-950/25 text-red-50':
-                  gameStore.endingType === ENDINGS.death.type,
-                'border-sky-300/35 bg-sky-950/25 text-sky-50':
-                  gameStore.endingType === ENDINGS.disappear.type,
+                  gameStore.endingType === ENDINGS.refusal.type,
                 'border-emerald-300/35 bg-emerald-950/25 text-emerald-50':
-                  gameStore.endingType === ENDINGS.acquaintance.type
+                  gameStore.endingType === ENDINGS.safeExit.type
               }"
             >
               <span class="text-xs opacity-75">结局</span>
               <strong class="text-base">{{ endingDefinition.achievementName }}</strong>
             </div>
+
+            <p
+              v-if="endingDefinition"
+              class="rounded-md border border-white/10 bg-black/25 px-3 py-2 text-sm leading-6 text-gray-200"
+            >
+              {{ endingDefinition.description }}
+            </p>
 
             <section class="border-t border-gray-700/60 pt-4 text-sm text-gray-300">
               <div
@@ -233,9 +260,9 @@
                     </div>
                   </div>
                   <div class="border-l border-pink-400/50 pl-3">
-                    <div class="text-xs text-gray-500">好感触发</div>
+                    <div class="text-xs text-gray-500">信任度提升</div>
                     <div class="mt-0.5 font-bold text-gray-100">
-                      {{ gameStore.endingSummary.affectionBoostCount }} 次
+                      {{ gameStore.endingSummary.trustGainCount }} 次
                     </div>
                   </div>
                 </div>
@@ -254,11 +281,11 @@
 
             <div class="flex justify-center gap-4">
               <button
-                v-if="gameStore.endingType === ENDINGS.acquaintance.type"
+                v-if="gameStore.endingType === ENDINGS.safeExit.type"
                 @click="goToChatAfter"
                 class="px-8 py-3 bg-[#07c160] hover:bg-[#06ad56] text-white font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(7,193,96,0.4)]"
               >
-                添加联系人...
+                查看安全回访
               </button>
               <button
                 v-else
@@ -279,7 +306,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  DEATH_ENDING_SEQUENCE_FRAMES,
   ENDING_BY_TYPE,
   ENDINGS,
   GAME_ENTRY_QUERY_KEY,
@@ -289,6 +315,7 @@ import {
   GAMEPLAY_PRELOAD_IMAGES,
   MOBILE_BACKGROUND_MEDIA_QUERY,
   OPENING_SEQUENCE_FRAMES,
+  SAFE_EXIT_SEQUENCE_FRAMES,
   ROOFTOP_BGM_SRCS,
   resolveWaitingBackground,
   resolveWaitingMobileBackground,
@@ -300,9 +327,9 @@ import { audioManager } from '@/modules/AudioManager'
 import { SaveSystem } from '@/modules/SaveSystem'
 import { AchievementTracker } from '@/modules/AchievementTracker'
 import { useSaveSlots } from '@/composables/useSaveSlots'
-import ChanceCigarettes from '@/components/ChanceCigarettes.vue'
-import EndingSequenceOverlay from '@/components/EndingSequenceOverlay.vue'
+import DialogueChances from '@/components/DialogueChances.vue'
 import OpeningSequenceOverlay from '@/components/OpeningSequenceOverlay.vue'
+import EndingSequenceOverlay from '@/components/EndingSequenceOverlay.vue'
 import TypewriterText from '@/components/TypewriterText.vue'
 
 const route = useRoute()
@@ -318,10 +345,8 @@ const showSaveSlots = ref(false)
 const { saveSlots, refreshSaveSlots, getSlot, getSlotTitle, getSlotStatus } = useSaveSlots()
 const isEndingSummaryLoading = ref(false)
 const isOpeningSequenceActive = ref(false)
-const isDeathEndingSequenceActive = ref(false)
-const hasPlayedDeathEndingSequence = ref(
-  gameStore.isEnding && gameStore.endingType === ENDINGS.death.type
-)
+const isSafeExitSequenceActive = ref(false)
+const hasPlayedSafeExitSequence = ref(false)
 const hasStartedBgm = ref(false)
 const waitingVisualState = ref<ResolvedVisualState | null>(null)
 const preloadedImages = new Set<string>()
@@ -338,26 +363,18 @@ const endingDefinition = computed(() =>
   gameStore.endingType ? ENDING_BY_TYPE[gameStore.endingType] : null
 )
 const isCinematicOverlayActive = computed(
-  () => isOpeningSequenceActive.value || isDeathEndingSequenceActive.value
-)
-const isDeathEndingSequencePending = computed(
-  () =>
-    gameStore.isEnding &&
-    gameStore.endingType === ENDINGS.death.type &&
-    !hasPlayedDeathEndingSequence.value
+  () => isOpeningSequenceActive.value || isSafeExitSequenceActive.value
 )
 const canShowEndingSettlement = computed(
-  () => gameStore.isEnding && textCompleted.value && !isDeathEndingSequenceActive.value
+  () => gameStore.isEnding && textCompleted.value && !isSafeExitSequenceActive.value
 )
 
 const currentVisualState = computed(() =>
   resolveVisualState({
-    roundCount: isDeathEndingSequencePending.value
-      ? Math.min(gameStore.roundCount, 1)
-      : gameStore.roundCount,
-    affection: gameStore.affection,
-    isEnding: gameStore.isEnding && !isDeathEndingSequencePending.value,
-    endingType: isDeathEndingSequencePending.value ? null : gameStore.endingType,
+    roundCount: gameStore.roundCount,
+    trust: gameStore.trust,
+    isEnding: gameStore.isEnding,
+    endingType: gameStore.endingType,
     aiStateType: gameStore.lastAiStateTag,
     emotionType: gameStore.lastEmotionTag
   })
@@ -370,18 +387,14 @@ const currentBg = computed(() =>
         mobile: resolveWaitingMobileBackground(waitingVisualState.value ?? currentVisualState.value)
       }
     : {
-        desktop: currentVisualState.value.backgroundImage,
-        mobile: currentVisualState.value.mobileBackgroundImage
+        desktop: gameStore.endingType === ENDINGS.safeExit.type && !hasPlayedSafeExitSequence.value
+          ? SAFE_EXIT_SEQUENCE_FRAMES[0].image : currentVisualState.value.backgroundImage,
+        mobile: gameStore.endingType === ENDINGS.safeExit.type && !hasPlayedSafeExitSequence.value
+          ? SAFE_EXIT_SEQUENCE_FRAMES[0].mobileImage : currentVisualState.value.mobileBackgroundImage
       }
 )
 
-const backgroundImageClass = computed(() =>
-  isDeathEndingSequencePending.value
-    ? 'death-cinematic-background'
-    : gameStore.isEnding
-      ? 'opacity-100'
-      : 'opacity-80'
-)
+const backgroundImageClass = computed(() => (gameStore.isEnding ? 'opacity-100' : 'opacity-80'))
 
 const preloadImages = (sources: readonly string[]) => {
   sources.forEach((src) => {
@@ -396,7 +409,6 @@ const preloadImages = (sources: readonly string[]) => {
 
 const startRooftopBgm = () => {
   if (hasStartedBgm.value) return
-  if (gameStore.isEnding && gameStore.endingType === ENDINGS.death.type) return
   hasStartedBgm.value = true
   audioManager.playBgm(ROOFTOP_BGM_SRCS)
 }
@@ -406,27 +418,21 @@ const completeOpeningSequence = () => {
   startRooftopBgm()
 }
 
-const shouldStartDeathEndingSequence = () =>
-  gameStore.endingType === ENDINGS.death.type &&
-  !hasPlayedDeathEndingSequence.value &&
-  !isDeathEndingSequenceActive.value
-
-const completeDeathEndingSequence = () => {
-  isDeathEndingSequenceActive.value = false
-}
-
 const onTextComplete = () => {
   textCompleted.value = true
+  if (gameStore.endingType === ENDINGS.safeExit.type && !hasPlayedSafeExitSequence.value) {
+    isSafeExitSequenceActive.value = true
+  }
   if (gameStore.isEnding && gameStore.endingType) {
     AchievementTracker.unlock(gameStore.endingType)
     AchievementTracker.evaluateFromState(gameStore.$state)
     void ensureEndingSummary()
-    if (shouldStartDeathEndingSequence()) {
-      hasPlayedDeathEndingSequence.value = true
-      audioManager.stopBgm()
-      isDeathEndingSequenceActive.value = true
-    }
   }
+}
+
+const completeSafeExitSequence = () => {
+  hasPlayedSafeExitSequence.value = true
+  isSafeExitSequenceActive.value = false
 }
 
 const ensureEndingSummary = async () => {
@@ -530,10 +536,6 @@ onMounted(() => {
   )
   startRooftopBgm()
 
-  if (gameStore.isEnding && gameStore.endingType === ENDINGS.death.type) {
-    hasPlayedDeathEndingSequence.value = true
-  }
-
   const entryType = route.query[GAME_ENTRY_QUERY_KEY]
   const shouldPlayOpening =
     entryType === GAME_ENTRY_TYPES.newGame && !hasPlayerMessages.value && !gameStore.isEnding
@@ -546,12 +548,40 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.death-cinematic-background {
-  opacity: 0.78;
-  filter: brightness(0.82) contrast(1.05);
-  transition:
-    opacity 1000ms ease,
-    filter 1000ms ease;
+.trust-hud {
+  min-width: 116px;
+}
+
+.trust-hud__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: rgba(229, 231, 235, 0.78);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.trust-hud__header strong {
+  color: rgba(216, 180, 254, 0.96);
+  font-variant-numeric: tabular-nums;
+}
+
+.trust-hud__track {
+  width: 100%;
+  height: 5px;
+  margin-top: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.trust-hud__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #8b5cf6, #f0abfc);
+  transition: width 360ms ease;
 }
 
 .hint-card {

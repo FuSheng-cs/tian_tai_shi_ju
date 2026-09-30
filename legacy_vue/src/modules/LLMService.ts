@@ -1,7 +1,7 @@
 import type { AiStateType } from '@/domain/gameContract'
 import {
   createDefaultTurnEvaluation,
-  normalizeAffectionDelta,
+  normalizeTrustDelta,
   normalizeAiStateType,
   normalizeConfidence,
   normalizeEndingType,
@@ -249,8 +249,8 @@ const normalizeTurnEvaluation = (
     aiState:
       normalizeAiStateType(readEvaluationField(record, 'ai_state', 'aiState')) ??
       defaultEvaluation.aiState,
-    affectionDelta: normalizeAffectionDelta(
-      readEvaluationField(record, 'affection_delta', 'affectionDelta')
+    trustDelta: normalizeTrustDelta(
+      readEvaluationField(record, 'trust_delta', 'trustDelta')
     ),
     pressureDelta: normalizePressureDelta(
       readEvaluationField(record, 'pressure_delta', 'pressureDelta')
@@ -302,8 +302,8 @@ const serializeAfterStoryContext = (context?: AfterStoryContext) =>
         turning_line: context.turningLine,
         ending_comment: context.endingComment,
         rounds_used: context.roundsUsed,
-        affection_boost_count: context.affectionBoostCount,
-        affection: context.affection
+        trust_gain_count: context.trustGainCount,
+        trust: context.trust
       }
     : undefined
 
@@ -319,8 +319,8 @@ export class LLMService {
         history: history,
         user_message: userMessage,
         rounds_left: loopContext.roundsLeft,
-        affection: loopContext.affection,
-        affection_boost_count: loopContext.affectionBoostCount,
+        trust: loopContext.trust,
+        trust_gain_count: loopContext.trustGainCount,
         turns_used: loopContext.turnsUsed,
         ai_state: loopContext.aiState,
         ...getRequestConfig()
@@ -358,7 +358,8 @@ export class LLMService {
       history: history,
       ending_type: endingContext.endingType,
       rounds_used: endingContext.roundsUsed,
-      affection_boost_count: endingContext.affectionBoostCount,
+      trust_gain_count: endingContext.trustGainCount,
+      trust: endingContext.trust,
       ...getRequestConfig()
     })
 

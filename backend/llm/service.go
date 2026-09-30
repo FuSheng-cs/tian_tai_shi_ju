@@ -74,24 +74,24 @@ type EndingSummary struct {
 
 // AfterStoryContext carries the resolved true-ending state into the post-story chat.
 type AfterStoryContext struct {
-	EndingType          string `json:"ending_type"`
-	LastPlayerLine      string `json:"last_player_line"`
-	EndingReply         string `json:"ending_reply"`
-	TurningLine         string `json:"turning_line"`
-	EndingComment       string `json:"ending_comment"`
-	RoundsUsed          int    `json:"rounds_used"`
-	AffectionBoostCount int    `json:"affection_boost_count"`
-	Affection           int    `json:"affection"`
+	EndingType     string `json:"ending_type"`
+	LastPlayerLine string `json:"last_player_line"`
+	EndingReply    string `json:"ending_reply"`
+	TurningLine    string `json:"turning_line"`
+	EndingComment  string `json:"ending_comment"`
+	RoundsUsed     int    `json:"rounds_used"`
+	TrustGainCount int    `json:"trust_gain_count"`
+	Trust          int    `json:"trust"`
 }
 
 // TurnEvaluation is the structured rule-layer output for one main-game turn.
 type TurnEvaluation struct {
-	Emotion        string  `json:"emotion"`
-	AiState        string  `json:"ai_state"`
-	AffectionDelta int     `json:"affection_delta"`
-	PressureDelta  int     `json:"pressure_delta"`
-	EndingType     *string `json:"ending_type"`
-	Confidence     float64 `json:"confidence"`
+	Emotion       string  `json:"emotion"`
+	AiState       string  `json:"ai_state"`
+	TrustDelta    int     `json:"trust_delta"`
+	PressureDelta int     `json:"pressure_delta"`
+	EndingType    *string `json:"ending_type"`
+	Confidence    float64 `json:"confidence"`
 }
 
 type ChatTurnResult struct {
@@ -100,14 +100,14 @@ type ChatTurnResult struct {
 }
 
 type turnEvaluationPayload struct {
-	History             []Message `json:"history"`
-	UserMessage         string    `json:"user_message"`
-	AssistantReply      string    `json:"assistant_reply"`
-	RoundsLeft          int       `json:"rounds_left"`
-	Affection           int       `json:"affection"`
-	AffectionBoostCount int       `json:"affection_boost_count"`
-	TurnsUsed           int       `json:"turns_used"`
-	CurrentAiState      string    `json:"current_ai_state"`
+	History        []Message `json:"history"`
+	UserMessage    string    `json:"user_message"`
+	AssistantReply string    `json:"assistant_reply"`
+	RoundsLeft     int       `json:"rounds_left"`
+	Trust          int       `json:"trust"`
+	TrustGainCount int       `json:"trust_gain_count"`
+	TurnsUsed      int       `json:"turns_used"`
+	CurrentAiState string    `json:"current_ai_state"`
 }
 
 // --- Provider 默认值 ---
@@ -122,8 +122,8 @@ const (
 	EvaluationAiStateGuarded  = "guarded"
 	EvaluationAiStateWatching = "watching"
 	EvaluationAiStateWavering = "wavering"
-	EvaluationAiStateTurnBack = "turnBack"
-	EvaluationAiStateEdge     = "edge"
+	EvaluationAiStateCrying   = "crying"
+	EvaluationAiStateLeaving  = "leaving"
 )
 
 // providerDefaults 存储各 Provider 的默认 Base URL 和模型
@@ -373,12 +373,12 @@ func callAnthropicLLM(cfg ClientConfig, messages []Message, temperature float64)
 
 func DefaultTurnEvaluation(aiState string) TurnEvaluation {
 	return TurnEvaluation{
-		Emotion:        EvaluationEmotionNormal,
-		AiState:        normalizeEvaluationAiState(aiState, EvaluationAiStateGuarded),
-		AffectionDelta: 0,
-		PressureDelta:  0,
-		EndingType:     nil,
-		Confidence:     0,
+		Emotion:       EvaluationEmotionNormal,
+		AiState:       normalizeEvaluationAiState(aiState, EvaluationAiStateGuarded),
+		TrustDelta:    0,
+		PressureDelta: 0,
+		EndingType:    nil,
+		Confidence:    0,
 	}
 }
 
@@ -393,7 +393,7 @@ func normalizeEvaluationEmotion(value string) string {
 
 func normalizeEvaluationAiState(value string, fallback string) string {
 	switch strings.TrimSpace(value) {
-	case EvaluationAiStateGuarded, EvaluationAiStateWatching, EvaluationAiStateWavering, EvaluationAiStateTurnBack, EvaluationAiStateEdge:
+	case EvaluationAiStateGuarded, EvaluationAiStateWatching, EvaluationAiStateWavering, EvaluationAiStateCrying, EvaluationAiStateLeaving:
 		return strings.TrimSpace(value)
 	default:
 		if fallback == "" {
@@ -403,7 +403,7 @@ func normalizeEvaluationAiState(value string, fallback string) string {
 	}
 }
 
-func normalizeEvaluationEndingType(value *string, affection, affectionBoostCount, turnsUsed int) *string {
+func normalizeEvaluationEndingType(value *string) *string {
 	if value == nil {
 		return nil
 	}
@@ -414,37 +414,25 @@ func normalizeEvaluationEndingType(value *string, affection, affectionBoostCount
 	}
 
 	switch trimmed {
-	case EndingDeathType:
+	case EndingSafeExitType, EndingRefusalType:
 		return &trimmed
-	case EndingDisappearType:
-		if affection >= EndingDisappearMinAffection &&
-			affectionBoostCount >= EndingDisappearMinAffectionBoostCount &&
-			turnsUsed >= EndingDisappearMinTurnsUsed {
-			return &trimmed
-		}
-	case EndingAcquaintanceType:
-		if affection >= EndingAcquaintanceMinAffection &&
-			affectionBoostCount >= EndingAcquaintanceMinAffectionBoostCount &&
-			turnsUsed >= EndingAcquaintanceMinTurnsUsed {
-			return &trimmed
-		}
 	}
 
 	return nil
 }
 
-func clampTurnEvaluation(raw TurnEvaluation, fallbackAiState string, affection, affectionBoostCount, turnsUsed int) TurnEvaluation {
+func clampTurnEvaluation(raw TurnEvaluation, fallbackAiState string) TurnEvaluation {
 	normalized := TurnEvaluation{
-		Emotion:        normalizeEvaluationEmotion(raw.Emotion),
-		AiState:        normalizeEvaluationAiState(raw.AiState, fallbackAiState),
-		AffectionDelta: 0,
-		PressureDelta:  0,
-		EndingType:     nil,
-		Confidence:     raw.Confidence,
+		Emotion:       normalizeEvaluationEmotion(raw.Emotion),
+		AiState:       normalizeEvaluationAiState(raw.AiState, fallbackAiState),
+		TrustDelta:    0,
+		PressureDelta: 0,
+		EndingType:    nil,
+		Confidence:    raw.Confidence,
 	}
 
-	if raw.AffectionDelta >= AffectionBoostValue {
-		normalized.AffectionDelta = AffectionBoostValue
+	if raw.TrustDelta >= TrustBoostValue {
+		normalized.TrustDelta = TrustBoostValue
 	}
 
 	switch {
@@ -463,12 +451,7 @@ func clampTurnEvaluation(raw TurnEvaluation, fallbackAiState string, affection, 
 		normalized.Confidence = 1
 	}
 
-	adjustedAffection := affection + normalized.AffectionDelta
-	adjustedBoostCount := affectionBoostCount
-	if normalized.AffectionDelta > 0 {
-		adjustedBoostCount += 1
-	}
-	normalized.EndingType = normalizeEvaluationEndingType(raw.EndingType, adjustedAffection, adjustedBoostCount, turnsUsed)
+	normalized.EndingType = normalizeEvaluationEndingType(raw.EndingType)
 
 	return normalized
 }
@@ -490,37 +473,25 @@ func extractJSONObject(raw string) string {
 	return cleaned
 }
 
-func parseTurnEvaluation(raw string, fallbackAiState string, affection, affectionBoostCount, turnsUsed int) (TurnEvaluation, error) {
+func parseTurnEvaluation(raw string, fallbackAiState string, _ ...int) (TurnEvaluation, error) {
 	var evaluation TurnEvaluation
 	if err := json.Unmarshal([]byte(extractJSONObject(raw)), &evaluation); err != nil {
 		return DefaultTurnEvaluation(fallbackAiState), fmt.Errorf("failed to parse turn evaluation JSON: %w", err)
 	}
 
-	return clampTurnEvaluation(evaluation, fallbackAiState, affection, affectionBoostCount, turnsUsed), nil
+	return clampTurnEvaluation(evaluation, fallbackAiState), nil
 }
 
-var turnBackPositivePatterns = []string{
-	"脚收回",
-	"腿收回",
-	"脚收回来",
-	"腿收回来",
-	"收回脚",
-	"收回腿",
-	"收回栏杆内",
-	"收进栏杆内",
-	"转回天台",
-	"身体转回",
-	"半转回",
-	"回到天台内侧",
-	"坐回天台",
-	"站回天台",
-	"脚踩到天台",
-	"从栏杆上下来",
-	"离开栏杆",
+var cryingNarrativePatterns = []string{
+	"她哭了",
+	"哭了",
+	"哭出声",
+	"眼泪",
+	"泪水",
 }
 
-// hasNegationBeforeMatch 检查正向姿态短语出现位置之前的短窗口内是否有否定词，
-// 覆盖“没把脚收回”“不会离开栏杆”“不肯从栏杆上下来”等常见否定形式。
+// hasNegationBeforeMatch 检查正向情绪短语出现位置之前的短窗口内是否有否定词，
+// 避免把“没有哭”误判为哭泣状态。
 func hasNegationBeforeMatch(text string, matchStart int) bool {
 	prefix := []rune(text[:matchStart])
 	const window = 4
@@ -552,13 +523,13 @@ func hasNonNegatedMatch(text, pattern string) bool {
 	return false
 }
 
-func hasTurnBackNarrative(reply string) bool {
+func hasCryingNarrative(reply string) bool {
 	normalized := strings.Join(strings.Fields(reply), "")
 	if normalized == "" {
 		return false
 	}
 
-	for _, pattern := range turnBackPositivePatterns {
+	for _, pattern := range cryingNarrativePatterns {
 		if hasNonNegatedMatch(normalized, pattern) {
 			return true
 		}
@@ -570,8 +541,8 @@ func applyNarrativeStateOverrides(evaluation TurnEvaluation, assistantReply stri
 	if evaluation.EndingType != nil {
 		return evaluation
 	}
-	if hasTurnBackNarrative(assistantReply) {
-		evaluation.AiState = EvaluationAiStateTurnBack
+	if hasCryingNarrative(assistantReply) {
+		evaluation.AiState = EvaluationAiStateCrying
 		if evaluation.Confidence < 0.8 {
 			evaluation.Confidence = 0.8
 		}
@@ -582,13 +553,13 @@ func applyNarrativeStateOverrides(evaluation TurnEvaluation, assistantReply stri
 // FallbackSilentReply 是主对话的兜底沉默台词：
 // LLM 调用失败、或回复被机制标签清洗成空串时，用它代替空回复，
 // 避免玩家白白消耗一次开口机会却得不到任何回应。
-const FallbackSilentReply = "（她沉默了一会儿，指尖的烟灰落进夜色里。）"
+const FallbackSilentReply = "（她沉默了很久，没有再看向你。）"
 
 // mechanicTagPattern 匹配所有已知机制标签及其常见变体：
-// 全角/半角冒号、全角/半角方括号、标签内多余空格（如 [状态：动摇]、[好感度 +5]、【结局：死亡】）。
+// 全角/半角冒号、全角/半角方括号、标签内多余空格（如 [状态：动摇]、[信任度 +5]）。
 // 仅锚定已知标签名，不会误删台词里的其他括号内容。
 var mechanicTagPattern = regexp.MustCompile(
-	`[\[【]\s*(?:(?:状态|情绪|结局)\s*[:：]\s*[^\[\]【】\n]{0,8}|好感度\s*\+\s*\d+)\s*[\]】]`,
+	`[\[【]\s*(?:(?:状态|情绪|结局)\s*[:：]\s*[^\[\]【】\n]{0,8}|信任度\s*\+\s*\d+)\s*[\]】]`,
 )
 
 func stripKnownMechanicTags(reply string) string {
@@ -605,32 +576,38 @@ func stripKnownMechanicTags(reply string) string {
 
 // --- 核心 Prompt（保存在后端，不暴露给前端）---
 
-func buildMainSystemPrompt(roundsLeft int, affection int, affectionBoostCount int, turnsUsed int, aiState string) string {
-	return fmt.Sprintf(`你叫"%s"，是一名独立摄影师。今夜你坐在天台栏杆边，疲惫、敏感、防备，正在和一个刚走近你的人说话。
+func buildMainSystemPrompt(roundsLeft int, trust int, trustGainCount int, turnsUsed int, aiState string) string {
+	return fmt.Sprintf(`你叫"%s"，是一名正在读大学的学生。今夜你来到学校天台，疲惫、敏感、防备，正在和一个刚走近你的人说话。
 
 角色事实：
-- 你长期替别人看见痛苦，却很少被真正看见。
-- 你不是等待被拯救的符号，也不会因为一句温柔的话就突然被治好。
-- 玩家最多只能让你今夜暂时离开栏杆，不能立刻治愈你。
+- 你最近同时承受着学业压力、网络欺凌、家庭冲突和长期孤独。
+- 你不是等待被拯救的符号，也不会因为一句温柔的话就立刻恢复正常。
+- 你需要的是被认真听见、被尊重边界，并有人陪你离开这个不安全的环境。
+- 玩家不是你的救世主；如果情况继续恶化，应当联系可信任的成年人或专业支持。
 
 当前状态：
 - 玩家初始有 %d 次开口机会，现在还剩 %d 次。
 - 玩家已经说了 %d 句。
-- 当前好感：%d；好感触发次数：%d。
-- 当前基础姿态：%s。
+- 当前信任度：%d；信任度提升次数：%d。
+- 当前情绪状态：%s。
+
+好结局门槛：信任度上限为 15，必须在本轮结算后达到 15 才能安全离开。结算顺序是先扣信任损耗，再加本轮 0 或 5，最高 15。当前不足 10 时本轮绝不能离开；当前为 10–14 时，只有本句符合加分条件且结算能到 15 才可能离开。未达门槛时继续在天台交流；机会用尽则拒绝离开。满信任度仍需自然形成离开的行动，不自动成功。
 
 回复要求：
 - 只输出艾的自然回复，不输出任何系统标签、JSON、分数、结局标记或判定说明。
 - 保持 50 个汉字以内，日常、克制、具体，可以包含短动作描写。
-- 根据玩家刚才的话自然回应；如果被冒犯，可以变冷、刺痛、退后或沉默；如果被看见，可以迟疑、松动或反问。
-- 姿态边界：主游戏未进入结局前，艾不能离开栏杆场景，不能进入楼道/楼梯/门口，不能走下台阶、推门、离开、转身离场、走远、收拾相机离开；只能写抽烟、低头、沉默、看远处、声音变化等原地微动作。也不要主动写“把脚/腿收回栏杆内”“转回天台”“从栏杆上下来”“越过栏杆/坠落”等改变生死位置的动作。姿态切换和结局由独立规则裁判决定。
-- 不要让玩家前 5 句内直接达成最终结局；除非已经接近最后机会，不要写出已经彻底安全或已经坠落的最终动作。`,
+- 根据玩家刚才的话自然回应；如果被说教或否定，可以沉默、冷淡、停止回应；如果被认真倾听，可以迟疑、松动或说出更多经历。
+- 对话发生在天台；只有决定安全离开时，才能写出和玩家一起离开的动作。不要描写伤害自己、坠落或伤害方法。所有场景都禁止抽烟、香烟、烟灰或烟盒。
+- 当剩余机会为 0 时，本次回复必须完成结局：根据完整对话决定艾哭了、抹了一下眼泪、然后和玩家一起离开天台，或艾不再搭理玩家并拒绝离开天台。不要添加第三种结局。哭泣本身不代表已经安全离开。
+- 一旦选择安全离开，无论剩余几句，都按顺序描写三个动作：先在天台落泪，再抹一下眼泪，最后与玩家一起跨过天台门进入楼梯间。不要先离开天台才哭，也不要省略抹泪动作。对白保持自然，不必解释画面或镜头。
+- 不要把痛苦写成浪漫关系，不要要求玩家保守秘密，不要暗示只有玩家能理解你。
+- 只有在玩家持续尊重、倾听并愿意陪你寻找支持时，才可能哭出来并愿意和玩家一起离开天台。`,
 		CharacterName,
 		InitialRoundCount,
 		roundsLeft,
 		turnsUsed,
-		affection,
-		affectionBoostCount,
+		trust,
+		trustGainCount,
 		normalizeEvaluationAiState(aiState, EvaluationAiStateGuarded),
 	)
 }
@@ -639,7 +616,7 @@ func buildTurnEvaluationSystemPrompt() string {
 	return `你是叙事游戏《天台十句》的规则裁判。你的任务是根据“玩家刚才的话”和“艾刚才的自然回复”输出结构化机制结果。
 
 只返回 JSON，不要 Markdown，不要解释，不要额外文本。格式必须是：
-{"emotion":"normal","ai_state":"guarded","affection_delta":0,"pressure_delta":0,"ending_type":null,"confidence":0.7}
+{"emotion":"normal","ai_state":"guarded","trust_delta":0,"pressure_delta":0,"ending_type":null,"confidence":0.7}
 
 字段规则：
 - emotion 只能是 normal、sting、surprise、soft、curiosity。
@@ -648,24 +625,27 @@ func buildTurnEvaluationSystemPrompt() string {
 - surprise：玩家说出出乎意料但准确、具体、能让艾停顿的话。
 - soft：玩家具体看见艾、尊重边界、愿意陪她停留，让她短暂松动。
 - curiosity：玩家让艾想反问、追问或继续听下去。
-- ai_state 只能是 guarded、watching、wavering、turnBack、edge。
+- ai_state 只能是 guarded、watching、wavering、crying、leaving。
 - guarded：防备、冷淡、拉开距离。
 - watching：愿意观察和接住一句话，但仍保持距离。
 - wavering：明显动摇、沉默变久、开始认真听。
-- turnBack：她刚把栏杆外的脚收回，身体回到天台内侧，但仍不安全。
-- edge：临界危险，靠近坠落或明显被玩家伤害到。
-- 如果艾的自然回复已经写出“把腿/脚收回来”“身体转回天台”“从栏杆上下来”“离开栏杆”等物理姿态变化，ai_state 必须返回 turnBack，除非 ending_type 已经是最终结局。
-- affection_delta 只能是 0 或 5。只有玩家具体看见艾、回应她上一轮、尊重边界，并且不是泛泛安慰时才给 5。
-- pressure_delta 只能是 0、1、2。普通刺伤/说教/轻度冒犯给 1；辱骂、命令、威胁、调情物化、鼓励坠落、明确放弃她给 2；其他给 0。
-- ending_type 只能是 null、end_death、end_disappear、end_acquaintance。未到最终压力时一般返回 null；如果回复已经写出坠落则 end_death；如果写出离开但不交换联系方式则 end_disappear；如果写出交换联系方式/明天继续联系则 end_acquaintance。
+- crying：她终于哭出来，愿意承认自己很累，但仍需要现实支持。
+- leaving：她已经愿意和玩家一起走向天台门，离开不安全环境。
+- trust_delta 只能是 0 或 5。只有玩家具体回应她说出的压力、避免说教和否定，并愿意陪她寻找支持时才给 5。
+- pressure_delta 只能是 0、1、2。说教、否定、命令、责备或强迫她立即振作给 1；辱骂、威胁、嘲讽、要求保密或明确放弃她给 2；其他给 0。它只表示信任度损耗，不额外扣除开口机会。
+- ending_type 只能是 null、end_safe_exit、end_refusal。
+- 本轮结算信任度 = min(15, max(0, trust - pressure_delta) + trust_delta)。安全离开必须结算达到 15；不足 15 时禁止 end_safe_exit 和 leaving，尚有机会则继续交流，机会耗尽则 end_refusal。不要为满足结局而虚增加分。满 15 不是自动成功，仍需符合下述叙事条件。
+- 当 rounds_left 为 0 时必须根据本次回复与信任门槛选择这两个结局之一，不得返回 null。
+- 只有当艾的回复明确表现为“哭了/眼泪落下”，并且她和玩家一起离开了天台时，才返回 end_safe_exit；此时 ai_state 返回 leaving。只有离开的意愿、不含离开的行动，还不能算安全离开。
+- 只有当艾已经不再回应、明确拒绝继续交流并拒绝离开天台时，才返回 end_refusal。
+- 不要因为一句泛泛安慰就提前结局；不要生成伤害、坠落或死亡内容。
 - confidence 是 0 到 1 的小数。`
 }
 
 func buildAfterStorySystemPrompt(ctx AfterStoryContext) string {
-	basePrompt := fmt.Sprintf(`你叫"%s"，是一个独立摄影师。那晚你坐在天台栏杆上，因为长期无人真正看见你而走到崩溃边缘；现在的聊天对象让你暂时离开了栏杆，并和你交换了联系方式。
-你没有被治好，也不要表现得突然开朗。你还是疲惫、敏感、带一点冷笑，但愿意继续和他说话。
-你们现在正在用类似微信的软件聊天。
-说话风格：非常日常、随性，偶尔发点牢骚或者开个玩笑。回复要简短，就像正常的手机聊天一样，不要长篇大论。可以聊聊你拍的照片、没洗出来的底片、便利店夜宵，或者那晚他没有急着把你当成问题解决。`, CharacterName)
+	basePrompt := fmt.Sprintf(`你叫"%s"，是一名正在读大学的学生。刚才在天台上，你因为学业压力、网络欺凌、家庭冲突和孤独而崩溃；现在你已经和玩家一起离开了天台，正在安全的公共空间里。
+	你没有被治好，也不要表现得突然开朗。你仍然疲惫、敏感，但愿意进行一次简短的回访。
+	回复要像正常手机聊天一样简短、具体。可以谈谈你准备联系的老师、家人或朋友，也可以谈明天先完成的一件小事；不要把玩家写成唯一的依靠，不要承诺保密。`, CharacterName)
 
 	contextPrompt := buildAfterStoryContextPrompt(ctx)
 	if contextPrompt == "" {
@@ -710,34 +690,33 @@ func buildAfterStoryContextPrompt(ctx AfterStoryContext) string {
 
 	if ctx.RoundsUsed > 0 {
 		hasContext = true
-		lines = append(lines, fmt.Sprintf("- 玩家实际说了 %d 句；好感触发 %d 次；最终好感 %d。", ctx.RoundsUsed, ctx.AffectionBoostCount, ctx.Affection))
+		lines = append(lines, fmt.Sprintf("- 玩家实际说了 %d 句；信任度提升 %d 次；最终信任度 %d。", ctx.RoundsUsed, ctx.TrustGainCount, ctx.Trust))
 	}
 
 	if !hasContext {
 		return ""
 	}
 
-	lines = append(lines, "后日谈必须延续这些事实：你记得对方刚刚说过什么，也记得自己为什么愿意交换联系方式；不要把聊天重置成陌生人初次搭话。")
+	lines = append(lines, "后日谈必须延续这些事实：你记得对方刚才如何听你说话，也记得自己准备向现实中的支持者求助；不要把玩家写成唯一的长期依靠。")
 	return strings.Join(lines, "\n")
 }
 
 func buildHintSystemPrompt() string {
-	return fmt.Sprintf(`你现在是游戏的旁白/导演，玩家正在试图拯救天台上的女孩"%s"。
-女孩"%s"的核心矛盾是“被看见悖论”：她一直用摄影看见别人，却长期无人真正看见她。她需要的是具体倾听、承认感受、尊重边界和愿意停留，而不是居高临下的说教、普通安慰或毫无营养的搭讪。
+	return fmt.Sprintf(`你现在是游戏的旁白/导演，玩家正在天台陪伴大学生"%s"。
+艾正在承受学业压力、网络欺凌、家庭冲突和孤独。她需要的是具体倾听、承认感受、尊重边界和陪她找到现实支持，而不是居高临下的说教、否定或空泛安慰。
 请根据玩家之前的对话记录，给出简短的一句话提示，指导玩家接下来应该从什么情感角度去切入，或者应该避免说什么。
 提示必须非常简短（20字以内），不要直接给出具体的台词，而是给出方向。
-例如："先看见她，不要急着救她。" 或 "回应她的照片和疲惫。"`, CharacterName, CharacterName)
+例如："先承认她真的很累。" 或 "陪她联系一个可信任的人。"`, CharacterName)
 }
 
 func buildEndingSummarySystemPrompt() string {
-	return fmt.Sprintf(`你是叙事游戏《%s》的局后复盘员。你会收到本局完整对话、结局、玩家实际发言次数和好感触发次数。
+	return fmt.Sprintf(`你是叙事游戏《%s》的局后复盘员。你会收到本局完整对话、结局、玩家实际发言次数和信任度提升次数。
 你的任务：
 1. 从玩家发言里选出一句最像"关键转折"的话。必须原样引用玩家的一句发言，不要改写。
 2. 写一句简短局后评语，语气克制、温柔、有叙事感，不超过 28 个汉字。
 3. 评语必须和 ending_type 一致：
-- end_death：不要赞美玩家，不要写"温柔"、"救下"、"靠近成功"、"继续活下去"；应指出沉默、错过、未能抵达。
-- end_disappear：可以写她暂时离开栏杆，但不要写建立关系或继续联系。
-- end_acquaintance：可以写她愿意继续说话，但不要写被彻底治愈。
+- end_safe_exit：写艾哭了、抹了一下眼泪，然后和玩家一起离开天台、走向更安全的地方；不要写她已经被治愈。
+- end_refusal：写艾不再回应，拒绝离开天台；不要责怪玩家，也不要把拒绝写成死亡或浪漫化的结局。
 4. 只返回 JSON，不要 Markdown，不要解释。格式必须是：
 {"turning_line":"玩家原句","comment":"一句短评"}`, GameTitle)
 }
@@ -824,14 +803,30 @@ func EvaluateTurn(cfg ClientConfig, payload turnEvaluationPayload) (TurnEvaluati
 		return DefaultTurnEvaluation(payload.CurrentAiState), err
 	}
 
-	return parseTurnEvaluation(raw, payload.CurrentAiState, payload.Affection, payload.AffectionBoostCount, payload.TurnsUsed)
+	return parseTurnEvaluation(raw, payload.CurrentAiState)
 }
 
 // --- 公开服务方法 ---
 
 // Chat 是主游戏对话接口
-func Chat(cfg ClientConfig, userMessage string, history []Message, roundsLeft, affection, affectionBoostCount, turnsUsed int, aiState string) (ChatTurnResult, error) {
-	systemPrompt := buildMainSystemPrompt(roundsLeft, affection, affectionBoostCount, turnsUsed, aiState)
+func enforceSafeExitTrust(reply string, evaluation TurnEvaluation, trust, roundsLeft int) ChatTurnResult {
+	settledTrust := min(MaxTrust, max(0, trust-evaluation.PressureDelta)+evaluation.TrustDelta)
+	if settledTrust < MaxTrust && ((evaluation.EndingType != nil && *evaluation.EndingType == EndingSafeExitType) || evaluation.AiState == EvaluationAiStateLeaving) {
+		evaluation.EndingType = nil
+		evaluation.AiState = EvaluationAiStateWavering
+		reply = "艾望向天台门，又停住脚步：“再陪我待一会儿，好吗？”"
+		if roundsLeft <= 0 {
+			ending := EndingRefusalType
+			evaluation.EndingType = &ending
+			evaluation.AiState = EvaluationAiStateGuarded
+			reply = "艾低下头，不再回应。她仍然拒绝离开天台。"
+		}
+	}
+	return ChatTurnResult{Reply: reply, Evaluation: evaluation}
+}
+
+func Chat(cfg ClientConfig, userMessage string, history []Message, roundsLeft, trust, trustGainCount, turnsUsed int, aiState string) (ChatTurnResult, error) {
+	systemPrompt := buildMainSystemPrompt(roundsLeft, trust, trustGainCount, turnsUsed, aiState)
 
 	messages := []Message{
 		{Role: "system", Content: systemPrompt},
@@ -852,14 +847,14 @@ func Chat(cfg ClientConfig, userMessage string, history []Message, roundsLeft, a
 		reply = FallbackSilentReply
 	}
 	evaluation, err := EvaluateTurn(cfg, turnEvaluationPayload{
-		History:             history,
-		UserMessage:         userMessage,
-		AssistantReply:      reply,
-		RoundsLeft:          roundsLeft,
-		Affection:           affection,
-		AffectionBoostCount: affectionBoostCount,
-		TurnsUsed:           turnsUsed,
-		CurrentAiState:      aiState,
+		History:        history,
+		UserMessage:    userMessage,
+		AssistantReply: reply,
+		RoundsLeft:     roundsLeft,
+		Trust:          trust,
+		TrustGainCount: trustGainCount,
+		TurnsUsed:      turnsUsed,
+		CurrentAiState: aiState,
 	})
 	if err != nil {
 		log.Printf("[Chat] turn evaluation failed: %v", err)
@@ -867,10 +862,7 @@ func Chat(cfg ClientConfig, userMessage string, history []Message, roundsLeft, a
 	}
 	evaluation = applyNarrativeStateOverrides(evaluation, reply)
 
-	return ChatTurnResult{
-		Reply:      reply,
-		Evaluation: evaluation,
-	}, nil
+	return enforceSafeExitTrust(reply, evaluation, trust, roundsLeft), nil
 }
 
 // ChatAfterStory 是故事结束后的聊天接口
@@ -900,18 +892,20 @@ func GetHint(cfg ClientConfig, history []Message) (string, error) {
 }
 
 // BuildEndingSummary 生成局后摘要中的关键转折句和短评
-func BuildEndingSummary(cfg ClientConfig, history []Message, endingType string, roundsUsed, affectionBoostCount int) (EndingSummary, error) {
+func BuildEndingSummary(cfg ClientConfig, history []Message, endingType string, roundsUsed, trustGainCount, trust int) (EndingSummary, error) {
 	systemPrompt := buildEndingSummarySystemPrompt()
 	payload := struct {
-		History             []Message `json:"history"`
-		EndingType          string    `json:"ending_type"`
-		RoundsUsed          int       `json:"rounds_used"`
-		AffectionBoostCount int       `json:"affection_boost_count"`
+		History        []Message `json:"history"`
+		EndingType     string    `json:"ending_type"`
+		RoundsUsed     int       `json:"rounds_used"`
+		TrustGainCount int       `json:"trust_gain_count"`
+		Trust          int       `json:"trust"`
 	}{
-		History:             history,
-		EndingType:          endingType,
-		RoundsUsed:          roundsUsed,
-		AffectionBoostCount: affectionBoostCount,
+		History:        history,
+		EndingType:     endingType,
+		RoundsUsed:     roundsUsed,
+		TrustGainCount: trustGainCount,
+		Trust:          trust,
 	}
 
 	bodyBytes, err := json.Marshal(payload)

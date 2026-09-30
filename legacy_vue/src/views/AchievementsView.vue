@@ -16,8 +16,8 @@
     <section class="relative z-10 mx-auto flex min-h-full w-full max-w-6xl flex-col px-4 py-6 sm:px-6 lg:px-8">
       <header class="flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-end md:justify-between">
         <div>
-          <p class="text-xs uppercase tracking-[0.28em] text-purple-200/70">Rain Night Archive</p>
-          <h1 class="mt-2 text-3xl font-bold tracking-wide text-white md:text-4xl">雨夜档案</h1>
+          <p class="text-xs uppercase tracking-[0.28em] text-purple-200/70">Safe Dialogue Archive</p>
+          <h1 class="mt-2 text-3xl font-bold tracking-wide text-white md:text-4xl">安全对话档案</h1>
           <p class="mt-3 max-w-2xl text-sm leading-6 text-gray-300">
             “永恒，是由一个个此刻组成的。”
           </p>
@@ -110,7 +110,6 @@ import {
   Archive,
   ArrowLeft,
   Bookmark,
-  CircleAlert,
   CloudRain,
   DoorOpen,
   Ear,
@@ -150,7 +149,6 @@ const iconMap = {
   door: DoorOpen,
   ear: Ear,
   eye: Eye,
-  fall: CircleAlert,
   footsteps: Footprints,
   heart: Heart,
   message: MessageCircle,

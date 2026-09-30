@@ -15,9 +15,9 @@ const playerMessages = (count: number): Message[] => [
 const buildState = (overrides: Partial<GameState> = {}): GameState => ({
   roundCount: GAME_RULES.initialRoundCount,
   hintCount: GAME_RULES.initialHintCount,
-  affection: 0,
-  affectionBoostCount: 0,
-  affectionBoostMessages: [],
+  trust: 0,
+  trustGainCount: 0,
+  trustGainMessages: [],
   lastAiStateTag: AI_STATES.guarded.type,
   aiStateHistory: [AI_STATES.guarded.type],
   lastEmotionTag: null,
@@ -38,14 +38,14 @@ describe('AchievementTracker', () => {
   })
 
   it('reads old string-array data and ignores unknown achievements in progress', () => {
-    localStorage.setItem('damo_achievements', JSON.stringify([
+    localStorage.setItem('tiantaishiju_safety_achievements', JSON.stringify([
       'first_try',
       'legacy_unknown',
-      ENDINGS.death.type,
+      ENDINGS.refusal.type,
       'first_try'
     ]))
 
-    expect(AchievementTracker.getUnlocked()).toEqual(['first_try', ENDINGS.death.type])
+    expect(AchievementTracker.getUnlocked()).toEqual(['first_try', ENDINGS.refusal.type])
     expect(AchievementTracker.getProgress()).toEqual({
       unlocked: 2,
       total: ACHIEVEMENTS.length
@@ -74,15 +74,15 @@ describe('AchievementTracker', () => {
     expect(AchievementTracker.getUnlocked()).toEqual(ACHIEVEMENTS.map((achievement) => achievement.id))
   })
 
-  it('evaluates dialogue, affection, emotion, pressure, and ending achievements from state', () => {
+  it('evaluates dialogue, trust, emotion, pressure, and ending achievements from state', () => {
     const unlocked = AchievementTracker.evaluateFromState(buildState({
       roundCount: 1,
       hintCount: GAME_RULES.initialHintCount,
-      affection: 25,
-      affectionBoostCount: 5,
-      affectionBoostMessages: ['第一句', '第二句', '第三句', '第四句', '第五句'],
-      lastAiStateTag: AI_STATES.turnBack.type,
-      aiStateHistory: [AI_STATES.guarded.type, AI_STATES.edge.type, AI_STATES.turnBack.type],
+      trust: 25,
+      trustGainCount: 5,
+      trustGainMessages: ['第一句', '第二句', '第三句', '第四句', '第五句'],
+      lastAiStateTag: AI_STATES.leaving.type,
+      aiStateHistory: [AI_STATES.guarded.type, AI_STATES.wavering.type, AI_STATES.crying.type, AI_STATES.leaving.type],
       lastEmotionTag: EMOTIONS.curiosity.type,
       emotionHistory: [
         EMOTIONS.sting.type,
@@ -92,22 +92,22 @@ describe('AchievementTracker', () => {
       ],
       messages: playerMessages(7),
       isEnding: true,
-      endingType: ENDINGS.acquaintance.type
+      endingType: ENDINGS.safeExit.type
     }))
 
     expect(unlocked).toEqual(expect.arrayContaining([
       'first_words',
       'silent_listener',
-      'first_affection',
-      'three_affection',
-      'five_affection',
+      'first_trust',
+      'three_trust',
+      'five_trust',
       'all_emotions',
       'soft_after_sting',
-      'edge_state',
-      'turn_back_state',
-      'last_sentence_rescue',
-      'no_hint_rescue',
-      ENDINGS.acquaintance.type
+      'wavering_state',
+      'crying_state',
+      'last_sentence_safety',
+      'no_hint_safety',
+      ENDINGS.safeExit.type
     ]))
   })
 

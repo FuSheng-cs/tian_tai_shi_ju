@@ -28,31 +28,27 @@ let endingSummaryGeneration = 0
 const cleanSummaryLine = (value: unknown) =>
   typeof value === 'string' ? value.trim().slice(0, GAME_RULES.maxSummaryTextLength) : ''
 
-const buildLocalEndingComment = (endingType: EndingType | null, boostCount: number) => {
-  if (endingType === ENDINGS.acquaintance.type) return '你让她在这一夜里看见了被理解的可能。'
-  if (endingType === ENDINGS.death.type)
-    return boostCount > 0
-      ? '你曾经靠近过她，但最后一句风还是没能托住她。'
-      : '这一次，你们之间始终隔着没有被说破的沉默。'
-  return boostCount > 0
-    ? '你留下了一点温度，但还不足以让她停在原地。'
-    : '你是善意的路人，只是还没找到真正抵达她的方式。'
+const buildLocalEndingComment = (endingType: EndingType | null) => {
+  if (endingType === ENDINGS.safeExit.type) {
+    return '她哭了，随后和你一起离开了天台。'
+  }
+  return '她不再回应，仍然拒绝离开天台。此刻需要联系可信任的成年人或专业支持。'
 }
 
 const buildLocalEndingSummary = (state: GameState): EndingSummary => {
   const playerMessages = state.messages.filter((message) => message.role === 'user')
   const lastPlayerLine = playerMessages[playerMessages.length - 1]?.content
   const fallbackLine =
-    (state.endingType === ENDINGS.death.type
+    (state.endingType === ENDINGS.refusal.type
       ? lastPlayerLine
-      : state.affectionBoostMessages[state.affectionBoostMessages.length - 1] || lastPlayerLine) ||
+      : state.trustGainMessages[state.trustGainMessages.length - 1] || lastPlayerLine) ||
     '你没有留下明确的话。'
 
   return {
     roundsUsed: countPlayerMessages(state.messages),
-    affectionBoostCount: state.affectionBoostCount,
+    trustGainCount: state.trustGainCount,
     turningLine: cleanSummaryLine(fallbackLine),
-    comment: buildLocalEndingComment(state.endingType, state.affectionBoostCount)
+    comment: buildLocalEndingComment(state.endingType)
   }
 }
 
@@ -87,9 +83,9 @@ export const useGameStore = defineStore('game', {
   state: (): GameState => ({
     roundCount: GAME_RULES.initialRoundCount,
     hintCount: GAME_RULES.initialHintCount,
-    affection: 0,
-    affectionBoostCount: 0,
-    affectionBoostMessages: [],
+    trust: 0,
+    trustGainCount: 0,
+    trustGainMessages: [],
     lastAiStateTag: AI_STATES.guarded.type,
     aiStateHistory: [AI_STATES.guarded.type],
     lastEmotionTag: null,
@@ -106,13 +102,13 @@ export const useGameStore = defineStore('game', {
       if (this.hintCount <= 0 || this.isWaiting || this.isEnding) return null
 
       this.isWaiting = true
-      this.waitingText = '你在脑海中寻找线索……'
+      this.waitingText = '你在脑海中寻找下一步……'
       this.hintCount -= 1
 
       const hint = await LLMService.getHint(this.messages, {
         roundsLeft: this.roundCount,
-        affection: this.affection,
-        affectionBoostCount: this.affectionBoostCount,
+        trust: this.trust,
+        trustGainCount: this.trustGainCount,
         turnsUsed: countPlayerMessages(this.messages),
         aiState: this.lastAiStateTag
       })
@@ -121,9 +117,10 @@ export const useGameStore = defineStore('game', {
       return hint
     },
     async sendMessage(userText: string) {
-      if (this.roundCount <= 0 || this.isEnding) return
+      if (this.roundCount <= 0 || this.isEnding || this.isWaiting || !userText.trim()) return
 
       this.messages.push({ role: 'user', content: userText })
+      // 每次输入只消耗一句，始终保持“十句话”的明确规则。
       this.roundCount -= 1
 
       this.isWaiting = true
@@ -131,30 +128,35 @@ export const useGameStore = defineStore('game', {
 
       const turn = await LLMService.chat(userText, this.messages.slice(0, -1), {
         roundsLeft: this.roundCount,
-        affection: this.affection,
-        affectionBoostCount: this.affectionBoostCount,
+        trust: this.trust,
+        trustGainCount: this.trustGainCount,
         turnsUsed: countPlayerMessages(this.messages),
         aiState: this.lastAiStateTag
       })
 
       this.isWaiting = false
 
-      const evaluation = turn.evaluation
-      const finalReply = turn.reply.trim()
-
-      applyEvaluatedAiState(this.$state, evaluation.aiState)
-      applyEvaluatedEmotion(this.$state, evaluation.emotion)
+      const evaluation = { ...turn.evaluation }
+      let finalReply = turn.reply.trim()
 
       if (evaluation.pressureDelta > 0) {
-        this.roundCount = Math.max(0, this.roundCount - evaluation.pressureDelta)
+        this.trust = Math.max(0, this.trust - evaluation.pressureDelta)
       }
 
-      if (evaluation.affectionDelta === GAME_RULES.affectionBoostValue) {
-        this.affection += GAME_RULES.affectionBoostValue
-        this.affectionBoostCount += 1
-        this.affectionBoostMessages.push(userText)
-        this.roundCount += 1
+      if (evaluation.trustDelta === GAME_RULES.trustBoostValue) {
+        this.trust = Math.min(GAME_RULES.maxTrust, this.trust + GAME_RULES.trustBoostValue)
+        this.trustGainCount += 1
+        this.trustGainMessages.push(userText)
       }
+
+      if (this.trust < GAME_RULES.maxTrust &&
+          (evaluation.endingType === ENDINGS.safeExit.type || evaluation.aiState === AI_STATES.leaving.type)) {
+        evaluation.endingType = null
+        evaluation.aiState = AI_STATES.wavering.type
+        finalReply = '艾望向天台门，又停住脚步：“再陪我待一会儿，好吗？”'
+      }
+      applyEvaluatedAiState(this.$state, evaluation.aiState)
+      applyEvaluatedEmotion(this.$state, evaluation.emotion)
 
       if (evaluation.endingType) {
         this.isEnding = true
@@ -162,11 +164,11 @@ export const useGameStore = defineStore('game', {
       } else if (this.roundCount <= 0) {
         this.isEnding = true
         this.endingType = resolveFallbackEndingType({
-          affection: this.affection,
-          affectionBoostCount: this.affectionBoostCount,
-          turnsUsed: countPlayerMessages(this.messages),
-          lastAssistantText: finalReply
+          trust: this.trust,
+          lastAssistantText: finalReply,
+          lastAiStateType: this.lastAiStateTag
         })
+        finalReply = '（艾低下头，不再回应。她仍然拒绝离开天台。）'
       }
 
       if (finalReply) {
@@ -177,9 +179,9 @@ export const useGameStore = defineStore('game', {
       endingSummaryGeneration += 1
       this.roundCount = GAME_RULES.initialRoundCount
       this.hintCount = GAME_RULES.initialHintCount
-      this.affection = 0
-      this.affectionBoostCount = 0
-      this.affectionBoostMessages = []
+      this.trust = 0
+      this.trustGainCount = 0
+      this.trustGainMessages = []
       this.lastAiStateTag = AI_STATES.guarded.type
       this.aiStateHistory = [AI_STATES.guarded.type]
       this.lastEmotionTag = null
@@ -193,22 +195,32 @@ export const useGameStore = defineStore('game', {
     },
     loadState(state: PersistedGameState) {
       endingSummaryGeneration += 1
-      this.roundCount = state.roundCount
+      const legacyState = state as PersistedGameState & Record<string, unknown>
+      const legacyTrust = typeof legacyState.affection === 'number' ? legacyState.affection : 0
+      const legacyTrustCount =
+        typeof legacyState.affectionBoostCount === 'number'
+          ? legacyState.affectionBoostCount
+          : undefined
+      const legacyTrustMessages = Array.isArray(legacyState.affectionBoostMessages)
+        ? legacyState.affectionBoostMessages
+        : undefined
+
+      this.roundCount = Math.max(0, state.roundCount)
       this.hintCount = state.hintCount ?? GAME_RULES.initialHintCount
-      this.affection = state.affection ?? 0
+      this.trust = Math.min(GAME_RULES.maxTrust, Math.max(0, state.trust ?? legacyTrust))
       this.messages = state.messages || []
-      this.affectionBoostMessages = Array.isArray(state.affectionBoostMessages)
-        ? state.affectionBoostMessages
-        : []
-      this.affectionBoostCount =
-        state.affectionBoostCount ??
-        (this.affectionBoostMessages.length ||
-          Math.floor(this.affection / GAME_RULES.affectionBoostValue))
+      this.trustGainMessages = Array.isArray(state.trustGainMessages)
+        ? state.trustGainMessages
+        : legacyTrustMessages || []
+      this.trustGainCount =
+        state.trustGainCount ??
+        legacyTrustCount ??
+        (this.trustGainMessages.length || Math.floor(this.trust / GAME_RULES.trustBoostValue))
       this.lastAiStateTag =
         normalizeAiStateType(state.lastAiStateTag) ??
         deriveAiStateType({
           roundCount: this.roundCount,
-          affection: this.affection
+          trust: this.trust
         })
       this.aiStateHistory = normalizeAiStateHistory(state.aiStateHistory)
       if (this.aiStateHistory.length === 0 && this.lastAiStateTag) {
@@ -220,13 +232,21 @@ export const useGameStore = defineStore('game', {
       this.waitingText = ''
       this.isEnding = state.isEnding || false
       this.endingType = normalizeEndingType(state.endingType)
-      this.endingSummary = state.endingSummary
+
+      const savedSummary = state.endingSummary as
+        | (Partial<EndingSummary> & Record<string, unknown>)
+        | null
+        | undefined
+      this.endingSummary = savedSummary
         ? {
-            roundsUsed: state.endingSummary.roundsUsed ?? countPlayerMessages(this.messages),
-            affectionBoostCount:
-              state.endingSummary.affectionBoostCount ?? this.affectionBoostCount,
-            turningLine: cleanSummaryLine(state.endingSummary.turningLine),
-            comment: cleanSummaryLine(state.endingSummary.comment)
+            roundsUsed: savedSummary.roundsUsed ?? countPlayerMessages(this.messages),
+            trustGainCount:
+              savedSummary.trustGainCount ??
+              (typeof savedSummary.affectionBoostCount === 'number'
+                ? savedSummary.affectionBoostCount
+                : this.trustGainCount),
+            turningLine: cleanSummaryLine(savedSummary.turningLine),
+            comment: cleanSummaryLine(savedSummary.comment)
           }
         : null
     },
@@ -235,12 +255,6 @@ export const useGameStore = defineStore('game', {
       if (this.endingSummary) return this.endingSummary
 
       const fallbackSummary = buildLocalEndingSummary(this.$state)
-
-      if (this.endingType === ENDINGS.death.type) {
-        this.endingSummary = fallbackSummary
-        return this.endingSummary
-      }
-
       const generation = endingSummaryGeneration
       let summary = fallbackSummary
 
@@ -248,7 +262,8 @@ export const useGameStore = defineStore('game', {
         const aiSummary = await LLMService.getEndingSummary(this.messages, {
           endingType: this.endingType,
           roundsUsed: fallbackSummary.roundsUsed,
-          affectionBoostCount: this.affectionBoostCount
+          trustGainCount: this.trustGainCount,
+          trust: this.trust
         })
 
         summary = {

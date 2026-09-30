@@ -8,6 +8,9 @@ test-results/
 tmp/
 Rubbish_backup/
 *.log
+**/.gocache/
+**/.gopath/
+**/.gotelemetry/
 .env
 .env.local
 

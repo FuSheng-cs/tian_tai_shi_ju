@@ -31,7 +31,7 @@ describe('router guards', () => {
   it('allows after-story chat after the acquaintance ending is unlocked', async () => {
     const store = useGameStore()
     store.isEnding = true
-    store.endingType = ENDINGS.acquaintance.type
+    store.endingType = ENDINGS.safeExit.type
     const router = createAppRouter(createMemoryHistory(), stubRoutes)
 
     expect(canEnterChatAfterStory(store)).toBe(true)
@@ -44,14 +44,14 @@ describe('router guards', () => {
     SaveSystem.saveChatAfter(2, {
       messages: [{ role: 'assistant', content: '我到楼下了。' }],
       afterStoryContext: {
-        endingType: ENDINGS.acquaintance.type,
+        endingType: ENDINGS.safeExit.type,
         lastPlayerLine: '我在这里。',
         endingReply: '她把手机递过来。',
         turningLine: '我在这里。',
         endingComment: '她记住了这句话。',
         roundsUsed: 8,
-        affectionBoostCount: 4,
-        affection: 24
+        trustGainCount: 4,
+        trust: 24
       }
     })
     const router = createAppRouter(createMemoryHistory(), stubRoutes)
