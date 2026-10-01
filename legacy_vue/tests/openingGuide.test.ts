@@ -188,6 +188,17 @@ describe('opening guide flow', () => {
     wrapper.unmount()
   })
 
+  it('always uses the established background even when an old candidate link is opened', () => {
+    mocks.route.query = { homeArt: 'pixel-candidate' }
+    const wrapper = mount(StartView)
+    expect(wrapper.find('.candidate-home').exists()).toBe(false)
+    expect(wrapper.find('.home-background .cg-full img').attributes('src')).toBe(
+      '/assets/images/menu_home_bg_1600.webp'
+    )
+    expect(wrapper.find('.home-title-mist').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
   it('marks the next game entry as a new game from the start screen', async () => {
     const wrapper = mount(StartView)
 

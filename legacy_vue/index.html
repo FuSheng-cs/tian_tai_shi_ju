@@ -9,9 +9,8 @@
     <script>
       if (location.pathname === '/') {
         const mobile = matchMedia('(max-width: 768px)').matches
-        const candidate = new URLSearchParams(location.search).get('homeArt') === 'pixel-candidate'
         const title = mobile ? '/assets/images/home_title_20261001/title-600-4ee27ca46f08.webp' : '/assets/images/home_title_20261001/title-900-ec3116006d5a.webp'
-        const background = candidate ? '/assets/images/home_pixel_20261001/display-9b5cee356bce.webp' : `/assets/images/menu_home_bg_${mobile ? '900' : '1600'}.webp`
+        const background = `/assets/images/menu_home_bg_${mobile ? '900' : '1600'}.webp`
         for (const href of [title, background]) {
           const link = document.createElement('link')
           link.rel = 'preload'

@@ -1,17 +1,16 @@
 <template>
-  <main class="start-view" :class="{ 'candidate-home': candidateHome }" aria-labelledby="start-title">
+  <main class="start-view" aria-labelledby="start-title">
     <ProgressiveImage class="home-layer home-background"
-      :src="candidateHome ? PIXEL_HOME_CANDIDATE.display : MENU_HOME_BG_DESKTOP"
-      :mobile-src="candidateHome ? undefined : MENU_HOME_BG_MOBILE"
-      :preview="candidateHome ? PIXEL_HOME_CANDIDATE.preview : undefined"
-      :high-quality-src="candidateHome ? PIXEL_HOME_CANDIDATE.original : PIXEL_HOME_CANDIDATE.existingOriginal" />
+      :src="MENU_HOME_BG_DESKTOP"
+      :mobile-src="MENU_HOME_BG_MOBILE"
+      :high-quality-src="MENU_HOME_ORIGINAL" />
 
-    <picture v-if="!candidateHome" class="home-layer home-title-mist" aria-hidden="true">
+    <picture class="home-layer home-title-mist" aria-hidden="true">
       <source :srcset="MENU_HOME_TITLE_MIST_MOBILE" media="(max-width: 768px)" type="image/webp" />
       <img :src="MENU_HOME_TITLE_MIST_DESKTOP" alt="" decoding="async" draggable="false" />
     </picture>
 
-    <picture v-if="!candidateHome" class="home-layer home-menu-aura" aria-hidden="true">
+    <picture class="home-layer home-menu-aura" aria-hidden="true">
       <source :srcset="MENU_HOME_MENU_AURA_MOBILE" media="(max-width: 768px)" type="image/webp" />
       <img :src="MENU_HOME_MENU_AURA_DESKTOP" alt="" decoding="async" draggable="false" />
     </picture>
@@ -48,7 +47,7 @@
           class="menu-button"
           :class="{ 'menu-button-primary': action.primary }"
           :aria-label="action.label"
-                    @pointerenter="action.primary && warmEntryCGs()"
+          @pointerenter="action.primary && warmEntryCGs()"
           @focus="action.primary && warmEntryCGs()"
           @click="action.onClick"
         >
@@ -83,8 +82,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   CHAT_AFTER_SLOT_QUERY_KEY,
   GAME_ENTRY_QUERY_KEY,
@@ -99,14 +98,12 @@ import { useSaveSlots } from '@/composables/useSaveSlots'
 import { HOME_TITLE } from '@/domain/homeTitle.generated'
 import { warmEntryCGs, scheduleEntryCGWarmup } from '@/modules/CgWarmup'
 import ProgressiveImage from '@/components/ProgressiveImage.vue'
-import { PIXEL_HOME_CANDIDATE } from '@/domain/pixelHomeCandidate.generated'
 
 
 const router = useRouter()
-const route = useRoute()
-const candidateHome = computed(() => route.query.homeArt === 'pixel-candidate')
 const gameStore = useGameStore()
 const SAVE_SLOT_IDS = GAME_RULES.saveSlotIds
+const MENU_HOME_ORIGINAL = '/assets/images/home_pixel_20261001/existing-original-224ec4600eb8.webp'
 const MENU_TITLE_IMAGE = '/assets/images/menu_title.png'
 const titleReady = ref(false)
 
@@ -699,9 +696,43 @@ onUnmounted(() => cancelWarmup())
 @media (max-width: 768px) {
   .home-composition { padding-top: 64px; }
 }
-.candidate-home :deep(.home-background img) { object-position: center; }
-@media (max-width: 768px) {
-  .candidate-home :deep(.home-background img) { object-position: 18% center; }
-  .candidate-home .home-actions { justify-self: end; width: 48%; margin-right: 2%; }
+/* Small refinements to the established composition, not a new design. */
+.home-title-mist { opacity: 0.46; }
+.home-menu-aura { opacity: 0.34; }
+.home-tagline { color: rgba(216, 211, 224, 0.78); line-height: 1.5; }
+.menu-button { color: rgba(214, 209, 224, 0.8); min-height: 44px; }
+.menu-button-primary .menu-button-copy {
+  color: #e6e0ed;
+  text-shadow: 0 0 8px rgba(203, 184, 227, 0.2), 0 1px 2px #000;
+}
+.menu-button:focus-visible { outline: 1px solid #b5aebe; outline-offset: 3px; }
+:deep(.bgm-control) {
+  color: #c3bdcc; border-color: rgba(195, 188, 206, 0.25);
+}
+@media (max-width: 960px) {
+  .home-background :deep(img) { object-position: 34% center; }
+  .home-actions { gap: 8px; }
+}
+@media (max-width: 640px) {
+  .home-background :deep(img) { object-position: 18% center; }
+  .home-composition { top: max(30px, 4svh); padding-top: 52px; }
+  .home-title-art { width: min(86vw, 420px); }
+  .home-tagline { margin-top: 10px; line-height: 1.55; }
+  .home-actions { gap: 8px; margin-top: 8px; }
+}
+@media (max-height: 500px) and (min-width: 641px) {
+  .home-composition {
+    top: 62px; right: 7vw; left: auto; width: 44vw; min-width: 0;
+    padding: 0; gap: 8px;
+  }
+  .home-title-art { max-width: 340px; }
+  .home-actions { margin-top: 2px; gap: 0; }
+  .menu-button { min-height: 36px; }
+  .menu-button-copy { font-size: 1.2rem; }
+}
+@media (max-height: 580px) and (max-width: 640px) {
+  .home-composition { top: 22px; padding-top: 44px; gap: 8px; }
+  .home-title-art { width: min(74vw, 290px); }
+  .home-actions { gap: 2px; margin-top: 2px; }
 }
 </style>
