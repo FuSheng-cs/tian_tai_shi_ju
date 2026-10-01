@@ -4,7 +4,7 @@
   >
     <!-- Background (now using the character images directly as they contain the full scene) -->
     <div class="absolute inset-0 z-0">
-      <picture class="block h-full w-full">
+      <picture v-if="!isOpeningSequenceActive" class="block h-full w-full">
         <source :srcset="currentBg.mobile" :media="MOBILE_BACKGROUND_MEDIA_QUERY" />
         <img
           :src="currentBg.desktop"
@@ -286,7 +286,6 @@ import {
   GAME_ENTRY_TYPES,
   GAME_ROLE,
   GAME_RULES,
-  GAMEPLAY_PRELOAD_IMAGES,
   MOBILE_BACKGROUND_MEDIA_QUERY,
   OPENING_SEQUENCE_FRAMES,
   ROOFTOP_BGM_SRCS,
@@ -317,14 +316,16 @@ const latestHint = ref<string | null>(null)
 const showSaveSlots = ref(false)
 const { saveSlots, refreshSaveSlots, getSlot, getSlotTitle, getSlotStatus } = useSaveSlots()
 const isEndingSummaryLoading = ref(false)
-const isOpeningSequenceActive = ref(false)
+const isOpeningSequenceActive = ref(
+  route.query[GAME_ENTRY_QUERY_KEY] === GAME_ENTRY_TYPES.newGame &&
+  !gameStore.messages.some((message) => message.role === 'user') && !gameStore.isEnding
+)
 const isDeathEndingSequenceActive = ref(false)
 const hasPlayedDeathEndingSequence = ref(
   gameStore.isEnding && gameStore.endingType === ENDINGS.death.type
 )
 const hasStartedBgm = ref(false)
 const waitingVisualState = ref<ResolvedVisualState | null>(null)
-const preloadedImages = new Set<string>()
 
 const latestMessage = computed(() => {
   if (gameStore.messages.length === 0) return null
@@ -382,17 +383,6 @@ const backgroundImageClass = computed(() =>
       ? 'opacity-100'
       : 'opacity-80'
 )
-
-const preloadImages = (sources: readonly string[]) => {
-  sources.forEach((src) => {
-    if (!src || preloadedImages.has(src)) return
-
-    preloadedImages.add(src)
-    const image = new Image()
-    image.decoding = 'async'
-    image.src = src
-  })
-}
 
 const startRooftopBgm = () => {
   if (hasStartedBgm.value) return
@@ -524,10 +514,6 @@ const goToChatAfter = () => {
 
 onMounted(() => {
   AchievementTracker.unlock('first_try')
-  const usesMobileBackground = window.matchMedia(MOBILE_BACKGROUND_MEDIA_QUERY).matches
-  preloadImages(
-    usesMobileBackground ? GAMEPLAY_PRELOAD_IMAGES.mobile : GAMEPLAY_PRELOAD_IMAGES.desktop
-  )
   startRooftopBgm()
 
   if (gameStore.isEnding && gameStore.endingType === ENDINGS.death.type) {

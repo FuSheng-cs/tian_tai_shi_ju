@@ -6,10 +6,12 @@
     <div class="menu-shade" aria-hidden="true"></div>
     <div class="purple-haze" aria-hidden="true"></div>
 
+    <BgmControl />
     <section class="menu-shell">
       <div class="brand-panel">
         <h1 id="start-title" class="sr-only">天台十句</h1>
-        <picture>
+        <picture class="title-picture">
+          <span v-if="!titleReady" class="title-fallback" aria-hidden="true">天台十句</span>
           <source :srcset="MENU_TITLE_WEBP_IMAGE" type="image/webp" />
           <img
             class="title-art"
@@ -21,6 +23,7 @@
             decoding="async"
             fetchpriority="high"
             draggable="false"
+            @load="titleReady = true"
           />
         </picture>
         <p class="tagline">
@@ -137,6 +140,7 @@ import {
 } from '@/domain/gameContract'
 import { useGameStore } from '@/store/gameStore'
 import { audioManager } from '@/modules/AudioManager'
+import BgmControl from '@/components/BgmControl.vue'
 import { SAVE_SLOT_KINDS, SaveSystem } from '@/modules/SaveSystem'
 import { useSaveSlots } from '@/composables/useSaveSlots'
 import {
@@ -153,6 +157,7 @@ const gameStore = useGameStore()
 const SAVE_SLOT_IDS = GAME_RULES.saveSlotIds
 const MENU_TITLE_WEBP_IMAGE = '/assets/images/menu_title.webp'
 const MENU_TITLE_IMAGE = '/assets/images/menu_title.png'
+const titleReady = ref(false)
 
 const showLoadSlots = ref(false)
 const { refreshSaveSlots, getSlot, hasSlot, getSlotTitle, getSlotStatus } = useSaveSlots()
@@ -228,6 +233,10 @@ const goToAchievements = () => {
   font-family: "Microsoft YaHei", "Noto Sans SC", "Source Han Sans", sans-serif;
   isolation: isolate;
 }
+
+/* The homepage should be readable on its first frame, including slow devices. */
+.start-view.fade-enter-active { transition: none; }
+.start-view.fade-enter-from { opacity: 1; }
 
 .menu-bg,
 .character-layer,
@@ -339,6 +348,19 @@ const goToAchievements = () => {
   filter:
     drop-shadow(0 0 16px rgba(187, 115, 255, 0.74))
     drop-shadow(0 0 36px rgba(133, 67, 198, 0.48));
+}
+
+.title-picture { position: relative; display: block; }
+.title-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d8b6ff;
+  font-size: clamp(32px, 5cqw, 64px);
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 20px rgba(187, 115, 255, 0.5);
 }
 
 .tagline {
@@ -824,7 +846,7 @@ const goToAchievements = () => {
     transform: none;
     container-type: normal;
     margin: 0 auto;
-    padding: clamp(18px, 4.2svh, 34px) 0 64px;
+    padding: max(64px, calc(env(safe-area-inset-top) + 56px)) 0 64px;
   }
 
   .brand-panel {
@@ -953,7 +975,7 @@ const goToAchievements = () => {
   .menu-shell {
     width: calc(100% - 22px);
     gap: 11px;
-    padding-top: 16px;
+    padding-top: max(64px, calc(env(safe-area-inset-top) + 56px));
   }
 
   .title-art {
