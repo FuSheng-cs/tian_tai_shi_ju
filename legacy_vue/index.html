@@ -5,14 +5,12 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#1e1b4b">
+    <!-- home-title-preloads:start -->
     <script>
-      // Fetch homepage art before waiting for the route's JavaScript and CSS.
       if (location.pathname === '/') {
         const mobile = matchMedia('(max-width: 768px)').matches
-        for (const href of [
-          '/assets/images/menu_title.webp',
-          `/assets/images/menu_home_bg_${mobile ? '900' : '1600'}.webp`
-        ]) {
+        const title = mobile ? '/assets/images/home_title_20261001/title-600-4ee27ca46f08.webp' : '/assets/images/home_title_20261001/title-900-ec3116006d5a.webp'
+        for (const href of [title, `/assets/images/menu_home_bg_${mobile ? '900' : '1600'}.webp`]) {
           const link = document.createElement('link')
           link.rel = 'preload'
           link.as = 'image'
@@ -22,6 +20,7 @@
         }
       }
     </script>
+    <!-- home-title-preloads:end -->
     <title>天台十句 - 网页文字冒险游戏</title>
   </head>
   <body>
