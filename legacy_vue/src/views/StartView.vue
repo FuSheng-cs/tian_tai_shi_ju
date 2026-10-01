@@ -1,22 +1,17 @@
 <template>
-  <main class="start-view" aria-labelledby="start-title">
-    <picture class="home-layer home-background" aria-hidden="true">
-      <source :srcset="MENU_HOME_BG_MOBILE" media="(max-width: 768px)" type="image/webp" />
-      <img
-        :src="MENU_HOME_BG_DESKTOP"
-        alt=""
-        decoding="async"
-        fetchpriority="high"
-        draggable="false"
-      />
-    </picture>
+  <main class="start-view" :class="{ 'candidate-home': candidateHome }" aria-labelledby="start-title">
+    <ProgressiveImage class="home-layer home-background"
+      :src="candidateHome ? PIXEL_HOME_CANDIDATE.display : MENU_HOME_BG_DESKTOP"
+      :mobile-src="candidateHome ? undefined : MENU_HOME_BG_MOBILE"
+      :preview="candidateHome ? PIXEL_HOME_CANDIDATE.preview : undefined"
+      :high-quality-src="candidateHome ? PIXEL_HOME_CANDIDATE.original : PIXEL_HOME_CANDIDATE.existingOriginal" />
 
-    <picture class="home-layer home-title-mist" aria-hidden="true">
+    <picture v-if="!candidateHome" class="home-layer home-title-mist" aria-hidden="true">
       <source :srcset="MENU_HOME_TITLE_MIST_MOBILE" media="(max-width: 768px)" type="image/webp" />
       <img :src="MENU_HOME_TITLE_MIST_DESKTOP" alt="" decoding="async" draggable="false" />
     </picture>
 
-    <picture class="home-layer home-menu-aura" aria-hidden="true">
+    <picture v-if="!candidateHome" class="home-layer home-menu-aura" aria-hidden="true">
       <source :srcset="MENU_HOME_MENU_AURA_MOBILE" media="(max-width: 768px)" type="image/webp" />
       <img :src="MENU_HOME_MENU_AURA_DESKTOP" alt="" decoding="async" draggable="false" />
     </picture>
@@ -88,8 +83,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import {
   CHAT_AFTER_SLOT_QUERY_KEY,
   GAME_ENTRY_QUERY_KEY,
@@ -103,9 +98,13 @@ import { SAVE_SLOT_KINDS, SaveSystem } from '@/modules/SaveSystem'
 import { useSaveSlots } from '@/composables/useSaveSlots'
 import { HOME_TITLE } from '@/domain/homeTitle.generated'
 import { warmEntryCGs, scheduleEntryCGWarmup } from '@/modules/CgWarmup'
+import ProgressiveImage from '@/components/ProgressiveImage.vue'
+import { PIXEL_HOME_CANDIDATE } from '@/domain/pixelHomeCandidate.generated'
 
 
 const router = useRouter()
+const route = useRoute()
+const candidateHome = computed(() => route.query.homeArt === 'pixel-candidate')
 const gameStore = useGameStore()
 const SAVE_SLOT_IDS = GAME_RULES.saveSlotIds
 const MENU_TITLE_IMAGE = '/assets/images/menu_title.png'
@@ -699,5 +698,10 @@ onUnmounted(() => cancelWarmup())
 }
 @media (max-width: 768px) {
   .home-composition { padding-top: 64px; }
+}
+.candidate-home :deep(.home-background img) { object-position: center; }
+@media (max-width: 768px) {
+  .candidate-home :deep(.home-background img) { object-position: 18% center; }
+  .candidate-home .home-actions { justify-self: end; width: 48%; margin-right: 2%; }
 }
 </style>

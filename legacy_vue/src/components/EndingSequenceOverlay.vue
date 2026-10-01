@@ -16,7 +16,9 @@
       class="cinematic-frame"
       :class="{ 'cinematic-frame-active': index === currentIndex }"
       :src="frame.image" :mobile-src="frame.mobileImage" :preview="getCGPreview(frame.image)"
+      :high-quality-src="getOriginalCG(frame.image)"
       fit="contain" :priority="index === currentIndex ? 'high' : 'low'"
+      @original-ready="warmNextOriginal(index)"
     />
 
     <div class="cinematic-vignette" aria-hidden="true"></div>
@@ -60,6 +62,8 @@
 import { onUnmounted, ref } from 'vue'
 import ProgressiveImage from '@/components/ProgressiveImage.vue'
 import { getCGPreview } from '@/domain/cgAssets.generated'
+import { getOriginalCG } from '@/domain/originalCgQuality'
+import { warmOriginalCG } from '@/modules/OriginalCgCache'
 import { audioManager } from '@/modules/AudioManager'
 import { useCinematicSequence, type CinematicFrame } from '@/composables/useCinematicSequence'
 import './cinematicSequenceOverlay.css'
@@ -88,6 +92,10 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'complete'): void
 }>()
+const warmNextOriginal = (index: number) => {
+  const next = props.frames[index + 1]
+  if (next) warmOriginalCG(next.image)
+}
 
 const isFinalImpactActive = ref(false)
 let impactTimer: ReturnType<typeof window.setTimeout> | null = null

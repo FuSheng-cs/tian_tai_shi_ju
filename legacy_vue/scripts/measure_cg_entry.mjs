@@ -75,8 +75,9 @@ if (mode === 'home') {
 }
 let firstVisibleMs = null
 let fullReadyMs = null
+let originalReadyMs = null
 let finalState = {}
-for (let i=0;i<200;i++) {
+for (let i=0;i<400;i++) {
   const { result }=await cdp('Runtime.evaluate',{expression:`(() => {
     const f=document.querySelector('.opening-sequence .cinematic-frame-active');
     if(!f) return {t:performance.now()};
@@ -85,7 +86,10 @@ for (let i=0;i<200;i++) {
     const pv=!!(p?.complete && p.naturalWidth>0);
     const fv=!!(full?.complete && full.naturalWidth>0 &&
       (!f.querySelector('.cg-full') || f.querySelector('.cg-full').classList.contains('cg-ready')));
-    return {t:performance.now(),visible:pv||fv,full:fv,preview:p?.currentSrc,src:full?.currentSrc};
+    return {t:performance.now(),visible:pv||fv,full:fv,preview:p?.currentSrc,src:full?.currentSrc,
+      originalEnabled:f.hasAttribute('data-original-ready'),
+      originalReady:f.dataset.originalReady==='true',
+      originalSrc:f.querySelector('.cg-original img')?.currentSrc};
   })()`,returnByValue:true})
   finalState=result.value || {}
   if(firstVisibleMs===null && finalState.visible) {
@@ -93,13 +97,18 @@ for (let i=0;i<200;i++) {
     const shot=await cdp('Page.captureScreenshot',{format:'png'})
     await writeFile(output.replace('.json','-first.png'),Buffer.from(shot.data,'base64'))
   }
-  if(fullReadyMs===null && finalState.full) {fullReadyMs=Math.round(finalState.t-from);break}
+  if(fullReadyMs===null && finalState.full) fullReadyMs=Math.round(finalState.t-from)
+  if(originalReadyMs===null && finalState.originalReady) {
+    originalReadyMs=Math.round(finalState.t-from)
+    break
+  }
+  if(fullReadyMs!==null && !finalState.originalEnabled) break
   await new Promise(resolve=>setTimeout(resolve,150))
 }
-const data={url,mode,mobile,firstVisibleMs,fullReadyMs,finalState,
+const data={url,mode,mobile,firstVisibleMs,fullReadyMs,originalReadyMs,finalState,
   network:'1.6 Mbps / 150 ms RTT / CPU 4x / cold cache',resources:[...resources.values()],errors}
 await writeFile(output,JSON.stringify(data,null,2))
 const shot=await cdp('Page.captureScreenshot',{format:'png'})
 await writeFile(output.replace('.json','-full.png'),Buffer.from(shot.data,'base64'))
-console.log(JSON.stringify({firstVisibleMs,fullReadyMs,errors}))
+console.log(JSON.stringify({firstVisibleMs,fullReadyMs,originalReadyMs,errors}))
 socket.close()

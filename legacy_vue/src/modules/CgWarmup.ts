@@ -1,16 +1,17 @@
 import { OPENING_SEQUENCE_FRAMES, SCENE_BACKGROUNDS, SCENE_MOBILE_BACKGROUNDS } from '@/domain/gameContract'
 import { getCGPreview } from '@/domain/cgAssets.generated'
+import { warmOriginalCG } from '@/modules/OriginalCgCache'
 
 const requested = new Set<string>()
 const images = new Set<HTMLImageElement>()
-const requestImage = (url: string) => {
+const requestImage = (url: string, complete?: () => void) => {
   if (!url || requested.has(url)) return
   requested.add(url)
   const image = new Image()
   images.add(image)
   image.decoding = 'async'
   image.fetchPriority = 'low'
-  image.onload = () => images.delete(image)
+  image.onload = () => { images.delete(image); complete?.() }
   image.onerror = () => { images.delete(image); requested.delete(url) }
   image.src = url
 }
@@ -24,8 +25,8 @@ export const warmEntryCGs = () => {
     connection?: { saveData?: boolean; effectiveType?: string }
   }).connection
   if (connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType || '')) return
-  requestImage(opening)
-  requestImage(scene)
+  requestImage(opening, () => warmOriginalCG(opening))
+  requestImage(scene, () => warmOriginalCG(scene))
 }
 
 export const scheduleEntryCGWarmup = () => {

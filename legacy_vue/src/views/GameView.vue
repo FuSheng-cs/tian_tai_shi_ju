@@ -7,6 +7,7 @@
       <ProgressiveImage v-if="!isOpeningSequenceActive"
         :src="currentBg.desktop" :mobile-src="currentBg.mobile"
         :preview="getCGPreview(currentBg.desktop)" alt="Background"
+        :high-quality-src="getOriginalCG(currentBg.desktop)"
         :image-class="backgroundImageClass" />
     </div>
 
@@ -298,6 +299,7 @@ import OpeningSequenceOverlay from '@/components/OpeningSequenceOverlay.vue'
 import TypewriterText from '@/components/TypewriterText.vue'
 import ProgressiveImage from '@/components/ProgressiveImage.vue'
 import { getCGPreview } from '@/domain/cgAssets.generated'
+import { getOriginalCG } from '@/domain/originalCgQuality'
 
 const route = useRoute()
 const router = useRouter()
