@@ -100,6 +100,7 @@ img { width: 100%; height: 100%; }
 .cg-original img { image-rendering: pixelated; }
 .cg-quality-button {
   position: absolute; right: 16px; top: 88px; z-index: 5;
+  pointer-events: auto;
   padding: 8px 12px; border: 1px solid #777; border-radius: 4px;
   color: #ddd; background: #111c; font-size: 12px;
 }
