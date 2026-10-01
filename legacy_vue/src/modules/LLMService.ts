@@ -56,12 +56,12 @@ export const LLM_PROVIDERS: LLMProviderOption[] = [
     vendor: '阿里云 DashScope',
     region: 'domestic',
     protocol: 'openai-compatible',
-    defaultModel: 'qwen-plus',
+    defaultModel: 'qwen3.7-plus',
     defaultBaseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     keyPlaceholder: 'sk-xxxxxxxxxxxxxxxx',
-    credentialUrl: 'dashscope.aliyuncs.com',
-    hint: '中文叙事稳定，适合作为默认模型。',
-    models: ['qwen-plus', 'qwen-max', 'qwen-turbo']
+    credentialUrl: 'bailian.console.aliyun.com',
+    hint: '百炼 OpenAI 兼容 API；Key 与 Base URL 需匹配部署地域。',
+    models: ['qwen3.7-plus', 'qwen3.8-flash', 'qwen3.8-max']
   },
   {
     id: 'deepseek',
@@ -69,12 +69,12 @@ export const LLM_PROVIDERS: LLMProviderOption[] = [
     vendor: '深度求索',
     region: 'domestic',
     protocol: 'openai-compatible',
-    defaultModel: 'deepseek-chat',
+    defaultModel: 'deepseek-flash',
     defaultBaseUrl: 'https://api.deepseek.com/v1',
     keyPlaceholder: 'sk-xxxxxxxxxxxxxxxx',
     credentialUrl: 'platform.deepseek.com',
-    hint: 'OpenAI 兼容接口，中文性价比高。',
-    models: ['deepseek-chat', 'deepseek-reasoner']
+    hint: 'deepseek-flash 对应 V4.1 Flash；使用非思考模式快速生成对白。',
+    models: ['deepseek-flash', 'deepseek-v4-pro']
   },
   {
     id: 'doubao',
@@ -82,12 +82,16 @@ export const LLM_PROVIDERS: LLMProviderOption[] = [
     vendor: '火山引擎',
     region: 'domestic',
     protocol: 'openai-compatible',
-    defaultModel: 'doubao-pro-4k',
+    defaultModel: 'doubao-seed-2-1-lite-260915',
     defaultBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
     keyPlaceholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
     credentialUrl: 'console.volcengine.com/ark',
-    hint: '模型名通常需要填写火山方舟上的接入点名称。',
-    models: ['doubao-pro-4k', 'doubao-pro-32k']
+    hint: '先在方舟开通模型；填写 Model ID 或你创建的 ep- 接入点 ID。',
+    models: [
+      'doubao-seed-2-1-lite-260915',
+      'doubao-seed-2-1-pro-260915',
+      'doubao-seed-2-0-mini-260428'
+    ]
   },
   {
     id: 'kimi',
@@ -95,12 +99,12 @@ export const LLM_PROVIDERS: LLMProviderOption[] = [
     vendor: '月之暗面',
     region: 'domestic',
     protocol: 'openai-compatible',
-    defaultModel: 'moonshot-v1-8k',
+    defaultModel: 'kimi-k2.6',
     defaultBaseUrl: 'https://api.moonshot.cn/v1',
     keyPlaceholder: 'sk-xxxxxxxxxxxxxxxx',
-    credentialUrl: 'platform.moonshot.cn',
-    hint: '上下文能力较强，适合保留较长对话记忆。',
-    models: ['moonshot-v1-8k', 'moonshot-v1-32k', 'moonshot-v1-128k']
+    credentialUrl: 'platform.kimi.com',
+    hint: 'K2.6 使用非思考模式；K3 需保留思考历史，暂不作为游戏预设。',
+    models: ['kimi-k2.6']
   },
   {
     id: 'zhipu',
@@ -108,12 +112,12 @@ export const LLM_PROVIDERS: LLMProviderOption[] = [
     vendor: '智谱 AI',
     region: 'domestic',
     protocol: 'openai-compatible',
-    defaultModel: 'glm-4-flash',
+    defaultModel: 'glm-5.3-flash',
     defaultBaseUrl: 'https://open.bigmodel.cn/api/paas/v4',
     keyPlaceholder: 'xxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxx',
     credentialUrl: 'open.bigmodel.cn',
-    hint: '国产 OpenAI 兼容接口，模型名可按控制台调整。',
-    models: ['glm-4-flash', 'glm-4-plus', 'glm-4-air']
+    hint: 'GLM 5.3 系列始终启用思考；需使用开放平台 API Key。',
+    models: ['glm-5.3-flash', 'glm-5.3', 'glm-5.2']
   },
   {
     id: 'openai',
@@ -121,12 +125,12 @@ export const LLM_PROVIDERS: LLMProviderOption[] = [
     vendor: 'GPT 系列',
     region: 'global',
     protocol: 'openai-compatible',
-    defaultModel: 'gpt-4o-mini',
+    defaultModel: 'gpt-6-luna',
     defaultBaseUrl: 'https://api.openai.com/v1',
     keyPlaceholder: 'sk-xxxxxxxxxxxxxxxx',
     credentialUrl: 'platform.openai.com',
-    hint: '官方 GPT 系列接口，使用 Chat Completions 兼容格式。',
-    models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini']
+    hint: '官方按量计费 API；GPT-6 Luna 适合短对白，订阅不包含 API 额度。',
+    models: ['gpt-6-luna', 'gpt-6.1-sol', 'gpt-6-astra']
   },
   {
     id: 'claude',
@@ -134,12 +138,12 @@ export const LLM_PROVIDERS: LLMProviderOption[] = [
     vendor: 'Anthropic',
     region: 'global',
     protocol: 'anthropic',
-    defaultModel: 'claude-sonnet-5',
+    defaultModel: 'claude-sonnet-5-5',
     defaultBaseUrl: 'https://api.anthropic.com/v1',
     keyPlaceholder: 'sk-ant-xxxxxxxxxxxxxxxx',
-    credentialUrl: 'console.anthropic.com',
+    credentialUrl: 'platform.claude.com',
     hint: '使用 Anthropic Messages API，后端会自动转换请求格式。',
-    models: ['claude-sonnet-5', 'claude-opus-5', 'claude-haiku-4-5-20251001']
+    models: ['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-4-5-20251001']
   },
   {
     id: 'custom',

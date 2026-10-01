@@ -280,15 +280,28 @@ CG 状态机优先级为：结局 CG > 临界/回身状态 CG > 情绪 CG > 人�
 
 | Provider | Base URL | 默认模型 | 协议 |
 | --- | --- | --- | --- |
-| `openai` | `https://api.openai.com/v1` | `gpt-4o-mini` | OpenAI 兼容 |
-| `qwen` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus` | OpenAI 兼容 |
-| `deepseek` | `https://api.deepseek.com/v1` | `deepseek-chat` | OpenAI 兼容 |
-| `doubao` | `https://ark.cn-beijing.volces.com/api/v3` | `doubao-pro-4k` | OpenAI 兼容 |
-| `kimi` | `https://api.moonshot.cn/v1` | `moonshot-v1-8k` | OpenAI 兼容 |
-| `zhipu` | `https://open.bigmodel.cn/api/paas/v4` | `glm-4-flash` | OpenAI 兼容 |
-| `claude` / `anthropic` | `https://api.anthropic.com/v1` | `claude-sonnet-5` | Anthropic Messages API |
+| `openai` | `https://api.openai.com/v1` | `gpt-6-luna` | OpenAI 兼容 |
+| `qwen` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen3.7-plus` | OpenAI 兼容 |
+| `deepseek` | `https://api.deepseek.com/v1` | `deepseek-flash` | OpenAI 兼容 |
+| `doubao` | `https://ark.cn-beijing.volces.com/api/v3` | `doubao-seed-2-1-lite-260915` | OpenAI 兼容 |
+| `kimi` | `https://api.moonshot.cn/v1` | `kimi-k2.6` | OpenAI 兼容 |
+| `zhipu` | `https://open.bigmodel.cn/api/paas/v4` | `glm-5.3-flash` | OpenAI 兼容 |
+| `claude` / `anthropic` | `https://api.anthropic.com/v1` | `claude-sonnet-5-5` | Anthropic Messages API |
 | `custom` | 必须显式提供 | 必须显式提供 | OpenAI 兼容 |
 
 - OpenAI 兼容 Provider 走 `/chat/completions`；BaseURL 缺少版本路径时后端自动补 `/v1`，方便只填域名的中转服务。
-- `claude` / `anthropic` 走 Anthropic Messages API（`x-api-key` + `anthropic-version: 2023-06-01`，`max_tokens: 1024`）：system 消息合并进 `system` 字段；游戏 history 以艾的开场白（assistant）开头，后端会在首条消息不是 user 时插入占位 user 消息归一化。
+- `claude` / `anthropic` 走 Anthropic Messages API（`x-api-key` + `anthropic-version: 2023-06-01`，`max_tokens: 8192`）：system 消息合并进 `system` 字段；游戏 history 以艾的开场白（assistant）开头，后端会在首条消息不是 user 时插入占位 user 消息归一化。
 - 配置优先级：玩家前端传入的 Provider/API Key/Model/Base URL 优先；玩家未提供 API Key 时整体切换到服务器侧 `.env` 配置（`LLM_PROVIDER` / `LLM_API_KEY` / `LLM_MODEL` / `LLM_BASE_URL`）；两侧都没有 Key 时返回带“模拟回复”字样的演示台词（设置页测试连接依赖该字样）。
+
+
+### 模型参数兼容性（2026-10-01 核对）
+
+DeepSeek、千问、Kimi K2.6 使用非思考模式，适合短对白和独立 JSON 裁判。
+Kimi 固定采样参数不传 temperature；K3/K2.7 要求保留思考历史，当前纯文本历史契约不支持，后端返回明确错误。
+GPT-6 移除 temperature，Luna/Sol 使用 none，其余使用 low 推理强度。
+GLM 5.3 始终思考，使用 low 并省略 temperature。Claude 5 移除 temperature，输出预算 8192 tokens。
+
+服务商预设是文档核对结果，并不保证每个账户有调用权限。豆包需开通相应 Model ID 或填写 ep- 接入点 ID；百炼 Key 和地址须匹配地域。
+玩家已有的 Key、自定义模型和地址继续保留，更新不会擅自改写浏览器配置。旧模型使用者请清空模型字段以采用新默认值，或选择新模型。
+
+官方依据：[DeepSeek](https://api-docs.deepseek.com/quick_start/pricing/)、[千问](https://help.aliyun.com/zh/model-studio/text-generation-model/)、[豆包](https://docs.volcengine.com/docs/ark/model-release-announcement?lang=zh)、[Kimi 参数](https://platform.kimi.com/docs/api/models-overview)、[GLM 5.3](https://docs.bigmodel.cn/cn/guide/models/text/glm-5.3.md)、[GLM Flash](https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash.md)、[GPT-6](https://developers.openai.com/api/docs/guides/latest-model)、[Claude](https://platform.claude.com/docs/en/models/sonnet-5-5/overview)。
