@@ -4,16 +4,10 @@
   >
     <!-- Background (now using the character images directly as they contain the full scene) -->
     <div class="absolute inset-0 z-0">
-      <picture v-if="!isOpeningSequenceActive" class="block h-full w-full">
-        <source :srcset="currentBg.mobile" :media="MOBILE_BACKGROUND_MEDIA_QUERY" />
-        <img
-          :src="currentBg.desktop"
-          class="w-full h-full object-cover transition-opacity duration-1000"
-          :class="backgroundImageClass"
-          alt="Background"
-          decoding="async"
-        />
-      </picture>
+      <ProgressiveImage v-if="!isOpeningSequenceActive"
+        :src="currentBg.desktop" :mobile-src="currentBg.mobile"
+        :preview="getCGPreview(currentBg.desktop)" alt="Background"
+        :image-class="backgroundImageClass" />
     </div>
 
     <OpeningSequenceOverlay
@@ -286,7 +280,6 @@ import {
   GAME_ENTRY_TYPES,
   GAME_ROLE,
   GAME_RULES,
-  MOBILE_BACKGROUND_MEDIA_QUERY,
   OPENING_SEQUENCE_FRAMES,
   ROOFTOP_BGM_SRCS,
   resolveWaitingBackground,
@@ -303,6 +296,8 @@ import ChanceCigarettes from '@/components/ChanceCigarettes.vue'
 import EndingSequenceOverlay from '@/components/EndingSequenceOverlay.vue'
 import OpeningSequenceOverlay from '@/components/OpeningSequenceOverlay.vue'
 import TypewriterText from '@/components/TypewriterText.vue'
+import ProgressiveImage from '@/components/ProgressiveImage.vue'
+import { getCGPreview } from '@/domain/cgAssets.generated'
 
 const route = useRoute()
 const router = useRouter()
@@ -532,7 +527,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.death-cinematic-background {
+:deep(.death-cinematic-background) {
   opacity: 0.78;
   filter: brightness(0.82) contrast(1.05);
   transition:

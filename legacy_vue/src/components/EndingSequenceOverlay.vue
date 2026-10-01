@@ -10,15 +10,14 @@
     @keydown.space.prevent="advance"
     @keydown.enter.prevent="advance"
   >
-    <picture
+    <ProgressiveImage
       v-for="(frame, index) in frames"
       :key="frame.id"
       class="cinematic-frame"
       :class="{ 'cinematic-frame-active': index === currentIndex }"
-    >
-      <source v-if="frame.mobileImage" :srcset="frame.mobileImage" media="(max-width: 768px)" />
-      <img :src="frame.image" alt="" aria-hidden="true" draggable="false" />
-    </picture>
+      :src="frame.image" :mobile-src="frame.mobileImage" :preview="getCGPreview(frame.image)"
+      fit="contain" :priority="index === currentIndex ? 'high' : 'low'"
+    />
 
     <div class="cinematic-vignette" aria-hidden="true"></div>
     <div class="cinematic-rain" aria-hidden="true"></div>
@@ -59,6 +58,8 @@
 
 <script setup lang="ts">
 import { onUnmounted, ref } from 'vue'
+import ProgressiveImage from '@/components/ProgressiveImage.vue'
+import { getCGPreview } from '@/domain/cgAssets.generated'
 import { audioManager } from '@/modules/AudioManager'
 import { useCinematicSequence, type CinematicFrame } from '@/composables/useCinematicSequence'
 import './cinematicSequenceOverlay.css'

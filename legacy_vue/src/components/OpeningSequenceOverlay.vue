@@ -10,16 +10,14 @@
     @keydown.space.prevent="advance"
     @keydown.enter.prevent="advance"
   >
-    <picture
+    <ProgressiveImage
       v-for="{ frame, index } in visibleFrames"
       :key="frame.id"
       class="cinematic-frame"
       :class="{ 'cinematic-frame-active': index === currentIndex }"
-    >
-      <source v-if="frame.mobileImage" :srcset="frame.mobileImage" media="(max-width: 768px)" />
-      <img :src="frame.image" alt="" aria-hidden="true" draggable="false"
-        decoding="async" :fetchpriority="index === currentIndex ? 'high' : 'low'" />
-    </picture>
+      :src="frame.image" :mobile-src="frame.mobileImage" :preview="getCGPreview(frame.image)"
+      fit="contain" :priority="index === currentIndex ? 'high' : 'low'"
+    />
 
     <div class="cinematic-vignette" aria-hidden="true"></div>
     <div class="cinematic-rain" aria-hidden="true"></div>
@@ -49,6 +47,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import ProgressiveImage from '@/components/ProgressiveImage.vue'
+import { getCGPreview } from '@/domain/cgAssets.generated'
 import { audioManager } from '@/modules/AudioManager'
 import { useCinematicSequence, type CinematicFrame } from '@/composables/useCinematicSequence'
 import './cinematicSequenceOverlay.css'
@@ -70,7 +70,7 @@ const prepareFrame = async (index: number) => {
   if (!frame) return
   const image = new Image()
   image.decoding = 'async'
-  image.src = frame.mobileImage && window.matchMedia('(max-width: 768px)').matches
+  image.src = frame.mobileImage && window.matchMedia?.('(max-width: 768px)')?.matches
     ? frame.mobileImage : frame.image
   if (!image.decode) return
   let timeout: ReturnType<typeof setTimeout> | undefined

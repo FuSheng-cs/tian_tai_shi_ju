@@ -11,16 +11,22 @@
       />
     </picture>
 
+    <picture class="home-layer home-title-mist" aria-hidden="true">
+      <source :srcset="MENU_HOME_TITLE_MIST_MOBILE" media="(max-width: 768px)" type="image/webp" />
+      <img :src="MENU_HOME_TITLE_MIST_DESKTOP" alt="" decoding="async" draggable="false" />
+    </picture>
+
+    <picture class="home-layer home-menu-aura" aria-hidden="true">
+      <source :srcset="MENU_HOME_MENU_AURA_MOBILE" media="(max-width: 768px)" type="image/webp" />
+      <img :src="MENU_HOME_MENU_AURA_DESKTOP" alt="" decoding="async" draggable="false" />
+    </picture>
+
     <div class="home-vignette" aria-hidden="true"></div>
     <BgmControl />
     <section class="home-composition">
       <div class="home-brand">
         <h1 id="start-title" class="sr-only">天台十句</h1>
-        <picture class="title-picture" :class="{ 'title-ready': titleReady }"
-          :style="{
-            '--title-desktop': `url(${HOME_TITLE.desktop})`,
-            '--title-mobile': `url(${HOME_TITLE.mobile})`
-          }">
+        <picture class="title-picture">
           <span v-if="!titleReady" class="title-fallback" aria-hidden="true">天台十句</span>
           <source :srcset="HOME_TITLE.mobile" media="(max-width: 768px)" type="image/webp" />
           <source :srcset="HOME_TITLE.desktop" type="image/webp" />
@@ -47,6 +53,8 @@
           class="menu-button"
           :class="{ 'menu-button-primary': action.primary }"
           :aria-label="action.label"
+                    @pointerenter="action.primary && warmEntryCGs()"
+          @focus="action.primary && warmEntryCGs()"
           @click="action.onClick"
         >
           <span class="menu-button-copy">{{ action.text }}</span>
@@ -80,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   CHAT_AFTER_SLOT_QUERY_KEY,
@@ -94,6 +102,7 @@ import BgmControl from '@/components/BgmControl.vue'
 import { SAVE_SLOT_KINDS, SaveSystem } from '@/modules/SaveSystem'
 import { useSaveSlots } from '@/composables/useSaveSlots'
 import { HOME_TITLE } from '@/domain/homeTitle.generated'
+import { warmEntryCGs, scheduleEntryCGWarmup } from '@/modules/CgWarmup'
 
 
 const router = useRouter()
@@ -106,6 +115,7 @@ const showLoadSlots = ref(false)
 const { refreshSaveSlots, getSlot, hasSlot, getSlotTitle, getSlotStatus } = useSaveSlots()
 
 const startGame = () => {
+  warmEntryCGs()
   audioManager.playSfx('click')
   gameStore.resetGame()
   router.push({ path: '/game', query: { [GAME_ENTRY_QUERY_KEY]: GAME_ENTRY_TYPES.newGame } })
@@ -162,132 +172,263 @@ const MENU_ACTIONS = [
   { id: 'achievements', text: '成就', label: '成就图鉴', primary: false, onClick: goToAchievements },
   { id: 'settings', text: '设置', label: '游戏设置', primary: false, onClick: goToSettings }
 ] as const
+const MENU_HOME_TITLE_MIST_DESKTOP = '/assets/images/menu_home_title_mist_1600.webp'
+const MENU_HOME_TITLE_MIST_MOBILE = '/assets/images/menu_home_title_mist_900.webp'
+const MENU_HOME_MENU_AURA_DESKTOP = '/assets/images/menu_home_menu_aura_1600.webp'
+const MENU_HOME_MENU_AURA_MOBILE = '/assets/images/menu_home_menu_aura_900.webp'
+let cancelWarmup = () => {}
+onMounted(() => { cancelWarmup = scheduleEntryCGWarmup() })
+onUnmounted(() => cancelWarmup())
 </script>
 
 <style scoped>
 .start-view {
-  --title-color: #bfb3d0;
-  --home-violet-strong: #f1edf6;
+  --home-violet: rgba(190, 171, 232, 0.78);
+  --home-violet-strong: rgba(237, 228, 255, 0.96);
+  --home-muted: rgba(205, 199, 220, 0.68);
+  --home-dim: rgba(156, 150, 172, 0.48);
+  --home-line: rgba(185, 177, 203, 0.28);
+
   position: relative;
-  width: 100%; height: 100svh; min-height: 100svh;
+  width: 100vw;
+  height: 100vh;
+  min-height: 560px;
   overflow: hidden;
-  color: #dedbe2;
-  background: #050506;
+  color: var(--home-muted);
+  background: #020204;
   isolation: isolate;
 }
-.start-view.fade-enter-active { transition: none; }
-.start-view.fade-enter-from { opacity: 1; }
-.home-background, .home-background img, .home-vignette {
-  position: absolute; inset: 0;
-  width: 100%; height: 100%;
+
+.home-layer,
+.home-layer img,
+.home-vignette {
+  position: absolute;
+  inset: 0;
   pointer-events: none;
 }
-.home-background img {
+
+.home-layer {
+  z-index: 0;
+}
+
+.home-layer img {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+  user-select: none;
+}
+
+.home-background img {
   object-position: center;
-  filter: grayscale(1) contrast(1.03) brightness(0.91);
+  filter: contrast(1.05) brightness(0.92);
+  animation: sceneFade 760ms ease-out both;
 }
-.home-vignette {
+
+.home-title-mist,
+.home-menu-aura {
   z-index: 1;
-  background: linear-gradient(90deg, transparent 38%, rgba(0, 0, 0, 0.2) 69%, rgba(0, 0, 0, 0.1)),
-    linear-gradient(180deg, transparent 70%, rgba(0, 0, 0, 0.22));
+  mix-blend-mode: screen;
+  opacity: 0.74;
 }
+
+.home-title-mist img,
+.home-menu-aura img {
+  filter: saturate(0.72) brightness(0.82);
+}
+
+.home-menu-aura {
+  opacity: 0.64;
+}
+
+.home-vignette {
+  z-index: 2;
+  background:
+    radial-gradient(circle at 21% 42%, rgba(255, 255, 255, 0.04), transparent 26%),
+    radial-gradient(circle at 70% 32%, rgba(171, 138, 224, 0.12), transparent 24%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.06) 34%, rgba(0, 0, 0, 0.52) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.16), transparent 28%, rgba(0, 0, 0, 0.58));
+}
+
 .home-composition {
   position: absolute;
   z-index: 4;
-  top: clamp(92px, 13svh, 140px);
-  right: clamp(48px, 10vw, 190px);
-  width: min(39vw, 600px);
+  top: clamp(46px, 10vh, 92px);
+  right: clamp(56px, 11vw, 174px);
+  width: min(44vw, 650px);
+  min-width: 480px;
   display: grid;
   justify-items: center;
-  gap: clamp(28px, 4svh, 42px);
+  gap: clamp(18px, 3vh, 34px);
   text-align: center;
 }
-.home-brand { width: 100%; }
-.title-picture { position: relative; display: block; width: 100%; isolation: isolate; }
-.home-title-art { display: block; width: 100%; height: auto; filter: brightness(1.08); }
-.title-picture::after {
-  content: '';
-  position: absolute; inset: 0;
-  background: var(--title-color);
-  mask-image: var(--title-desktop);
-  mask-position: center; mask-repeat: no-repeat; mask-size: contain;
+
+.home-brand {
+  width: 100%;
+}
+
+.home-title-art {
+  width: min(100%, 650px);
+  height: auto;
+  display: block;
+  margin: 0 auto;
   opacity: 0;
-  mix-blend-mode: color;
-  pointer-events: none;
+  transform: translateY(10px);
+  filter: blur(7px) brightness(0.64);
+  animation: titleReveal 880ms cubic-bezier(0.2, 0.75, 0.18, 1) 260ms both;
+  user-select: none;
 }
-.title-ready::after { opacity: 1; }
-@supports not (mask-image: url('')) { .title-picture::after { display: none; } }
-.title-fallback {
-  position: absolute; inset: 0;
-  display: grid; place-items: center;
-  color: var(--title-color);
-  font-size: clamp(32px, 4vw, 64px);
-  letter-spacing: 0.12em;
-}
+
 .home-tagline {
-  margin: 16px 0 0;
-  color: #bbb8c2;
-  font-size: clamp(13px, 1vw, 16px);
-  line-height: 1.65;
-  letter-spacing: 0.035em;
-  text-shadow: 0 1px 5px #000;
-}
-.home-actions {
-  display: grid;
-  gap: 12px;
-  width: min(250px, 70%);
-}
-.menu-button {
   position: relative;
-  width: 100%; min-height: 52px;
-  padding: 0;
-  border: 0; background: transparent;
-  color: #c9c6d0;
-  cursor: pointer;
-  font-size: 24px; line-height: 1.5;
-  letter-spacing: 0.11em;
-  text-shadow: 0 1px 5px #000;
-  transition: color 140ms ease, text-shadow 140ms ease;
+  width: min(76%, 560px);
+  margin: 4px auto 0;
+  padding: 0 18px;
+  color: rgba(196, 190, 208, 0.66);
+  font-family: var(--font-hanyi-pixel) !important;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-align: center;
+  text-shadow:
+    0 0 4px rgba(214, 198, 255, 0.2),
+    0 0 12px rgba(156, 126, 214, 0.12),
+    0 1px 1px rgba(0, 0, 0, 0.82);
+  opacity: 0;
+  transform: translateY(12px);
+  filter: blur(8px) brightness(0.55);
+  animation: titleReveal 800ms cubic-bezier(0.2, 0.75, 0.18, 1) 620ms both;
 }
+
+.home-tagline::before,
+.home-tagline::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 42px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(196, 188, 216, 0.38), transparent);
+}
+
+.home-tagline::before {
+  right: calc(100% - 8px);
+}
+
+.home-tagline::after {
+  left: calc(100% - 8px);
+}
+
+.home-actions {
+  position: relative;
+  display: grid;
+  gap: clamp(8px, 1.7vh, 14px);
+  justify-items: center;
+  width: min(300px, 74%);
+  margin-top: clamp(4px, 1vh, 12px);
+}
+
+.menu-button {
+  --action-delay: 900ms;
+
+  position: relative;
+  width: 100%;
+  min-height: clamp(42px, 6.2vh, 56px);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: rgba(218, 211, 230, 0.72);
+  background: transparent;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(12px);
+  filter: blur(8px) brightness(0.55);
+  animation: menuReveal 820ms cubic-bezier(0.2, 0.75, 0.18, 1) var(--action-delay) both;
+}
+
+.menu-button::before {
+  content: '';
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 50%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(171, 157, 202, 0.16),
+    rgba(223, 214, 243, 0.38),
+    rgba(171, 157, 202, 0.16),
+    transparent
+  );
+  opacity: 0.62;
+  transform: translateY(18px) scaleX(0.86);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
 .menu-button::after {
   content: '';
-  position: absolute; bottom: 0; left: 20%; right: 20%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(214, 208, 225, 0.22), transparent);
+  position: absolute;
+  inset: 4px 8%;
+  background: radial-gradient(ellipse at center, rgba(166, 132, 218, 0.2), transparent 62%);
+  opacity: 0;
+  filter: blur(12px);
+  transition: opacity 180ms ease;
 }
-.menu-button-primary { color: #e3dce9; }
-.menu-button:hover { color: #fff; text-shadow: 0 0 9px rgba(210, 199, 226, 0.25); }
-.menu-button:focus-visible { outline: 1px solid #c8c2d0; outline-offset: 4px; border-radius: 2px; }
-:deep(.bgm-control) { color: #b8b5bf; border-color: rgba(194, 188, 204, 0.27); }
-@media (max-width: 768px) {
-  .home-background img { object-position: 18% center; }
-  .home-composition {
-    top: max(88px, calc(env(safe-area-inset-top) + 72px));
-    left: 50%; right: auto; transform: translateX(-50%);
-    width: min(84%, 420px);
-    gap: 28px;
-  }
-  .title-picture::after { mask-image: var(--title-mobile); }
-  .home-tagline { margin-top: 14px; font-size: 13px; letter-spacing: 0; }
-  .home-actions { width: min(230px, 76%); gap: 9px; }
-  .menu-button { min-height: 46px; font-size: 22px; }
-  .home-vignette { background: linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.16) 60%, rgba(0, 0, 0, 0.18)); }
+
+.menu-button-copy {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  min-width: 4em;
+  font-family: var(--font-hanyi-pixel) !important;
+  font-size: 1.58rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-shadow:
+    0 0 8px rgba(208, 185, 255, 0.32),
+    0 0 22px rgba(106, 78, 160, 0.22),
+    0 1px 1px rgba(0, 0, 0, 0.86);
+  transition:
+    color 180ms ease,
+    filter 180ms ease,
+    transform 180ms ease;
 }
-@media (max-height: 620px) and (min-width: 769px) {
-  .home-composition { top: 66px; right: 8vw; width: min(42vw, 500px); gap: 18px; }
-  .title-picture { width: min(100%, 360px); margin: 0 auto; }
-  .home-actions { gap: 4px; }
-  .menu-button { min-height: 42px; font-size: 21px; }
+
+.menu-button:hover,
+.menu-button:focus-visible {
+  color: var(--home-violet-strong);
+  outline: none;
 }
-@media (max-height: 450px) {
-  .home-composition { top: 58px; gap: 12px; }
-  .title-picture { max-width: 260px; margin: 0 auto; }
-  .home-tagline { margin-top: 6px; font-size: 12px; }
-  .home-actions { gap: 2px; }
-  .menu-button { min-height: 34px; font-size: 18px; }
+
+.menu-button:hover::before,
+.menu-button:focus-visible::before {
+  opacity: 0.95;
+  transform: translateY(18px) scaleX(1.02);
 }
-@media (prefers-reduced-motion: reduce) { .menu-button { transition: none; } }
+
+.menu-button:hover::after,
+.menu-button:focus-visible::after {
+  opacity: 1;
+}
+
+.menu-button:hover .menu-button-copy,
+.menu-button:focus-visible .menu-button-copy {
+  filter: brightness(1.18);
+  transform: translateY(-1px);
+}
+
+.menu-button:focus-visible .menu-button-copy {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.28em;
+}
+
+.menu-button:active .menu-button-copy {
+  transform: translateY(1px);
+}
+
 .save-slot-overlay {
   position: fixed;
   inset: 0;
@@ -414,4 +555,149 @@ const MENU_ACTIONS = [
   border: 0;
 }
 
+@keyframes sceneFade {
+  from {
+    opacity: 0;
+    filter: contrast(1.02) brightness(0.68) blur(3px);
+  }
+  to {
+    opacity: 1;
+    filter: contrast(1.05) brightness(0.92) blur(0);
+  }
+}
+
+@keyframes titleReveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0) brightness(1);
+  }
+}
+
+@keyframes menuReveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0) brightness(1);
+  }
+}
+
+@media (max-width: 960px) {
+  .start-view {
+    min-height: 620px;
+  }
+
+  .home-background img {
+    object-position: 34% center;
+  }
+
+  .home-vignette {
+    background:
+      radial-gradient(circle at 26% 40%, rgba(255, 255, 255, 0.03), transparent 30%),
+      linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.26) 42%, rgba(0, 0, 0, 0.76)),
+      linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.36));
+  }
+
+  .home-composition {
+    top: 7vh;
+    right: 0;
+    left: 0;
+    width: auto;
+    min-width: 0;
+    padding: 0 22px;
+    gap: 14px;
+  }
+
+  .home-title-art {
+    width: min(94vw, 520px);
+  }
+
+  .home-actions {
+    width: min(64vw, 250px);
+    margin-top: 7px;
+  }
+}
+
+@media (max-width: 640px) {
+  .start-view {
+    min-height: 100svh;
+  }
+
+  .home-background img {
+    object-position: 24% center;
+  }
+
+  .home-composition {
+    top: max(26px, 5.8vh);
+    padding: 0 18px;
+  }
+
+  .home-title-art {
+    width: min(92vw, 440px);
+  }
+
+  .home-tagline {
+    width: min(82vw, 430px);
+    font-size: 0.82rem;
+    padding: 0 10px;
+  }
+
+  .home-tagline::before,
+  .home-tagline::after {
+    width: 24px;
+  }
+
+  .home-actions {
+    width: min(58vw, 210px);
+    gap: 6px;
+  }
+
+  .menu-button {
+    min-height: 42px;
+  }
+
+  .menu-button-copy {
+    font-size: 1.34rem;
+  }
+
+  .save-slot-overlay {
+    padding: 16px;
+    align-items: end;
+  }
+
+  .save-slot-panel {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-background img,
+  .home-title-art,
+  .home-tagline,
+  .menu-button {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+    transform: none;
+    filter: none;
+  }
+
+}
+/* Preserve the original monochrome art; show controls immediately. */
+.start-view { min-height: 100svh; height: 100svh; }
+.start-view.fade-enter-active { transition: none; }
+.start-view.fade-enter-from { opacity: 1; }
+.home-background img, .home-title-art, .home-tagline, .menu-button {
+  animation: none; opacity: 1; transform: none;
+}
+.home-title-art { filter: saturate(0.38) brightness(0.94); }
+.home-background, .home-title-mist, .home-menu-aura { filter: grayscale(1); }
+.home-tagline, .menu-button { filter: none; }
+.title-picture { position: relative; }
+.title-fallback {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  color: #ddd; font-size: clamp(30px, 4vw, 64px); letter-spacing: 0.12em;
+}
+@media (max-width: 768px) {
+  .home-composition { padding-top: 64px; }
+}
 </style>
