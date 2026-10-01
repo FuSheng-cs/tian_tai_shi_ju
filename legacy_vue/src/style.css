@@ -1,12 +1,6 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: "HanYiPixel11";
-  src: url("/assets/fonts/HYPixel11pxU-2.ttf") format("truetype");
-  font-display: swap;
-  font-weight: 400 900;
-  font-style: normal;
-}
+@import "./fonts.generated.css";
 
 :root {
   --font-size-base: 16px;

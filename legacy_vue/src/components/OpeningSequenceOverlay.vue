@@ -11,13 +11,14 @@
     @keydown.enter.prevent="advance"
   >
     <picture
-      v-for="(frame, index) in frames"
+      v-for="{ frame, index } in visibleFrames"
       :key="frame.id"
       class="cinematic-frame"
       :class="{ 'cinematic-frame-active': index === currentIndex }"
     >
       <source v-if="frame.mobileImage" :srcset="frame.mobileImage" media="(max-width: 768px)" />
-      <img :src="frame.image" alt="" aria-hidden="true" draggable="false" />
+      <img :src="frame.image" alt="" aria-hidden="true" draggable="false"
+        decoding="async" :fetchpriority="index === currentIndex ? 'high' : 'low'" />
     </picture>
 
     <div class="cinematic-vignette" aria-hidden="true"></div>
@@ -47,6 +48,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { audioManager } from '@/modules/AudioManager'
 import { useCinematicSequence, type CinematicFrame } from '@/composables/useCinematicSequence'
 import './cinematicSequenceOverlay.css'
@@ -63,6 +65,25 @@ const emit = defineEmits<{
   (e: 'complete'): void
 }>()
 
+const prepareFrame = async (index: number) => {
+  const frame = props.frames[index]
+  if (!frame) return
+  const image = new Image()
+  image.decoding = 'async'
+  image.src = frame.mobileImage && window.matchMedia('(max-width: 768px)').matches
+    ? frame.mobileImage : frame.image
+  if (!image.decode) return
+  let timeout: ReturnType<typeof setTimeout> | undefined
+  try {
+    await Promise.race([
+      image.decode().catch(() => undefined),
+      new Promise<void>((resolve) => { timeout = setTimeout(resolve, 6000) })
+    ])
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 const { currentIndex, isExiting, activeFrame, activeCaption, isLastFrame, advance, skip } =
   useCinematicSequence({
     frames: () => props.frames,
@@ -72,8 +93,13 @@ const { currentIndex, isExiting, activeFrame, activeCaption, isLastFrame, advanc
     onAdvanceStep: (fromIndex) => audioManager.playStairStep(fromIndex),
     onLastFrameConfirm: (lastIndex) => audioManager.playStairStep(lastIndex),
     onSkip: (lastIndex) => audioManager.playStairStep(lastIndex),
-    onComplete: () => emit('complete')
+    onComplete: () => emit('complete'),
+    beforeAdvance: prepareFrame
   })
+
+const visibleFrames = computed(() => props.frames
+  .map((frame, index) => ({ frame, index }))
+  .filter(({ index }) => Math.abs(index - currentIndex.value) <= 1))
 </script>
 
 <style scoped>

@@ -20,6 +20,7 @@ type CinematicSequenceOptions = {
   onLastFrameConfirm: (lastIndex: number) => void
   onSkip: (lastIndex: number) => void
   onComplete: () => void
+  beforeAdvance?: (index: number) => Promise<void>
 }
 
 export const useCinematicSequence = (options: CinematicSequenceOptions) => {
@@ -28,6 +29,8 @@ export const useCinematicSequence = (options: CinematicSequenceOptions) => {
   let exitTimer: ReturnType<typeof window.setTimeout> | null = null
   let fadeTimer: ReturnType<typeof window.setTimeout> | null = null
   let completed = false
+  let preparing = false
+  let transitionVersion = 0
 
   const activeFrame = computed(
     () => options.frames()[currentIndex.value] ?? options.frames()[0] ?? options.fallbackFrame
@@ -61,8 +64,8 @@ export const useCinematicSequence = (options: CinematicSequenceOptions) => {
     }, delayMs)
   }
 
-  const advance = () => {
-    if (completed || isExiting.value) return
+  const advance = async () => {
+    if (completed || isExiting.value || preparing) return
 
     if (isLastFrame.value) {
       options.onLastFrameConfirm(currentIndex.value)
@@ -71,6 +74,13 @@ export const useCinematicSequence = (options: CinematicSequenceOptions) => {
     }
 
     const fromIndex = currentIndex.value
+    const version = ++transitionVersion
+    if (options.beforeAdvance) {
+      preparing = true
+      await options.beforeAdvance(fromIndex + 1)
+      preparing = false
+      if (completed || isExiting.value || version !== transitionVersion) return
+    }
     currentIndex.value += 1
     options.onAdvanceStep(fromIndex)
   }
@@ -78,6 +88,7 @@ export const useCinematicSequence = (options: CinematicSequenceOptions) => {
   const skip = () => {
     if (completed || isExiting.value) return
     clearSequenceTimers()
+    transitionVersion += 1
     currentIndex.value = options.frames().length - 1
     options.onSkip(currentIndex.value)
     scheduleExit(options.skipExitDelayMs)
@@ -91,6 +102,7 @@ export const useCinematicSequence = (options: CinematicSequenceOptions) => {
   })
 
   onUnmounted(() => {
+    completed = true
     clearSequenceTimers()
   })
 

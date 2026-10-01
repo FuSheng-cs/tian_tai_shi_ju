@@ -44,6 +44,8 @@ vi.mock('vue-router', () => ({
 
 vi.mock('../src/modules/AudioManager', () => ({
     audioManager: {
+      bgmState: { value: 'playing' },
+      toggleBgm: vi.fn(),
       preloadBgm: mocks.preloadBgm,
       playSfx: mocks.playSfx,
       playBgm: mocks.playBgm,
@@ -174,6 +176,15 @@ describe('opening guide flow', () => {
     })
   })
 
+  it('shows a readable title and usable menu while the title artwork is downloading', async () => {
+    const wrapper = mount(StartView)
+    expect(wrapper.get('.title-fallback').text()).toBe('天台十句')
+    expect(wrapper.get('.menu-button-primary').attributes('disabled')).toBeUndefined()
+    await wrapper.get('.title-art').trigger('load')
+    expect(wrapper.find('.title-fallback').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
   it('marks the next game entry as a loaded save when loading a slot', async () => {
     const wrapper = mount(StartView)
 
@@ -231,6 +242,20 @@ describe('opening guide flow', () => {
     await nextTick()
 
     expect(wrapper.find('[data-test="opening-sequence"]').exists()).toBe(false)
+  })
+
+  it('does not fetch the hidden gameplay background or endings during the opening', async () => {
+    const requests: string[] = []
+    vi.stubGlobal('Image', class {
+      set src(value: string) { requests.push(value) }
+    })
+    mocks.route.query = { [GAME_ENTRY_QUERY_KEY]: GAME_ENTRY_TYPES.newGame }
+    const wrapper = mountGameView()
+    await nextTick()
+    expect(wrapper.find('img[alt="Background"]').exists()).toBe(false)
+    expect(requests).toEqual([])
+    wrapper.unmount()
+    vi.unstubAllGlobals()
   })
 
   it('does not play the opening sequence when entering from a loaded save', () => {

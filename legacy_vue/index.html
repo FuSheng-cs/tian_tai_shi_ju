@@ -5,6 +5,23 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#1e1b4b">
+    <script>
+      // Fetch homepage art before waiting for the route's JavaScript and CSS.
+      if (location.pathname === '/') {
+        const mobile = matchMedia('(max-width: 980px)').matches
+        for (const href of [
+          '/assets/images/menu_title.webp',
+          `/assets/images/menu_bg_rooftop_${mobile ? '900' : '1600'}.webp`
+        ]) {
+          const link = document.createElement('link')
+          link.rel = 'preload'
+          link.as = 'image'
+          link.href = href
+          link.fetchPriority = 'high'
+          document.head.appendChild(link)
+        }
+      }
+    </script>
     <title>天台十句 - 网页文字冒险游戏</title>
   </head>
   <body>
