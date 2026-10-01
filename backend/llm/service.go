@@ -23,9 +23,16 @@ type Message struct {
 
 // LLMRequest 是发送给 LLM 服务商的请求体
 type LLMRequest struct {
-	Model       string    `json:"model"`
-	Messages    []Message `json:"messages"`
-	Temperature float64   `json:"temperature"`
+	Model           string          `json:"model"`
+	Messages        []Message       `json:"messages"`
+	Temperature     *float64        `json:"temperature,omitempty"`
+	Thinking        *ThinkingConfig `json:"thinking,omitempty"`
+	EnableThinking  *bool           `json:"enable_thinking,omitempty"`
+	ReasoningEffort string          `json:"reasoning_effort,omitempty"`
+}
+
+type ThinkingConfig struct {
+	Type string `json:"type"`
 }
 
 // LLMResponse 是 LLM 服务商返回的响应体（标准 OpenAI 格式）
@@ -44,7 +51,7 @@ type LLMResponse struct {
 type AnthropicRequest struct {
 	Model       string    `json:"model"`
 	MaxTokens   int       `json:"max_tokens"`
-	Temperature float64   `json:"temperature"`
+	Temperature *float64  `json:"temperature,omitempty"`
 	System      string    `json:"system,omitempty"`
 	Messages    []Message `json:"messages"`
 }
@@ -133,35 +140,35 @@ var providerDefaults = map[string]struct {
 }{
 	"openai": {
 		BaseURL: "https://api.openai.com/v1",
-		Model:   "gpt-4o-mini",
+		Model:   "gpt-6-luna",
 	},
 	"qwen": {
 		BaseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-		Model:   "qwen-plus",
+		Model:   "qwen3.7-plus",
 	},
 	"deepseek": {
 		BaseURL: "https://api.deepseek.com/v1",
-		Model:   "deepseek-chat",
+		Model:   "deepseek-flash",
 	},
 	"doubao": {
 		BaseURL: "https://ark.cn-beijing.volces.com/api/v3",
-		Model:   "doubao-pro-4k",
+		Model:   "doubao-seed-2-1-lite-260915",
 	},
 	"kimi": {
 		BaseURL: "https://api.moonshot.cn/v1",
-		Model:   "moonshot-v1-8k",
+		Model:   "kimi-k2.6",
 	},
 	"zhipu": {
 		BaseURL: "https://open.bigmodel.cn/api/paas/v4",
-		Model:   "glm-4-flash",
+		Model:   "glm-5.3-flash",
 	},
 	"claude": {
 		BaseURL: "https://api.anthropic.com/v1",
-		Model:   "claude-sonnet-5",
+		Model:   "claude-sonnet-5-5",
 	},
 	"anthropic": {
 		BaseURL: "https://api.anthropic.com/v1",
-		Model:   "claude-sonnet-5",
+		Model:   "claude-sonnet-5-5",
 	},
 }
 
@@ -202,7 +209,7 @@ func callOpenAICompatibleLLM(cfg ClientConfig, messages []Message, temperature f
 		if defaults, ok := providerDefaults[strings.ToLower(cfg.Provider)]; ok {
 			model = defaults.Model
 		} else {
-			model = "gpt-4o-mini"
+			model = "gpt-6-luna"
 		}
 	}
 
@@ -227,7 +234,31 @@ func callOpenAICompatibleLLM(cfg ClientConfig, messages []Message, temperature f
 	reqBody := LLMRequest{
 		Model:       model,
 		Messages:    messages,
-		Temperature: temperature,
+		Temperature: &temperature,
+	}
+	// Apply only known model-family constraints, including custom gateways.
+	// Game history stores dialogue text, so use non-thinking where supported.
+	switch {
+	case model == "deepseek-flash" || strings.HasPrefix(model, "deepseek-v4-"):
+		reqBody.Thinking = &ThinkingConfig{Type: "disabled"}
+	case strings.HasPrefix(model, "qwen3"):
+		disabled := false
+		reqBody.EnableThinking = &disabled
+	case model == "kimi-k2.6":
+		reqBody.Thinking = &ThinkingConfig{Type: "disabled"}
+		reqBody.Temperature = nil
+	case strings.HasPrefix(model, "kimi-k3") || strings.HasPrefix(model, "kimi-k2.7"):
+		return "", fmt.Errorf("this Kimi model requires preserved reasoning history; use kimi-k2.6")
+	case strings.HasPrefix(model, "gpt-6"):
+		reqBody.Temperature = nil
+		if model == "gpt-6-luna" || model == "gpt-6-sol" {
+			reqBody.ReasoningEffort = "none"
+		} else {
+			reqBody.ReasoningEffort = "low"
+		}
+	case strings.HasPrefix(model, "glm-5.3"):
+		reqBody.Temperature = nil
+		reqBody.ReasoningEffort = "low"
 	}
 
 	bodyBytes, err := json.Marshal(reqBody)
@@ -318,10 +349,13 @@ func callAnthropicLLM(cfg ClientConfig, messages []Message, temperature float64)
 
 	reqBody := AnthropicRequest{
 		Model:       model,
-		MaxTokens:   1024,
-		Temperature: temperature,
+		MaxTokens:   8192,
+		Temperature: &temperature,
 		System:      strings.Join(systemParts, "\n\n"),
 		Messages:    chatMessages,
+	}
+	if strings.HasPrefix(model, "claude-sonnet-5") || strings.HasPrefix(model, "claude-opus-5") {
+		reqBody.Temperature = nil
 	}
 
 	bodyBytes, err := json.Marshal(reqBody)

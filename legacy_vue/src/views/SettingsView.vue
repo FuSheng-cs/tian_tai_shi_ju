@@ -27,6 +27,7 @@
             <div>
               <h3 class="text-xl text-purple-200">AI 模型设置</h3>
               <p class="mt-1 text-sm text-gray-500">选择服务商后，模型名和 Base URL 可留空使用默认值。</p>
+              <p class="mt-1 text-xs text-gray-500">模型预设更新于 2026-10-01，实际可用模型以账户权限为准。</p>
             </div>
             <span class="hidden rounded-full border border-purple-400/30 px-3 py-1 text-xs text-purple-200 sm:inline-flex">
               {{ protocolLabel }}
@@ -91,7 +92,7 @@
                   </button>
                 </div>
                 <p class="text-xs leading-relaxed text-gray-500">
-                  {{ currentProvider.hint }} API Key 只保存在本地浏览器；测试连接时会发送到后端用于调用对应服务商。
+                  {{ currentProvider.hint }} API Key 保存在本地浏览器，请求时会发送到后端用于调用对应服务商。
                 </p>
               </div>
 

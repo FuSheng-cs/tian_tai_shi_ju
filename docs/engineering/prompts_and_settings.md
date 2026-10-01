@@ -45,3 +45,26 @@
 ## 调试边界
 
 没有配置 API Key 时仅返回标明“模拟回复”的演示内容；这不能用于检验真实 AI 剧情。自动化测试使用本地模拟模型服务，不向真实提供商发送对话。
+
+
+## API 服务预设（2026-10-01 核对）
+
+| 服务商 | 默认模型 | Base URL |
+| --- | --- | --- |
+| DeepSeek | `deepseek-flash`（V4.1 Flash） | `https://api.deepseek.com/v1` |
+| 千问 | `qwen3.7-plus` | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| 豆包 | `doubao-seed-2-1-lite-260915` | `https://ark.cn-beijing.volces.com/api/v3` |
+| Kimi | `kimi-k2.6` | `https://api.moonshot.cn/v1` |
+| 智谱 | `glm-5.3-flash` | `https://open.bigmodel.cn/api/paas/v4` |
+| OpenAI | `gpt-6-luna` | `https://api.openai.com/v1` |
+| Claude | `claude-sonnet-5-5` | `https://api.anthropic.com/v1` |
+
+DeepSeek、千问、Kimi K2.6 使用非思考模式，适合短对白和独立 JSON 裁判。
+Kimi 固定采样参数不传 temperature；K3/K2.7 要求保留思考历史，当前纯文本历史契约不支持，后端返回明确错误。
+GPT-6 移除 temperature，Luna/Sol 使用 none，其余使用 low 推理强度。
+GLM 5.3 始终思考，使用 low 并省略 temperature。Claude 5 移除 temperature，输出预算 8192 tokens。
+
+服务商预设是文档核对结果，并不保证每个账户有调用权限。豆包需开通相应 Model ID 或填写 ep- 接入点 ID；百炼 Key 和地址须匹配地域。
+玩家已有的 Key、自定义模型和地址继续保留，更新不会擅自改写浏览器配置。旧模型使用者请清空模型字段以采用新默认值，或选择新模型。
+
+官方依据：[DeepSeek](https://api-docs.deepseek.com/quick_start/pricing/)、[千问](https://help.aliyun.com/zh/model-studio/text-generation-model/)、[豆包](https://docs.volcengine.com/docs/ark/model-release-announcement?lang=zh)、[Kimi 参数](https://platform.kimi.com/docs/api/models-overview)、[GLM 5.3](https://docs.bigmodel.cn/cn/guide/models/text/glm-5.3.md)、[GLM Flash](https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash.md)、[GPT-6](https://developers.openai.com/api/docs/guides/latest-model)、[Claude](https://platform.claude.com/docs/en/models/sonnet-5-5/overview)。
