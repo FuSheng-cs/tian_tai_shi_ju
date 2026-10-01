@@ -8,10 +8,10 @@
     <script>
       // Fetch homepage art before waiting for the route's JavaScript and CSS.
       if (location.pathname === '/') {
-        const mobile = matchMedia('(max-width: 980px)').matches
+        const mobile = matchMedia('(max-width: 768px)').matches
         for (const href of [
           '/assets/images/menu_title.webp',
-          `/assets/images/menu_bg_rooftop_${mobile ? '900' : '1600'}.webp`
+          `/assets/images/menu_home_bg_${mobile ? '900' : '1600'}.webp`
         ]) {
           const link = document.createElement('link')
           link.rel = 'preload'
