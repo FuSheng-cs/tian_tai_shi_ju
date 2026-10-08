@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from 'vue'
 import {
   ArrowDown,
   ArrowLeft,
@@ -52,6 +52,11 @@ const {
 const { preferences, systemReducedMotion } = usePreferences()
 const audio = useAmbientAudio()
 const { soundEnabled, musicVolume, rainVolume, isPlaying } = audio
+const { musicTrackStatus, selectedMusicTrack } = audio
+const LocalMusicAudition =
+  import.meta.env.DEV && import.meta.env.VITE_LOCAL_AUDIO_AUDITION === '1'
+    ? defineAsyncComponent(() => import('./components/LocalMusicAudition.vue'))
+    : null
 const screen = ref<'home' | 'intro' | 'game'>('home')
 const modal = ref<'start' | 'settings' | 'about' | 'journal' | 'leave' | null>(null)
 const journalTab = ref<'memories' | 'transcript'>('memories')
@@ -1028,7 +1033,11 @@ async function onJournalKeys(event: KeyboardEvent) {
           </div>
         </fieldset>
         <div class="audio-setting">
-          <div><AudioLines :size="17" /><span>原创雨夜声景</span></div>
+          <div>
+            <AudioLines :size="17" /><span>{{
+              LocalMusicAudition ? '雨夜声音' : '原创雨夜声景'
+            }}</span>
+          </div>
           <button class="text-button" :aria-pressed="isPlaying" @click="audio.toggle">
             {{ isPlaying ? '关闭声音' : '开启声音' }}<Volume2 v-if="isPlaying" :size="14" /><VolumeX
               v-else
@@ -1067,6 +1076,12 @@ async function onJournalKeys(event: KeyboardEvent) {
           }}
         </p>
         <p class="settings-note">只想听雨，可以把音乐音量调到 0。关闭声音也能完整阅读故事。</p>
+        <LocalMusicAudition
+          v-if="LocalMusicAudition"
+          :set-music-track="audio.setMusicTrack"
+          :status="musicTrackStatus"
+          :selected-music-track="selectedMusicTrack"
+        />
       </div>
     </SceneDialog>
 

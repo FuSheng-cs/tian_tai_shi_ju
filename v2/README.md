@@ -56,6 +56,8 @@ V2_DATA_DIR=<v2 专用的私有存档目录>
 
 完整叙事见 [NARRATIVE.md](../docs/v2/NARRATIVE.md)，素材来源见 `art/` 内清单。
 
+用户提供的参考曲可在专用本地入口试听：`node v2/scripts/dev-audio-audition.mjs`，然后打开 `http://127.0.0.1:5178` 的声音设置。需要本机已导入的私有 MP3；普通运行与发布包不包含录音或试听控件。曲目、来源及检查见 [参考配乐说明](../docs/v2/REFERENCE_MUSIC_2026-10-09.md)。
+
 ## 验证与部署边界
 
 Go 测试覆盖回合、持久化、并发、模型故障和幂等；前端有状态/设置测试，Playwright 通过真实浏览器运行完整排演。

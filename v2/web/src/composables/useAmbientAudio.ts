@@ -1,5 +1,12 @@
 import { onUnmounted, ref } from 'vue'
 import {
+  createLocalMusicAudition,
+  isLocalMusicTrack,
+  type LocalMusicAudition,
+  type LocalMusicTrack,
+  type MusicTrackStatus,
+} from '../audio/localMusicAudition'
+import {
   DRONE_DETUNE,
   DRONE_LEVELS,
   DRONE_PAN,
@@ -38,6 +45,7 @@ interface AmbientEngine {
   context: AudioContext
   master: GainNode
   music: GainNode
+  synthMix: GainNode
   rain: GainNode
   rainFilter: BiquadFilterNode
   rainShelter: GainNode
@@ -104,6 +112,8 @@ export function useAmbientAudio() {
   const musicVolume = ref(preferences.musicVolume)
   const rainVolume = ref(preferences.rainVolume)
   const isPlaying = ref(false)
+  const musicTrackStatus = ref<MusicTrackStatus>('original')
+  const selectedMusicTrack = ref<string | undefined>()
 
   let engine: AmbientEngine | undefined
   let phraseTimer: ReturnType<typeof setTimeout> | undefined
@@ -115,6 +125,24 @@ export function useAmbientAudio() {
   let nextPhraseAt = PHRASE_OPENING_SECONDS
   let phase: AmbientPhase = 'arrival'
   let location: AmbientLocation = 'rooftop'
+  let selectedTrack: LocalMusicTrack | undefined
+  let audition: LocalMusicAudition | undefined
+
+  function localTransport(): LocalMusicAudition | undefined {
+    if (!import.meta.env.DEV || import.meta.env.VITE_LOCAL_AUDIO_AUDITION !== '1' || !engine) return
+    audition ??= createLocalMusicAudition({
+      context: engine.context,
+      master: engine.master,
+      synthMix: engine.synthMix,
+      volume: musicVolume.value,
+      canPlay: () =>
+        requestedEnabled && !disposed && !document.hidden && engine?.context.state === 'running',
+      onStatus: (status) => {
+        musicTrackStatus.value = status
+      },
+    })
+    return audition
+  }
 
   function persistPreferences(): void {
     try {
@@ -155,14 +183,17 @@ export function useAmbientAudio() {
       const music = track(context.createGain())
       const rain = track(context.createGain())
       const warmth = track(context.createBiquadFilter())
+      const synthMix = track(context.createGain())
       master.gain.value = 0
       music.gain.value = musicVolume.value * PHASE_SCORE[phase].music
       rain.gain.value = rainVolume.value * PHASE_SCORE[phase].rain
       warmth.type = 'lowpass'
       warmth.frequency.value = 1650
       warmth.Q.value = 0.4
+      synthMix.gain.value = 1
       music.connect(warmth)
-      warmth.connect(master)
+      warmth.connect(synthMix)
+      synthMix.connect(master)
       // Three very quiet early reflections give the keys a small, imperfect
       // room. No feedback loop, cavernous reverb or endless ringing tail.
       for (const tap of ROOM_TAPS) {
@@ -180,7 +211,7 @@ export function useAmbientAudio() {
         delay.connect(softened)
         softened.connect(level)
         level.connect(pan)
-        pan.connect(master)
+        pan.connect(synthMix)
       }
       // Physical shelter is a separate bus from dramatic pacing. Only an
       // accepted scene location may muffle the rain; a phase cannot move her.
@@ -241,6 +272,7 @@ export function useAmbientAudio() {
         context,
         master,
         music,
+        synthMix,
         rain,
         rainFilter: rainHigh,
         rainShelter,
@@ -428,6 +460,16 @@ export function useAmbientAudio() {
       soundEnabled.value = true
       isPlaying.value = true
       schedulePhrase()
+      if (
+        import.meta.env.DEV &&
+        import.meta.env.VITE_LOCAL_AUDIO_AUDITION === '1' &&
+        selectedTrack
+      ) {
+        const existing = audition
+        const transport = localTransport()
+        if (existing) await transport?.resume()
+        else await transport?.select(selectedTrack)
+      }
     } catch {
       if (currentTransition !== transition) return
       requestedEnabled = false
@@ -443,6 +485,7 @@ export function useAmbientAudio() {
     isPlaying.value = false
     clearTimeout(phraseTimer)
     clearTimeout(suspendTimer)
+    audition?.pause(720)
     if (!engine || engine.context.state === 'closed') return
     const activeEngine = engine
     fade(activeEngine.master.gain, 0, activeEngine.context.currentTime, 0.65)
@@ -465,6 +508,7 @@ export function useAmbientAudio() {
     isPlaying.value = false
     clearTimeout(phraseTimer)
     clearTimeout(suspendTimer)
+    audition?.pause(180)
     const activeEngine = engine
     fade(activeEngine.master.gain, 0, activeEngine.context.currentTime, 0.15)
     suspendTimer = setTimeout(() => {
@@ -492,6 +536,7 @@ export function useAmbientAudio() {
         engine.context.currentTime,
       )
     }
+    audition?.setVolume(musicVolume.value)
     persistPreferences()
   }
 
@@ -539,6 +584,24 @@ export function useAmbientAudio() {
     )
   }
 
+  /** Explicit opt-in private development audition; never changes sound enablement. */
+  async function setMusicTrack(url?: string, gain = 1): Promise<void> {
+    if (!import.meta.env.DEV || import.meta.env.VITE_LOCAL_AUDIO_AUDITION !== '1' || disposed)
+      return
+    if (url !== undefined && !isLocalMusicTrack(url)) {
+      selectedTrack = undefined
+      selectedMusicTrack.value = undefined
+      await audition?.select(undefined)
+      musicTrackStatus.value = 'error'
+      return
+    }
+    selectedTrack = url ? { url, gain: volume(gain, 1) } : undefined
+    selectedMusicTrack.value = url
+    musicTrackStatus.value = url ? 'selected' : 'original'
+    const transport = audition ?? (url && engine ? localTransport() : undefined)
+    await transport?.select(selectedTrack)
+  }
+
   onUnmounted(() => {
     disposed = true
     transition += 1
@@ -550,6 +613,8 @@ export function useAmbientAudio() {
     if (typeof document !== 'undefined') {
       document.removeEventListener('visibilitychange', visibilityChanged)
     }
+    audition?.dispose()
+    audition = undefined
     if (!engine) return
     engine.context.onstatechange = null
     engine.sources.forEach((node) => {
@@ -570,6 +635,8 @@ export function useAmbientAudio() {
     musicVolume,
     rainVolume,
     isPlaying,
+    musicTrackStatus,
+    selectedMusicTrack,
     enable,
     disable,
     toggle,
@@ -577,5 +644,6 @@ export function useAmbientAudio() {
     setRainVolume,
     setPhase,
     setLocation,
+    setMusicTrack,
   }
 }

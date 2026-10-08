@@ -29,7 +29,10 @@ class MockNode {
   delayTime = new MockParameter()
   onended: (() => void) | null = null
   disconnected = false
-  connect() {}
+  connections: MockNode[] = []
+  connect(node: MockNode) {
+    this.connections.push(node)
+  }
   disconnect() {
     this.disconnected = true
   }
@@ -48,6 +51,7 @@ class MockAudioContext {
   sampleRate = 100
   destination = new MockNode()
   nodes: MockNode[] = []
+  mediaSources: MockNode[] = []
   onstatechange: (() => void) | null = null
 
   constructor() {
@@ -76,6 +80,11 @@ class MockAudioContext {
   createBufferSource() {
     return this.createNode()
   }
+  createMediaElementSource() {
+    const source = this.createNode()
+    this.mediaSources.push(source)
+    return source
+  }
   createBuffer(channels: number, length: number) {
     return {
       numberOfChannels: channels,
@@ -94,6 +103,30 @@ class MockAudioContext {
   async close() {
     this.state = 'closed'
   }
+}
+
+class MockMedia extends EventTarget {
+  static instances: MockMedia[] = []
+  static rejectPlayback = false
+  paused = true
+  src = ''
+  loop = false
+  preload = ''
+  constructor() {
+    super()
+    MockMedia.instances.push(this)
+  }
+  async play() {
+    if (MockMedia.rejectPlayback) throw new Error('File playback rejected')
+    this.paused = false
+  }
+  pause() {
+    this.paused = true
+  }
+  removeAttribute(name: string) {
+    if (name === 'src') this.src = ''
+  }
+  load() {}
 }
 
 const wrappers: VueWrapper[] = []
@@ -116,7 +149,10 @@ beforeEach(() => {
   localStorage.clear()
   MockAudioContext.instances = []
   MockAudioContext.rejectResume = false
+  MockMedia.instances = []
+  MockMedia.rejectPlayback = false
   vi.stubGlobal('AudioContext', MockAudioContext)
+  vi.stubGlobal('Audio', MockMedia)
   vi.spyOn(document, 'hidden', 'get').mockReturnValue(false)
 })
 
@@ -125,6 +161,7 @@ afterEach(() => {
   vi.clearAllTimers()
   vi.useRealTimers()
   vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
 })
 
 describe('useAmbientAudio', () => {
@@ -377,5 +414,87 @@ describe('useAmbientAudio', () => {
     expect(audio.soundEnabled.value).toBe(false)
     expect(audio.rainVolume.value).toBe(0)
     expect(MockAudioContext.instances).toHaveLength(1)
+  })
+
+  it('does not accept private tracks without the development audition flag or in production', async () => {
+    vi.stubEnv('VITE_LOCAL_AUDIO_AUDITION', '')
+    const { audio } = mountAudio()
+    await audio.setMusicTrack('/__local-audio/home.mp3')
+    expect(audio.musicTrackStatus.value).toBe('original')
+    vi.stubEnv('VITE_LOCAL_AUDIO_AUDITION', '1')
+    vi.stubEnv('DEV', false)
+    await audio.setMusicTrack('/__local-audio/home.mp3')
+    expect(audio.selectedMusicTrack.value).toBeUndefined()
+    expect(MockAudioContext.instances).toHaveLength(0)
+    expect(MockMedia.instances).toHaveLength(0)
+  })
+
+  it('stages a private selection without autoplay, then uses the existing context and bounded track gain', async () => {
+    vi.stubEnv('VITE_LOCAL_AUDIO_AUDITION', '1')
+    const { audio } = mountAudio()
+    await audio.setMusicTrack('/__local-audio/home.mp3', 9)
+    expect(audio.musicTrackStatus.value).toBe('selected')
+    expect(audio.selectedMusicTrack.value).toBe('/__local-audio/home.mp3')
+    expect(audio.soundEnabled.value).toBe(false)
+    expect(MockAudioContext.instances).toHaveLength(0)
+    expect(MockMedia.instances).toHaveLength(0)
+    await audio.enable()
+    expect(audio.musicTrackStatus.value).toBe('ready')
+    expect(MockAudioContext.instances).toHaveLength(1)
+    const context = MockAudioContext.instances[0]!
+    const trackGain = context.mediaSources[0]!.connections[0]!
+    const fileVolume = trackGain.connections[0]!
+    expect(trackGain.gain.value).toBe(1)
+    audio.setMusicVolume(0)
+    audio.setRainVolume(0.5)
+    audio.setPhase('threshold')
+    expect(fileVolume.gain.value).toBe(0)
+    expect(context.nodes[2]!.gain.value).toBeCloseTo(0.39)
+    expect(audio.musicVolume.value).toBe(0)
+  })
+
+  it('pauses media itself when hidden and respects a later manual disable', async () => {
+    vi.stubEnv('VITE_LOCAL_AUDIO_AUDITION', '1')
+    const hidden = vi.spyOn(document, 'hidden', 'get')
+    const { audio } = mountAudio()
+    await audio.setMusicTrack('/__local-audio/home.mp3', 0.5)
+    await audio.enable()
+    const media = MockMedia.instances[0]!
+    expect(media.paused).toBe(false)
+    hidden.mockReturnValue(true)
+    document.dispatchEvent(new Event('visibilitychange'))
+    await vi.advanceTimersByTimeAsync(200)
+    expect(media.paused).toBe(true)
+    expect(MockAudioContext.instances[0]!.state).toBe('suspended')
+    hidden.mockReturnValue(false)
+    document.dispatchEvent(new Event('visibilitychange'))
+    await vi.advanceTimersByTimeAsync(1)
+    expect(media.paused).toBe(false)
+    expect(MockMedia.instances).toHaveLength(1)
+    audio.disable()
+    await vi.advanceTimersByTimeAsync(750)
+    audio.setLocation('threshold')
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(media.paused).toBe(true)
+    expect(audio.soundEnabled.value).toBe(false)
+  })
+
+  it('keeps sound enabled on a file error so the original score and rain remain available', async () => {
+    vi.stubEnv('VITE_LOCAL_AUDIO_AUDITION', '1')
+    MockMedia.rejectPlayback = true
+    const { audio } = mountAudio()
+    await audio.setMusicTrack('/__local-audio/home.mp3')
+    await audio.enable()
+    expect(audio.musicTrackStatus.value).toBe('error')
+    expect(audio.selectedMusicTrack.value).toBe('/__local-audio/home.mp3')
+    expect(audio.isPlaying.value).toBe(true)
+    expect(audio.soundEnabled.value).toBe(true)
+    expect(MockMedia.instances[0]!.paused).toBe(true)
+    MockMedia.rejectPlayback = false
+    await audio.setMusicTrack('/__local-audio/home.mp3')
+    expect(audio.musicTrackStatus.value).toBe('ready')
+    await audio.setMusicTrack(undefined)
+    expect(audio.musicTrackStatus.value).toBe('original')
+    expect(audio.selectedMusicTrack.value).toBeUndefined()
   })
 })
