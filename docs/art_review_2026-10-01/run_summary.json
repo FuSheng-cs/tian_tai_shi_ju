@@ -1,0 +1,154 @@
+{
+  "commits": {
+    "master": "8675f6774fccbb29865bb235c2f1c722f5daf364",
+    "shumei": "14cca4d942e9348e8893a75ffe5fc17bfaa49f00"
+  },
+  "head": "14cca4d942e9348e8893a75ffe5fc17bfaa49f00",
+  "counts": {
+    "master": 179,
+    "shumei": 220
+  },
+  "public_images": {
+    "master": 169,
+    "shumei": 181
+  },
+  "runtime_images": {
+    "master": 51,
+    "shumei": 35
+  },
+  "batches": {
+    "A": {
+      "count": 46,
+      "bytes": 41484939
+    },
+    "B": {
+      "count": 15,
+      "bytes": 33670035
+    },
+    "C": {
+      "count": 3,
+      "bytes": 2735268
+    },
+    "D": {
+      "count": 3,
+      "bytes": 6295800
+    },
+    "E": {
+      "count": 7,
+      "bytes": 48255
+    },
+    "F": {
+      "count": 9,
+      "bytes": 5218354
+    },
+    "KEEP": {
+      "count": 57,
+      "bytes": 39174081
+    },
+    "HOLD": {
+      "count": 80,
+      "bytes": 110649865
+    }
+  },
+  "added": [
+    "docs/playtests/good-ending-20260917-171709/00-opening.png",
+    "docs/playtests/good-ending-20260917-171709/00-title.png",
+    "docs/playtests/good-ending-20260917-171709/01-ai.png",
+    "docs/playtests/good-ending-20260917-171709/01-player.png",
+    "docs/playtests/good-ending-20260917-171709/02-ai.png",
+    "docs/playtests/good-ending-20260917-171709/02-player.png",
+    "docs/playtests/good-ending-20260917-171709/03-ai.png",
+    "docs/playtests/good-ending-20260917-171709/03-player.png",
+    "docs/playtests/good-ending-20260917-171709/04-ai.png",
+    "docs/playtests/good-ending-20260917-171709/04-player.png",
+    "docs/playtests/good-ending-20260917-171709/05-ai.png",
+    "docs/playtests/good-ending-20260917-171709/05-player.png",
+    "docs/playtests/good-ending-20260917-171709/06-ai.png",
+    "docs/playtests/good-ending-20260917-171709/06-player.png",
+    "docs/playtests/good-ending-20260918-1813/00-opening.png",
+    "docs/playtests/good-ending-20260918-1813/01-ai-wide.png",
+    "docs/playtests/good-ending-20260918-1813/01-ai.png",
+    "docs/playtests/good-ending-20260918-1813/01-player.png",
+    "docs/playtests/good-ending-20260918-1813/02-ai.png",
+    "docs/playtests/good-ending-20260918-1813/02-player.png",
+    "docs/playtests/good-ending-20260918-1813/03-ai.png",
+    "docs/playtests/good-ending-20260918-1813/03-player.png",
+    "docs/playtests/good-ending-20260918-1813/04-ai.png",
+    "docs/playtests/good-ending-20260918-1813/04-player.png",
+    "docs/playtests/good-ending-20260918-1813/05-ai.png",
+    "docs/playtests/good-ending-20260918-1813/05-player.png",
+    "docs/playtests/good-ending-20260918-1813/06-ai-good-ending.png",
+    "docs/playtests/good-ending-20260918-1813/06-player.png",
+    "docs/playtests/good-ending-20260918-1813/07-aftercare.png",
+    "legacy_vue/public/assets/images/safe_exit_20260918/01-crying-1600.webp",
+    "legacy_vue/public/assets/images/safe_exit_20260918/01-crying-900.webp",
+    "legacy_vue/public/assets/images/safe_exit_20260918/01-crying.png",
+    "legacy_vue/public/assets/images/safe_exit_20260918/02-wipe-tears-1600.webp",
+    "legacy_vue/public/assets/images/safe_exit_20260918/02-wipe-tears-900.webp",
+    "legacy_vue/public/assets/images/safe_exit_20260918/02-wipe-tears.png",
+    "legacy_vue/public/assets/images/safe_exit_20260918/03-leave-ai-only-1600.webp",
+    "legacy_vue/public/assets/images/safe_exit_20260918/03-leave-ai-only-900.webp",
+    "legacy_vue/public/assets/images/safe_exit_20260918/03-leave-ai-only.png",
+    "legacy_vue/public/assets/images/safe_exit_20260918/03-leave-together-1600.webp",
+    "legacy_vue/public/assets/images/safe_exit_20260918/03-leave-together-900.webp",
+    "legacy_vue/public/assets/images/safe_exit_20260918/03-leave-together.png"
+  ],
+  "removed": [],
+  "changed": [],
+  "duplicates": {
+    "byte_identical": [
+      [
+        "docs/art_review_2026-07-31/contact_unified_cinematics.png",
+        "legacy_vue/public/assets/images/unified_image2_2026-07-31/game_cg/review_cinematics.png"
+      ],
+      [
+        "docs/art_review_2026-07-31/contact_unified_gameplay_cg.png",
+        "legacy_vue/public/assets/images/unified_image2_2026-07-31/game_cg/review_gameplay_states.png"
+      ],
+      [
+        "docs/art_review_2026-07-31/contact_unified_image2.png",
+        "legacy_vue/public/assets/images/unified_image2_2026-07-31/review_contact_sheet.png"
+      ],
+      [
+        "legacy_vue/public/assets/images/char_girl_normal.png",
+        "legacy_vue/public/assets/images/char_girl_sad.png"
+      ],
+      [
+        "legacy_vue/public/assets/images/char_girl_normal_1600.webp",
+        "legacy_vue/public/assets/images/char_girl_sad_1600.webp"
+      ],
+      [
+        "legacy_vue/public/assets/images/char_girl_normal_900.webp",
+        "legacy_vue/public/assets/images/char_girl_sad_900.webp"
+      ]
+    ],
+    "decoded_pixel_identical": [
+      [
+        "docs/art_review_2026-07-31/contact_unified_cinematics.png",
+        "legacy_vue/public/assets/images/unified_image2_2026-07-31/game_cg/review_cinematics.png"
+      ],
+      [
+        "docs/art_review_2026-07-31/contact_unified_gameplay_cg.png",
+        "legacy_vue/public/assets/images/unified_image2_2026-07-31/game_cg/review_gameplay_states.png"
+      ],
+      [
+        "docs/art_review_2026-07-31/contact_unified_image2.png",
+        "legacy_vue/public/assets/images/unified_image2_2026-07-31/review_contact_sheet.png"
+      ],
+      [
+        "legacy_vue/public/assets/images/char_girl_normal.png",
+        "legacy_vue/public/assets/images/char_girl_sad.png"
+      ],
+      [
+        "legacy_vue/public/assets/images/char_girl_normal_1600.webp",
+        "legacy_vue/public/assets/images/char_girl_sad_1600.webp"
+      ],
+      [
+        "legacy_vue/public/assets/images/char_girl_normal_900.webp",
+        "legacy_vue/public/assets/images/char_girl_sad_900.webp"
+      ]
+    ]
+  },
+  "other_branch_only_rows": 6,
+  "decode_errors": []
+}

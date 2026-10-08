@@ -140,8 +140,8 @@ import { audioManager } from '@/modules/AudioManager'
 const router = useRouter()
 const unlockedIds = ref<string[]>(AchievementTracker.getUnlocked())
 const progress = ref(AchievementTracker.getProgress())
-const ROOFTOP_BG_DESKTOP = '/assets/images/bg_rooftop_night_1920.webp'
-const ROOFTOP_BG_MOBILE = '/assets/images/bg_rooftop_night_750.webp'
+const ROOFTOP_BG_DESKTOP = '/assets/images/menu_bg_rooftop_1600.webp'
+const ROOFTOP_BG_MOBILE = '/assets/images/menu_bg_rooftop_900.webp'
 
 const iconMap = {
   archive: Archive,

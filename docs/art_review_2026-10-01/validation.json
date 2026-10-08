@@ -1,0 +1,27 @@
+{
+  "asset_hashes_unchanged": true,
+  "candidate_count": 83,
+  "candidates_have_no_runtime_references_in_either_branch": true,
+  "contact_images_decode": true,
+  "contact_sheet_count": 13,
+  "browser": {
+    "engine": "Chrome 154 via agent-browser",
+    "card_count": 220,
+    "eligible_count": 83,
+    "preselected": 0,
+    "filter_A_count": 46,
+    "filter_C_count": 3,
+    "exported_selection": [
+      "ART-131",
+      "ART-132"
+    ],
+    "export_status": "user_selection_requires_confirmation",
+    "export_keeps_review_page": true,
+    "selected_count_display": "2",
+    "selection_reset_after_test": true,
+    "loaded_image_count": 220,
+    "broken_image_count": 0
+  },
+  "game_resources_deleted": 0,
+  "report_document_links_exist": true
+}

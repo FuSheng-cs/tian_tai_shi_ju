@@ -5,6 +5,7 @@ import sharp from 'sharp'
 const ROOT = path.resolve(process.cwd())
 const IMAGE_ROOT = path.join(ROOT, 'public', 'assets', 'images', 'unified_image2_2026-07-31')
 const GAME_CG_ROOT = path.join(IMAGE_ROOT, 'game_cg')
+const REVIEW_ROOT = path.resolve(ROOT, '..', 'docs', 'art_review_generated')
 const OUTPUT_WIDTH = 1920
 const OUTPUT_HEIGHT = 1080
 const DESKTOP_WIDTH = 1600
@@ -274,6 +275,7 @@ const buildAvatar = async () => {
 }
 
 const buildContactSheet = async () => {
+  await fs.mkdir(REVIEW_ROOT, { recursive: true })
   const columns = 3
   const rows = 3
   const gap = 24
@@ -332,7 +334,7 @@ const buildContactSheet = async () => {
   })
     .composite(composite)
     .png({ compressionLevel: 9, adaptiveFiltering: true })
-    .toFile(path.join(IMAGE_ROOT, 'review_contact_sheet.png'))
+    .toFile(path.join(REVIEW_ROOT, 'contact_unified_image2.png'))
 }
 
 const buildLabeledContactSheet = async ({ items, columns, outputPath }) => {
@@ -394,9 +396,8 @@ const buildLabeledContactSheet = async ({ items, columns, outputPath }) => {
 }
 
 const buildProductionContactSheets = async () => {
-  const gameplayPath = path.join(GAME_CG_ROOT, 'review_gameplay_states.png')
-  const cinematicsPath = path.join(GAME_CG_ROOT, 'review_cinematics.png')
-  const docsRoot = path.resolve(ROOT, '..', 'docs', 'art_review_2026-07-31')
+  const gameplayPath = path.join(REVIEW_ROOT, 'contact_unified_gameplay_cg.png')
+  const cinematicsPath = path.join(REVIEW_ROOT, 'contact_unified_cinematics.png')
   const gameplayItems = [...sceneAssets, ...emotionAssets].map((asset) => ({
     label: asset.label,
     source: `${asset.outputBase}_1600.webp`
@@ -422,9 +423,6 @@ const buildProductionContactSheets = async () => {
     columns: 4,
     outputPath: cinematicsPath
   })
-  await fs.mkdir(docsRoot, { recursive: true })
-  await fs.copyFile(gameplayPath, path.join(docsRoot, 'contact_unified_gameplay_cg.png'))
-  await fs.copyFile(cinematicsPath, path.join(docsRoot, 'contact_unified_cinematics.png'))
 }
 
 const measureColor = async (sourcePath) => {

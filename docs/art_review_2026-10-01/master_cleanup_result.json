@@ -1,0 +1,415 @@
+{
+  "status": "completed",
+  "date": "2026-10-08",
+  "scope": "master worktree only",
+  "branch_head": "4055fb93f82c4c0ad21c5de35ff8963ca62cf5fc",
+  "source_stash": "cefb73d5147eae8b5e7cf0638c8e1aa4e7e36102",
+  "archive_path": "D:\\IT\\program\\TianTAiShiJu\\art_archives\\game_damo_taintaishiju\\2026-10-08-master-art-cleanup-4055fb93.zip",
+  "archive_sha256": "41122f6116b3f8a196adff5844002bb047f994b5392feaba9317a4c6c189ce3f",
+  "archive_verified": true,
+  "candidate_count": 73,
+  "removed_bytes": 81511965,
+  "preserved_master_files": [
+    "legacy_vue/public/assets/images/menu_home_bg_1600.webp",
+    "legacy_vue/public/assets/images/menu_home_bg_900.webp",
+    "legacy_vue/public/assets/images/menu_home_bg_source.png",
+    "legacy_vue/public/assets/images/menu_home_menu_aura_1600.webp",
+    "legacy_vue/public/assets/images/menu_home_menu_aura_900.webp",
+    "legacy_vue/public/assets/images/menu_home_menu_aura_source.png",
+    "legacy_vue/public/assets/images/menu_home_title_mist_1600.webp",
+    "legacy_vue/public/assets/images/menu_home_title_mist_900.webp",
+    "legacy_vue/public/assets/images/menu_home_title_mist_source.png"
+  ],
+  "removed_files": [
+    {
+      "path": "legacy_vue/public/assets/images/bg_rainy_street_1920.webp",
+      "bytes": 14122,
+      "sha256": "f041ddeb432d1a4e1af60e4479432c538ddd525c548650b6a6c9b0d48d8da78c"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/bg_rainy_street_750.webp",
+      "bytes": 7786,
+      "sha256": "0674fff776a6ea585adfe0d3350620a9b7eed11caf78dee30e7a9e2b2cdcbc81"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/bg_rooftop_night_1920.webp",
+      "bytes": 8052,
+      "sha256": "c8d061ab077a27b730ec17c2eefed7f9a327a8ab651c2058629d18d808839b94"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/bg_rooftop_night_750.webp",
+      "bytes": 4884,
+      "sha256": "a5bd5953c601bfb02117adf244b1a9a496aa72b720ff7f4a6bdeca75caf6ca75"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_acquaintance_16_9.webp",
+      "bytes": 250896,
+      "sha256": "a0fe42e735d17193730dc85cf07773f9529703850c397b28b8d8e800ac4e5581"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_acquaintance_9_16.webp",
+      "bytes": 16742,
+      "sha256": "ba2a5dc26f6d038db6cdca86f9eb76a983a00c206e99d28f7c908609c4d847e0"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_death_falling_16_9.webp",
+      "bytes": 14272,
+      "sha256": "f776d51b062cbf4e59bb3f4b4bf3d4b7f84ec84adf8eb594b29c30f0104b95ca"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_death_falling_9_16.webp",
+      "bytes": 16714,
+      "sha256": "eacb8fbb3f10e877b84369dfd2ddd93953cf1222d856d72087d5694d6d58cfd5"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_emotion_curiosity_16_9.webp",
+      "bytes": 211470,
+      "sha256": "32d67459e3ca5b748a5dd9bb57f040d22fc524dc84c9d6a60872e5a9c1de7e4a"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_emotion_soft_16_9.webp",
+      "bytes": 228118,
+      "sha256": "d0aa6eafb0d9c335d6a420c8668d10ef71c35a8def51a540eeb8d31b9f87b107"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_emotion_sting_16_9.webp",
+      "bytes": 207392,
+      "sha256": "dc429a59ca98cbd1b7ec16ea792f1c53485c9a193097e86d4c850a6157a106a1"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_emotion_surprise_16_9.webp",
+      "bytes": 233794,
+      "sha256": "40c900287da463541444605b3d702132b70609503db6f8cb366b4199393aee63"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_disappear.png",
+      "bytes": 2156956,
+      "sha256": "9183176d682d29956053d0cf7b1efda67b2082df5d2ad3d7e7a96a6691bcce32"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_disappear_1600.webp",
+      "bytes": 127418,
+      "sha256": "049a9c528f4d8a342fd5b8d0dc3a039dac44fa8d37a1fae749b6b6dd23f61898"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_disappear_900.webp",
+      "bytes": 51786,
+      "sha256": "4b57267d1d949237c98a8e03190689268daf4cdebb55574a7f3254afb09613a1"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_fall.png",
+      "bytes": 1796121,
+      "sha256": "0ddf7a2afec3ba2f1fa3bf6e1f87ba58f0aa2f02f54157a78b83b4e0b696ef9b"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_fall_1600.webp",
+      "bytes": 153858,
+      "sha256": "82586442e5235e1291f2c9edac9339eb83ee8d39f126f15696ed6ec7d86f8a56"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_fall_900.webp",
+      "bytes": 58384,
+      "sha256": "5a8fb20eb6dc5ff04c8d6bb523014f86ff852f44b3fc6f0b2c8e4a78ac2eed87"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_01_1600.webp",
+      "bytes": 102058,
+      "sha256": "e0009c6d409317fe5bbcde529b48c66b1a2d9da225f4d56fe3c553461c1ed44c"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_01_900.webp",
+      "bytes": 41004,
+      "sha256": "e6960a0bb7ff23b08092834f957e5e757d1bd6207a7a3d3dc9ddd223532f25f8"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_01_source.png",
+      "bytes": 2066255,
+      "sha256": "eeed779dca33c7df9e43c6e6afd0818c997b5403e5c5ebc09919a6923fda9937"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_02_1600.webp",
+      "bytes": 98410,
+      "sha256": "70e1a79f4c65a94b69f618b7697986bd05362d996bc0767082d311bc1ad9d635"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_02_900.webp",
+      "bytes": 40812,
+      "sha256": "731dd9c13bff0e2ee01c6f0bd18b6afb56245873623706c8b3a98273fb3cfbee"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_02_source.png",
+      "bytes": 1973297,
+      "sha256": "cf1ef895ae1122d0110ba2928da7121146f16cc063171d3bc932f55966d25622"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_03_1600.webp",
+      "bytes": 112032,
+      "sha256": "50f7492671b70d50081fb891c5ff45951a4a07c3f85c69e7dbdd7d1872a9b70d"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_03_900.webp",
+      "bytes": 47970,
+      "sha256": "59b168adaca688310e0eac5037756bbe3f392d13dafe40be8639fb91a7fb70a1"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_03_source.png",
+      "bytes": 2100523,
+      "sha256": "09ad0f6ccee71253b0b156c5345f777a21d8d83067c73bceeff7118cc98eb2a5"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_04_1600.webp",
+      "bytes": 139224,
+      "sha256": "658973914a38e541faf908ad5be157db5dee5ab6ded3ddd75d37f70e54241d5d"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_04_900.webp",
+      "bytes": 50504,
+      "sha256": "3f9baa23f26288df96ce62b4605827ba7eec10d2164c42326cd31e9f9b059278"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_04_source.png",
+      "bytes": 2344274,
+      "sha256": "bc55bf8f5057a00675a74c5dc112ae6735c64b3de0cd009d0b94c7df26918338"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_05_1600.webp",
+      "bytes": 106274,
+      "sha256": "8d18872f67634ba2ed1eb61341f2dd781923fb7eca8889b1e775102e4e02fb85"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_05_900.webp",
+      "bytes": 43256,
+      "sha256": "922ee53a05e5855491894ca81728584f74b1abd969acf5be5c0d8be541dc912f"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_05_source.png",
+      "bytes": 2022006,
+      "sha256": "d574efed43b3fcc5ca1622babdead914020ed807cab7a4de63b5b6ac966d7a42"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_end_fall_source_v2.png",
+      "bytes": 2403752,
+      "sha256": "33ac615fee5a4283b78e2982889f8249493ab06918d6707b80a7b9177ede6e21"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_opening_stair_01_16_9.webp",
+      "bytes": 158908,
+      "sha256": "c2dcfca5cd7e85a865fac499b76c6bb179a3fdd896c8a989dfad2310a78cfc07"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_opening_stair_02_16_9.webp",
+      "bytes": 191848,
+      "sha256": "46974f58a9223b4ea1c8499b4f5bf25adad3515d8065d52f027f463156dae59c"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_opening_stair_03_16_9.webp",
+      "bytes": 312204,
+      "sha256": "f17ce1665d8fe87f1ef1b69bf1df3ff0e0b493d327952e9e4948c58569a6aad1"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_opening_stair_04_16_9.webp",
+      "bytes": 249438,
+      "sha256": "d842036f7cb645fc437fddedc708fc3a4a9551c8479730db8a4c7ec4380eabc7"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_opening_stair_05_16_9.webp",
+      "bytes": 250030,
+      "sha256": "a1db52e109e8625775e1b0a4dd83a4db3b25a92d7ec816421c933bc4c8ee98c1"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_pressure_near_jump_16_9.webp",
+      "bytes": 199496,
+      "sha256": "47a38d893bbffba43be30cbaa788a3aa6f0e4588d53026b72077ae2d040c6712"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_pressure_turn_back_16_9.webp",
+      "bytes": 163154,
+      "sha256": "53caec9ae903a8ab5dc44fe1d25381a6bea8c92f9b821ab698c6f8804111b449"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/cg_pressure_turn_back_source.png",
+      "bytes": 1951471,
+      "sha256": "8c4d4bce3f7891879434e8c10cc0a01f8749d62fae3f58d79ba84386a5323822"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/char_girl_normal.png",
+      "bytes": 8111019,
+      "sha256": "6be0e329cdffc6fc9682465e253886f400ad566ad7933826aa0149c15b5b964d"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/char_girl_normal_1600.webp",
+      "bytes": 124878,
+      "sha256": "a15a094a51bf4c598d7b929083ee2ae3684b2220d66f0dbc890b88c112be707c"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/char_girl_normal_900.webp",
+      "bytes": 52422,
+      "sha256": "46427afe247126536836977f6fd367965dbebd3ccf64a194d11731f0c21941a2"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/char_girl_sad.png",
+      "bytes": 8111019,
+      "sha256": "6be0e329cdffc6fc9682465e253886f400ad566ad7933826aa0149c15b5b964d"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/char_girl_sad_1600.webp",
+      "bytes": 124878,
+      "sha256": "a15a094a51bf4c598d7b929083ee2ae3684b2220d66f0dbc890b88c112be707c"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/char_girl_sad_900.webp",
+      "bytes": 52422,
+      "sha256": "46427afe247126536836977f6fd367965dbebd3ccf64a194d11731f0c21941a2"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/char_girl_sneer.png",
+      "bytes": 2194282,
+      "sha256": "e12252fddc44243560720a9d032354a14edfb63927ec6a4550295e23c3c38486"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/char_girl_sneer_480.webp",
+      "bytes": 21898,
+      "sha256": "c5bca290ba975806aab34dffd7a0c7de5cbb2ae9be21e7d73e18caa7fef46848"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/icon_umbrella.svg",
+      "bytes": 538,
+      "sha256": "88d7f73af27fcc7cdb5cb51a5d08498975dff7385d85f35302b19c3fafcf5378"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/cg/candidate_char_states_4up.png",
+      "bytes": 2455251,
+      "sha256": "35603e4e73298dc6768093f7220a3fdca42d927c477a51847e1f6f7cfe45e6f0"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/cg/candidate_emotions_4up.png",
+      "bytes": 2283007,
+      "sha256": "e8ae918f3c066e72f1292e6ab95a15a5c3c2f03210176e9421be3fe8e3af230f"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/cg/candidate_end_acquaintance.png",
+      "bytes": 2330259,
+      "sha256": "a405934f266166450ee4e64e67caf043174801d78f7a7773036aaef1f83b8ce4"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/cg/candidate_end_acquaintance_9_16.png",
+      "bytes": 2377474,
+      "sha256": "4f2a8b207fef3cf2ea90eb51c0465faecf10e14e4bf937cb631a8e4b56e85646"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/cg/candidate_end_disappear.png",
+      "bytes": 2469326,
+      "sha256": "6ce4cb026e96407118b9b1e119d1015c922e9d22750da836778e8bc3e01bd4eb"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/cg/candidate_end_fall_9_16.png",
+      "bytes": 2398440,
+      "sha256": "378ab128203c7c0c935aaf03cc32b9c6e7346f9e28005d9da8f6c59506ca9edd"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/cg/candidate_end_fall_storyboard.png",
+      "bytes": 2403757,
+      "sha256": "fdf9b7d0ce39b405e75fc11ce90f727bc514451cd61291317ed20dd15765e2a6"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/cg/candidate_opening_approach.png",
+      "bytes": 2042769,
+      "sha256": "ea3178f46cd24ffb04b793db09a06bd8cb1bed97d503ff48c209a50b4ca9ec9e"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/cg/candidate_pressure_near_railing.png",
+      "bytes": 2352676,
+      "sha256": "03cd7936f8042552b7c96612f0ca9e1b48c13b0f6f878b6e73e28c04b0ce2bd3"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/cg/candidate_pressure_turn_back.png",
+      "bytes": 2324227,
+      "sha256": "6433e81cb29fd70701afa4285e02f2712b0011d276bec7657959747fdff3d130"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/setting/ai_action_pose_sheet.png",
+      "bytes": 2025981,
+      "sha256": "32439b2af27b312c1e09cd4bd9afe268ea4b0056e3efab1a4de2234d52c78402"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/setting/ai_expression_sheet.png",
+      "bytes": 1885854,
+      "sha256": "f06f10a84ac198f7e6b55bb98b0365a84091184918a1c2cb793a1194a24a43de"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/setting/ai_outfit_props_sheet.png",
+      "bytes": 1926231,
+      "sha256": "39368ac7f596b469c6a3b0914eaf3ab98a6ca158f9bb0864b8ae8a3842cc06ed"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/setting/ai_turnaround_sheet.png",
+      "bytes": 1753423,
+      "sha256": "9e88606dfb2663d51bad9cc18cfb094b0d69628133890d322b10102db948af25"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/setting/rooftop_environment_sheet.png",
+      "bytes": 2641360,
+      "sha256": "10220246fb15f672b50d6b71e48154160d8411d4328291708fe250bba20fa452"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/ui_btn_primary.svg",
+      "bytes": 873,
+      "sha256": "20ce1481f23227ab30eddd3b93fd1e5443866e9feb7d337cb17d121c161265c8"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/ui_progress_bar.svg",
+      "bytes": 420,
+      "sha256": "1bdd284aacdca172e12fba60730c971189811e5a580358cca4912982d15704d1"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/unified_image2_2026-07-31/game_cg/review_cinematics.png",
+      "bytes": 2107242,
+      "sha256": "7b8a2509b622fa9e2a10bd4b328ac6f458d543e6cc92b0dc58eab7886e4baaa0"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/unified_image2_2026-07-31/game_cg/review_gameplay_states.png",
+      "bytes": 1624913,
+      "sha256": "681e2d000c78f305d64d076d488e54883575774ff13b7c17b63b798215551593"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/unified_image2_2026-07-31/review_contact_sheet.png",
+      "bytes": 2563645,
+      "sha256": "bea6ab18891e200d14e41b970afb75b511b3380f396570cc519896019ad28674"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/vfx_flame_sprite.webp",
+      "bytes": 20632,
+      "sha256": "85fd2a57e57b12b378571eb4639c86bf70b71d99a09c935f7250117718c10dd3"
+    },
+    {
+      "path": "legacy_vue/public/assets/images/vfx_snow_sprite.webp",
+      "bytes": 3884,
+      "sha256": "a3b3a92722727077c646996d3d149e40af15d02a9ada2076ee75f2560220dd0c"
+    }
+  ],
+  "additional_retired_assets": [
+    "legacy_vue/public/assets/images/bg_rooftop_night_1920.webp",
+    "legacy_vue/public/assets/images/bg_rooftop_night_750.webp"
+  ],
+  "validation": {
+    "frontend_test_files": 22,
+    "frontend_tests_passed": 121,
+    "frontend_lint": "passed",
+    "frontend_build": "passed",
+    "backend_tests": "passed",
+    "backend_build": "passed",
+    "asset_generation": "passed; existing rain hash unchanged",
+    "retained_art_hash_check": "all retained image blobs match baseline master",
+    "production_images": "all retained assets match public; all retired assets absent",
+    "documentation_links": "passed",
+    "browser_rendering": "not rerun during this migration",
+    "remote_deployment": "not performed",
+    "isolated_unified_cg_rebuild": "passed; all three review sheets are docs-only"
+  },
+  "asset_inventory": {
+    "baseline_count": 239,
+    "baseline_bytes": 210131942,
+    "remaining_count": 166,
+    "remaining_bytes": 128620018
+  }
+}

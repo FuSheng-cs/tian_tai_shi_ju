@@ -1,0 +1,1002 @@
+{
+  "status": "executed",
+  "commits": {
+    "master": "8675f6774fccbb29865bb235c2f1c722f5daf364",
+    "shumei": "14cca4d942e9348e8893a75ffe5fc17bfaa49f00"
+  },
+  "note": "用户授权自主处理后，A-F 已全部备份并从当前数媒工作区移除；KEEP/HOLD 保留。",
+  "candidates": [
+    {
+      "id": "ART-037",
+      "path": "legacy_vue/public/assets/images/bg_rainy_street_1920.webp",
+      "sha256": "f041ddeb432d1a4e1af60e4479432c538ddd525c548650b6a6c9b0d48d8da78c",
+      "bytes": 14122,
+      "batch": "E",
+      "recommendation": "旧占位UI/特效/背景，未发现两分支运行引用；逐项审批",
+      "visual_note": "彩色几何占位背景；rooftop仍在成就页使用，必须先替换引用再删除",
+      "master_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ],
+      "shumei_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ]
+    },
+    {
+      "id": "ART-038",
+      "path": "legacy_vue/public/assets/images/bg_rainy_street_750.webp",
+      "sha256": "0674fff776a6ea585adfe0d3350620a9b7eed11caf78dee30e7a9e2b2cdcbc81",
+      "bytes": 7786,
+      "batch": "E",
+      "recommendation": "旧占位UI/特效/背景，未发现两分支运行引用；逐项审批",
+      "visual_note": "彩色几何占位背景；rooftop仍在成就页使用，必须先替换引用再删除",
+      "master_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ],
+      "shumei_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ]
+    },
+    {
+      "id": "ART-041",
+      "path": "legacy_vue/public/assets/images/cg_acquaintance_16_9.webp",
+      "sha256": "a0fe42e735d17193730dc85cf07773f9529703850c397b28b8d8e800ac4e5581",
+      "bytes": 250896,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ],
+      "shumei_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ]
+    },
+    {
+      "id": "ART-042",
+      "path": "legacy_vue/public/assets/images/cg_acquaintance_9_16.webp",
+      "sha256": "ba2a5dc26f6d038db6cdca86f9eb76a983a00c206e99d28f7c908609c4d847e0",
+      "bytes": 16742,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "明显不合格：彩色抽象占位，缺少像素人物/天台，与统一体系冲突",
+      "master_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ],
+      "shumei_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ]
+    },
+    {
+      "id": "ART-043",
+      "path": "legacy_vue/public/assets/images/cg_death_falling_16_9.webp",
+      "sha256": "f776d51b062cbf4e59bb3f4b4bf3d4b7f84ec84adf8eb594b29c30f0104b95ca",
+      "bytes": 14272,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "明显不合格：彩色抽象占位，缺少像素人物/天台，与统一体系冲突",
+      "master_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ],
+      "shumei_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ]
+    },
+    {
+      "id": "ART-044",
+      "path": "legacy_vue/public/assets/images/cg_death_falling_9_16.webp",
+      "sha256": "eacb8fbb3f10e877b84369dfd2ddd93953cf1222d856d72087d5694d6d58cfd5",
+      "bytes": 16714,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "明显不合格：彩色抽象占位，缺少像素人物/天台，与统一体系冲突",
+      "master_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ],
+      "shumei_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ]
+    },
+    {
+      "id": "ART-045",
+      "path": "legacy_vue/public/assets/images/cg_emotion_curiosity_16_9.webp",
+      "sha256": "32d67459e3ca5b748a5dd9bb57f040d22fc524dc84c9d6a60872e5a9c1de7e4a",
+      "bytes": 211470,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧情绪图眼睛/脸型或微笑漂移、烟雾明显；已由统一emotion图替代",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-046",
+      "path": "legacy_vue/public/assets/images/cg_emotion_soft_16_9.webp",
+      "sha256": "d0aa6eafb0d9c335d6a420c8668d10ef71c35a8def51a540eeb8d31b9f87b107",
+      "bytes": 228118,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧情绪图眼睛/脸型或微笑漂移、烟雾明显；已由统一emotion图替代",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-047",
+      "path": "legacy_vue/public/assets/images/cg_emotion_sting_16_9.webp",
+      "sha256": "dc429a59ca98cbd1b7ec16ea792f1c53485c9a193097e86d4c850a6157a106a1",
+      "bytes": 207392,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-048",
+      "path": "legacy_vue/public/assets/images/cg_emotion_surprise_16_9.webp",
+      "sha256": "40c900287da463541444605b3d702132b70609503db6f8cb366b4199393aee63",
+      "bytes": 233794,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧情绪图眼睛/脸型或微笑漂移、烟雾明显；已由统一emotion图替代",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-049",
+      "path": "legacy_vue/public/assets/images/cg_end_disappear.png",
+      "sha256": "9183176d682d29956053d0cf7b1efda67b2082df5d2ad3d7e7a96a6691bcce32",
+      "bytes": 2156956,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-050",
+      "path": "legacy_vue/public/assets/images/cg_end_disappear_1600.webp",
+      "sha256": "049a9c528f4d8a342fd5b8d0dc3a039dac44fa8d37a1fae749b6b6dd23f61898",
+      "bytes": 127418,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-051",
+      "path": "legacy_vue/public/assets/images/cg_end_disappear_900.webp",
+      "sha256": "4b57267d1d949237c98a8e03190689268daf4cdebb55574a7f3254afb09613a1",
+      "bytes": 51786,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-052",
+      "path": "legacy_vue/public/assets/images/cg_end_fall.png",
+      "sha256": "0ddf7a2afec3ba2f1fa3bf6e1f87ba58f0aa2f02f54157a78b83b4e0b696ef9b",
+      "bytes": 1796121,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧结局含实际坠落图/危险姿态；png静帧与同名webp并非全部同画面，不可按扩展名推断",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-053",
+      "path": "legacy_vue/public/assets/images/cg_end_fall_1600.webp",
+      "sha256": "82586442e5235e1291f2c9edac9339eb83ee8d39f126f15696ed6ec7d86f8a56",
+      "bytes": 153858,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧结局含实际坠落图/危险姿态；png静帧与同名webp并非全部同画面，不可按扩展名推断",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-054",
+      "path": "legacy_vue/public/assets/images/cg_end_fall_900.webp",
+      "sha256": "5a8fb20eb6dc5ff04c8d6bb523014f86ff852f44b3fc6f0b2c8e4a78ac2eed87",
+      "bytes": 58384,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧结局含实际坠落图/危险姿态；png静帧与同名webp并非全部同画面，不可按扩展名推断",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-055",
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_01_1600.webp",
+      "sha256": "e0009c6d409317fe5bbcde529b48c66b1a2d9da225f4d56fe3c553461c1ed44c",
+      "bytes": 102058,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧结局含实际坠落图/危险姿态；png静帧与同名webp并非全部同画面，不可按扩展名推断",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-056",
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_01_900.webp",
+      "sha256": "e6960a0bb7ff23b08092834f957e5e757d1bd6207a7a3d3dc9ddd223532f25f8",
+      "bytes": 41004,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧结局含实际坠落图/危险姿态；png静帧与同名webp并非全部同画面，不可按扩展名推断",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-057",
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_01_source.png",
+      "sha256": "eeed779dca33c7df9e43c6e6afd0818c997b5403e5c5ebc09919a6923fda9937",
+      "bytes": 2066255,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧结局含实际坠落图/危险姿态；png静帧与同名webp并非全部同画面，不可按扩展名推断",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-058",
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_02_1600.webp",
+      "sha256": "70e1a79f4c65a94b69f618b7697986bd05362d996bc0767082d311bc1ad9d635",
+      "bytes": 98410,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧结局含实际坠落图/危险姿态；png静帧与同名webp并非全部同画面，不可按扩展名推断",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-059",
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_02_900.webp",
+      "sha256": "731dd9c13bff0e2ee01c6f0bd18b6afb56245873623706c8b3a98273fb3cfbee",
+      "bytes": 40812,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧结局含实际坠落图/危险姿态；png静帧与同名webp并非全部同画面，不可按扩展名推断",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-060",
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_02_source.png",
+      "sha256": "cf1ef895ae1122d0110ba2928da7121146f16cc063171d3bc932f55966d25622",
+      "bytes": 1973297,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧结局含实际坠落图/危险姿态；png静帧与同名webp并非全部同画面，不可按扩展名推断",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-061",
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_03_1600.webp",
+      "sha256": "50f7492671b70d50081fb891c5ff45951a4a07c3f85c69e7dbdd7d1872a9b70d",
+      "bytes": 112032,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧结局含实际坠落图/危险姿态；png静帧与同名webp并非全部同画面，不可按扩展名推断",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-062",
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_03_900.webp",
+      "sha256": "59b168adaca688310e0eac5037756bbe3f392d13dafe40be8639fb91a7fb70a1",
+      "bytes": 47970,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧结局含实际坠落图/危险姿态；png静帧与同名webp并非全部同画面，不可按扩展名推断",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-063",
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_03_source.png",
+      "sha256": "09ad0f6ccee71253b0b156c5345f777a21d8d83067c73bceeff7118cc98eb2a5",
+      "bytes": 2100523,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧结局含实际坠落图/危险姿态；png静帧与同名webp并非全部同画面，不可按扩展名推断",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-064",
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_04_1600.webp",
+      "sha256": "658973914a38e541faf908ad5be157db5dee5ab6ded3ddd75d37f70e54241d5d",
+      "bytes": 139224,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧结局含实际坠落图/危险姿态；png静帧与同名webp并非全部同画面，不可按扩展名推断",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-065",
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_04_900.webp",
+      "sha256": "3f9baa23f26288df96ce62b4605827ba7eec10d2164c42326cd31e9f9b059278",
+      "bytes": 50504,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧结局含实际坠落图/危险姿态；png静帧与同名webp并非全部同画面，不可按扩展名推断",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-066",
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_04_source.png",
+      "sha256": "bc55bf8f5057a00675a74c5dc112ae6735c64b3de0cd009d0b94c7df26918338",
+      "bytes": 2344274,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧结局含实际坠落图/危险姿态；png静帧与同名webp并非全部同画面，不可按扩展名推断",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-067",
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_05_1600.webp",
+      "sha256": "8d18872f67634ba2ed1eb61341f2dd781923fb7eca8889b1e775102e4e02fb85",
+      "bytes": 106274,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧结局含实际坠落图/危险姿态；png静帧与同名webp并非全部同画面，不可按扩展名推断",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-068",
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_05_900.webp",
+      "sha256": "922ee53a05e5855491894ca81728584f74b1abd969acf5be5c0d8be541dc912f",
+      "bytes": 43256,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧结局含实际坠落图/危险姿态；png静帧与同名webp并非全部同画面，不可按扩展名推断",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-069",
+      "path": "legacy_vue/public/assets/images/cg_end_fall_seq_05_source.png",
+      "sha256": "d574efed43b3fcc5ca1622babdead914020ed807cab7a4de63b5b6ac966d7a42",
+      "bytes": 2022006,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧结局含实际坠落图/危险姿态；png静帧与同名webp并非全部同画面，不可按扩展名推断",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-070",
+      "path": "legacy_vue/public/assets/images/cg_end_fall_source_v2.png",
+      "sha256": "33ac615fee5a4283b78e2982889f8249493ab06918d6707b80a7b9177ede6e21",
+      "bytes": 2403752,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧结局含实际坠落图/危险姿态；png静帧与同名webp并非全部同画面，不可按扩展名推断",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-071",
+      "path": "legacy_vue/public/assets/images/cg_opening_stair_01_16_9.webp",
+      "sha256": "c2dcfca5cd7e85a865fac499b76c6bb179a3fdd896c8a989dfad2310a78cfc07",
+      "bytes": 158908,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-072",
+      "path": "legacy_vue/public/assets/images/cg_opening_stair_02_16_9.webp",
+      "sha256": "46974f58a9223b4ea1c8499b4f5bf25adad3515d8065d52f027f463156dae59c",
+      "bytes": 191848,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-073",
+      "path": "legacy_vue/public/assets/images/cg_opening_stair_03_16_9.webp",
+      "sha256": "f17ce1665d8fe87f1ef1b69bf1df3ff0e0b493d327952e9e4948c58569a6aad1",
+      "bytes": 312204,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-074",
+      "path": "legacy_vue/public/assets/images/cg_opening_stair_04_16_9.webp",
+      "sha256": "d842036f7cb645fc437fddedc708fc3a4a9551c8479730db8a4c7ec4380eabc7",
+      "bytes": 249438,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-075",
+      "path": "legacy_vue/public/assets/images/cg_opening_stair_05_16_9.webp",
+      "sha256": "a1db52e109e8625775e1b0a4dd83a4db3b25a92d7ec816421c933bc4c8ee98c1",
+      "bytes": 250030,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-076",
+      "path": "legacy_vue/public/assets/images/cg_pressure_near_jump_16_9.webp",
+      "sha256": "47a38d893bbffba43be30cbaa788a3aa6f0e4588d53026b72077ae2d040c6712",
+      "bytes": 199496,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-077",
+      "path": "legacy_vue/public/assets/images/cg_pressure_turn_back_16_9.webp",
+      "sha256": "53caec9ae903a8ab5dc44fe1d25381a6bea8c92f9b821ab698c6f8804111b449",
+      "bytes": 163154,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-078",
+      "path": "legacy_vue/public/assets/images/cg_pressure_turn_back_source.png",
+      "sha256": "8c4d4bce3f7891879434e8c10cc0a01f8749d62fae3f58d79ba84386a5323822",
+      "bytes": 1951471,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-079",
+      "path": "legacy_vue/public/assets/images/char_girl_normal.png",
+      "sha256": "6be0e329cdffc6fc9682465e253886f400ad566ad7933826aa0149c15b5b964d",
+      "bytes": 8111019,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧坐栏杆/烟雾构图；normal与sad三种规格逐一完全重复；部分图有右下星形标记",
+      "master_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ],
+      "shumei_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ]
+    },
+    {
+      "id": "ART-080",
+      "path": "legacy_vue/public/assets/images/char_girl_normal_1600.webp",
+      "sha256": "a15a094a51bf4c598d7b929083ee2ae3684b2220d66f0dbc890b88c112be707c",
+      "bytes": 124878,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧坐栏杆/烟雾构图；normal与sad三种规格逐一完全重复；部分图有右下星形标记",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-081",
+      "path": "legacy_vue/public/assets/images/char_girl_normal_900.webp",
+      "sha256": "46427afe247126536836977f6fd367965dbebd3ccf64a194d11731f0c21941a2",
+      "bytes": 52422,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧坐栏杆/烟雾构图；normal与sad三种规格逐一完全重复；部分图有右下星形标记",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-082",
+      "path": "legacy_vue/public/assets/images/char_girl_sad.png",
+      "sha256": "6be0e329cdffc6fc9682465e253886f400ad566ad7933826aa0149c15b5b964d",
+      "bytes": 8111019,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧坐栏杆/烟雾构图；normal与sad三种规格逐一完全重复；部分图有右下星形标记",
+      "master_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ],
+      "shumei_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ]
+    },
+    {
+      "id": "ART-083",
+      "path": "legacy_vue/public/assets/images/char_girl_sad_1600.webp",
+      "sha256": "a15a094a51bf4c598d7b929083ee2ae3684b2220d66f0dbc890b88c112be707c",
+      "bytes": 124878,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧坐栏杆/烟雾构图；normal与sad三种规格逐一完全重复；部分图有右下星形标记",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-084",
+      "path": "legacy_vue/public/assets/images/char_girl_sad_900.webp",
+      "sha256": "46427afe247126536836977f6fd367965dbebd3ccf64a194d11731f0c21941a2",
+      "bytes": 52422,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧坐栏杆/烟雾构图；normal与sad三种规格逐一完全重复；部分图有右下星形标记",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-088",
+      "path": "legacy_vue/public/assets/images/char_girl_sneer.png",
+      "sha256": "e12252fddc44243560720a9d032354a14edfb63927ec6a4550295e23c3c38486",
+      "bytes": 2194282,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧坐栏杆/烟雾构图；normal与sad三种规格逐一完全重复；部分图有右下星形标记",
+      "master_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ],
+      "shumei_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ]
+    },
+    {
+      "id": "ART-089",
+      "path": "legacy_vue/public/assets/images/char_girl_sneer_480.webp",
+      "sha256": "c5bca290ba975806aab34dffd7a0c7de5cbb2ae9be21e7d73e18caa7fef46848",
+      "bytes": 21898,
+      "batch": "A",
+      "recommendation": "根目录旧CG/人物已被07月统一资源接替；需同步停用旧生成项",
+      "visual_note": "旧坐栏杆/烟雾构图；normal与sad三种规格逐一完全重复；部分图有右下星形标记",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-090",
+      "path": "legacy_vue/public/assets/images/icon_umbrella.svg",
+      "sha256": "88d7f73af27fcc7cdb5cb51a5d08498975dff7385d85f35302b19c3fafcf5378",
+      "bytes": 538,
+      "batch": "E",
+      "recommendation": "旧占位UI/特效/背景，未发现两分支运行引用；逐项审批",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ],
+      "shumei_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ]
+    },
+    {
+      "id": "ART-094",
+      "path": "legacy_vue/public/assets/images/menu_home_bg_1600.webp",
+      "sha256": "92704781acd80cb934d1551113b142f9199f2e566c8a7d2ebae49e63fd9054de",
+      "bytes": 117328,
+      "batch": "F",
+      "recommendation": "旧首页吸烟背景/菜单光效/标题雾层，均未发现两分支运行引用；原稿先归档",
+      "visual_note": "旧首页含吸烟人物；现首页为无人天台，功能重合但并非完全相同",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-095",
+      "path": "legacy_vue/public/assets/images/menu_home_bg_900.webp",
+      "sha256": "d97a375fd58fc1548ddbd86f22d3a0e00b4c21b7a9b9868da807aef80932d115",
+      "bytes": 45724,
+      "batch": "F",
+      "recommendation": "旧首页吸烟背景/菜单光效/标题雾层，均未发现两分支运行引用；原稿先归档",
+      "visual_note": "旧首页含吸烟人物；现首页为无人天台，功能重合但并非完全相同",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-096",
+      "path": "legacy_vue/public/assets/images/menu_home_bg_source.png",
+      "sha256": "1f6307bcff3d5b2b592418f4f14ac36e0ce2dbf2d543e0f83edb6e9189b06787",
+      "bytes": 1911964,
+      "batch": "F",
+      "recommendation": "旧首页吸烟背景/菜单光效/标题雾层，均未发现两分支运行引用；原稿先归档",
+      "visual_note": "旧首页含吸烟人物；现首页为无人天台，功能重合但并非完全相同",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-097",
+      "path": "legacy_vue/public/assets/images/menu_home_menu_aura_1600.webp",
+      "sha256": "0c1dc93cb4aa85420e9b7193bdbb84261071d3adda64db971805610065e02bb1",
+      "bytes": 29856,
+      "batch": "F",
+      "recommendation": "旧首页吸烟背景/菜单光效/标题雾层，均未发现两分支运行引用；原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-098",
+      "path": "legacy_vue/public/assets/images/menu_home_menu_aura_900.webp",
+      "sha256": "616d0f63945bc2743b7094393870b3d4d6c6e5920fbec277759b3dc3f34eaf3b",
+      "bytes": 8954,
+      "batch": "F",
+      "recommendation": "旧首页吸烟背景/菜单光效/标题雾层，均未发现两分支运行引用；原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-099",
+      "path": "legacy_vue/public/assets/images/menu_home_menu_aura_source.png",
+      "sha256": "143276d6054c4d492b0ae8021ea189f637c596642737a0ffe4d6a485206d2585",
+      "bytes": 1534747,
+      "batch": "F",
+      "recommendation": "旧首页吸烟背景/菜单光效/标题雾层，均未发现两分支运行引用；原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-100",
+      "path": "legacy_vue/public/assets/images/menu_home_title_mist_1600.webp",
+      "sha256": "a73deb12f8d07854886987c4de0a32750020d8dedc3c67bcc0af38a0e921c6e0",
+      "bytes": 27560,
+      "batch": "F",
+      "recommendation": "旧首页吸烟背景/菜单光效/标题雾层，均未发现两分支运行引用；原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-101",
+      "path": "legacy_vue/public/assets/images/menu_home_title_mist_900.webp",
+      "sha256": "3ad6186f3ef0250292b36f78396954b7ce6d448d075f2f19def9c5f326e985be",
+      "bytes": 8730,
+      "batch": "F",
+      "recommendation": "旧首页吸烟背景/菜单光效/标题雾层，均未发现两分支运行引用；原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-102",
+      "path": "legacy_vue/public/assets/images/menu_home_title_mist_source.png",
+      "sha256": "e347288419702e15ca17a9015d1858ffc50d607d3aaf75c392462ed1a441c86d",
+      "bytes": 1533491,
+      "batch": "F",
+      "recommendation": "旧首页吸烟背景/菜单光效/标题雾层，均未发现两分支运行引用；原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-107",
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/cg/candidate_char_states_4up.png",
+      "sha256": "35603e4e73298dc6768093f7220a3fdca42d927c477a51847e1f6f7cfe45e6f0",
+      "bytes": 2455251,
+      "batch": "B",
+      "recommendation": "06月历史候选/设定；仅建议移出运行资源，原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-108",
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/cg/candidate_emotions_4up.png",
+      "sha256": "e8ae918f3c066e72f1292e6ab95a15a5c3c2f03210176e9421be3fe8e3af230f",
+      "bytes": 2283007,
+      "batch": "B",
+      "recommendation": "06月历史候选/设定；仅建议移出运行资源，原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-109",
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/cg/candidate_end_acquaintance.png",
+      "sha256": "a405934f266166450ee4e64e67caf043174801d78f7a7773036aaef1f83b8ce4",
+      "bytes": 2330259,
+      "batch": "B",
+      "recommendation": "06月历史候选/设定；仅建议移出运行资源，原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-110",
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/cg/candidate_end_acquaintance_9_16.png",
+      "sha256": "4f2a8b207fef3cf2ea90eb51c0465faecf10e14e4bf937cb631a8e4b56e85646",
+      "bytes": 2377474,
+      "batch": "B",
+      "recommendation": "06月历史候选/设定；仅建议移出运行资源，原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-111",
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/cg/candidate_end_disappear.png",
+      "sha256": "6ce4cb026e96407118b9b1e119d1015c922e9d22750da836778e8bc3e01bd4eb",
+      "bytes": 2469326,
+      "batch": "B",
+      "recommendation": "06月历史候选/设定；仅建议移出运行资源，原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-112",
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/cg/candidate_end_fall_9_16.png",
+      "sha256": "378ab128203c7c0c935aaf03cc32b9c6e7346f9e28005d9da8f6c59506ca9edd",
+      "bytes": 2398440,
+      "batch": "B",
+      "recommendation": "06月历史候选/设定；仅建议移出运行资源，原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-113",
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/cg/candidate_end_fall_storyboard.png",
+      "sha256": "fdf9b7d0ce39b405e75fc11ce90f727bc514451cd61291317ed20dd15765e2a6",
+      "bytes": 2403757,
+      "batch": "B",
+      "recommendation": "06月历史候选/设定；仅建议移出运行资源，原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-114",
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/cg/candidate_opening_approach.png",
+      "sha256": "ea3178f46cd24ffb04b793db09a06bd8cb1bed97d503ff48c209a50b4ca9ec9e",
+      "bytes": 2042769,
+      "batch": "B",
+      "recommendation": "06月历史候选/设定；仅建议移出运行资源，原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-115",
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/cg/candidate_pressure_near_railing.png",
+      "sha256": "03cd7936f8042552b7c96612f0ca9e1b48c13b0f6f878b6e73e28c04b0ce2bd3",
+      "bytes": 2352676,
+      "batch": "B",
+      "recommendation": "06月历史候选/设定；仅建议移出运行资源，原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-116",
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/cg/candidate_pressure_turn_back.png",
+      "sha256": "6433e81cb29fd70701afa4285e02f2712b0011d276bec7657959747fdff3d130",
+      "bytes": 2324227,
+      "batch": "B",
+      "recommendation": "06月历史候选/设定；仅建议移出运行资源，原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-117",
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/setting/ai_action_pose_sheet.png",
+      "sha256": "32439b2af27b312c1e09cd4bd9afe268ea4b0056e3efab1a4de2234d52c78402",
+      "bytes": 2025981,
+      "batch": "B",
+      "recommendation": "06月历史候选/设定；仅建议移出运行资源，原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-118",
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/setting/ai_expression_sheet.png",
+      "sha256": "f06f10a84ac198f7e6b55bb98b0365a84091184918a1c2cb793a1194a24a43de",
+      "bytes": 1885854,
+      "batch": "B",
+      "recommendation": "06月历史候选/设定；仅建议移出运行资源，原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-119",
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/setting/ai_outfit_props_sheet.png",
+      "sha256": "39368ac7f596b469c6a3b0914eaf3ab98a6ca158f9bb0864b8ae8a3842cc06ed",
+      "bytes": 1926231,
+      "batch": "B",
+      "recommendation": "06月历史候选/设定；仅建议移出运行资源，原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-120",
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/setting/ai_turnaround_sheet.png",
+      "sha256": "9e88606dfb2663d51bad9cc18cfb094b0d69628133890d322b10102db948af25",
+      "bytes": 1753423,
+      "batch": "B",
+      "recommendation": "06月历史候选/设定；仅建议移出运行资源，原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-121",
+      "path": "legacy_vue/public/assets/images/review_candidates_2026-06-29/setting/rooftop_environment_sheet.png",
+      "sha256": "10220246fb15f672b50d6b71e48154160d8411d4328291708fe250bba20fa452",
+      "bytes": 2641360,
+      "batch": "B",
+      "recommendation": "06月历史候选/设定；仅建议移出运行资源，原稿先归档",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-131",
+      "path": "legacy_vue/public/assets/images/safe_exit_20260918/03-leave-together-1600.webp",
+      "sha256": "297b54626dab6d5ba40dda62c97cd1459fde490e4ce798fb41cac962e0df2cc8",
+      "bytes": 272544,
+      "batch": "C",
+      "recommendation": "两人离开候选；实际使用03-leave-ai-only；先归档原稿",
+      "visual_note": "统一黑白短发/服装/天台；落泪抹泪采用近景，离开改为背影；两种离开构图为候选差异",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-132",
+      "path": "legacy_vue/public/assets/images/safe_exit_20260918/03-leave-together-900.webp",
+      "sha256": "252d375985a0ef3f2f3acf2ea8e04b796a71c0c05b39fc288ad10f3bd1deb10f",
+      "bytes": 106630,
+      "batch": "C",
+      "recommendation": "两人离开候选；实际使用03-leave-ai-only；先归档原稿",
+      "visual_note": "统一黑白短发/服装/天台；落泪抹泪采用近景，离开改为背影；两种离开构图为候选差异",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-133",
+      "path": "legacy_vue/public/assets/images/safe_exit_20260918/03-leave-together.png",
+      "sha256": "450004877a7ae5f8664f589d14100b534cbc84a46164d8eb1984a5f50e4f6bf8",
+      "bytes": 2356094,
+      "batch": "C",
+      "recommendation": "两人离开候选；实际使用03-leave-ai-only；先归档原稿",
+      "visual_note": "统一黑白短发/服装/天台；落泪抹泪采用近景，离开改为背影；两种离开构图为候选差异",
+      "master_scripts": [],
+      "shumei_scripts": []
+    },
+    {
+      "id": "ART-134",
+      "path": "legacy_vue/public/assets/images/ui_btn_primary.svg",
+      "sha256": "20ce1481f23227ab30eddd3b93fd1e5443866e9feb7d337cb17d121c161265c8",
+      "bytes": 873,
+      "batch": "E",
+      "recommendation": "旧占位UI/特效/背景，未发现两分支运行引用；逐项审批",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ],
+      "shumei_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ]
+    },
+    {
+      "id": "ART-138",
+      "path": "legacy_vue/public/assets/images/ui_progress_bar.svg",
+      "sha256": "1bdd284aacdca172e12fba60730c971189811e5a580358cca4912982d15704d1",
+      "bytes": 420,
+      "batch": "E",
+      "recommendation": "旧占位UI/特效/背景，未发现两分支运行引用；逐项审批",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ],
+      "shumei_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ]
+    },
+    {
+      "id": "ART-192",
+      "path": "legacy_vue/public/assets/images/unified_image2_2026-07-31/game_cg/review_cinematics.png",
+      "sha256": "7b8a2509b622fa9e2a10bd4b328ac6f458d543e6cc92b0dc58eab7886e4baaa0",
+      "bytes": 2107242,
+      "batch": "D",
+      "recommendation": "审查拼图在public内重复发布；需调整拼图生成输出目录",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [
+        "legacy_vue/scripts/build_unified_image2_candidates.mjs"
+      ],
+      "shumei_scripts": [
+        "legacy_vue/scripts/build_unified_image2_candidates.mjs"
+      ]
+    },
+    {
+      "id": "ART-193",
+      "path": "legacy_vue/public/assets/images/unified_image2_2026-07-31/game_cg/review_gameplay_states.png",
+      "sha256": "681e2d000c78f305d64d076d488e54883575774ff13b7c17b63b798215551593",
+      "bytes": 1624913,
+      "batch": "D",
+      "recommendation": "审查拼图在public内重复发布；需调整拼图生成输出目录",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [
+        "legacy_vue/scripts/build_unified_image2_candidates.mjs"
+      ],
+      "shumei_scripts": [
+        "legacy_vue/scripts/build_unified_image2_candidates.mjs"
+      ]
+    },
+    {
+      "id": "ART-214",
+      "path": "legacy_vue/public/assets/images/unified_image2_2026-07-31/review_contact_sheet.png",
+      "sha256": "bea6ab18891e200d14e41b970afb75b511b3380f396570cc519896019ad28674",
+      "bytes": 2563645,
+      "batch": "D",
+      "recommendation": "审查拼图在public内重复发布；需调整拼图生成输出目录",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [
+        "legacy_vue/scripts/build_unified_image2_candidates.mjs"
+      ],
+      "shumei_scripts": [
+        "legacy_vue/scripts/build_unified_image2_candidates.mjs"
+      ]
+    },
+    {
+      "id": "ART-215",
+      "path": "legacy_vue/public/assets/images/vfx_flame_sprite.webp",
+      "sha256": "85fd2a57e57b12b378571eb4639c86bf70b71d99a09c935f7250117718c10dd3",
+      "bytes": 20632,
+      "batch": "E",
+      "recommendation": "旧占位UI/特效/背景，未发现两分支运行引用；逐项审批",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ],
+      "shumei_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ]
+    },
+    {
+      "id": "ART-217",
+      "path": "legacy_vue/public/assets/images/vfx_snow_sprite.webp",
+      "sha256": "a3b3a92722727077c646996d3d149e40af15d02a9ada2076ee75f2560220dd0c",
+      "bytes": 3884,
+      "batch": "E",
+      "recommendation": "旧占位UI/特效/背景，未发现两分支运行引用；逐项审批",
+      "visual_note": "见缩略图与历史审查；未引用或同用途不等于质量不合格",
+      "master_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ],
+      "shumei_scripts": [
+        "legacy_vue/scripts/generate_assets.mjs"
+      ]
+    }
+  ],
+  "authorization": "User delegated cleanup after reviewing the A-F inventory: 你自己看着整吧",
+  "approved_batches": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F"
+  ],
+  "archive_path": "D:\\IT\\program\\TianTAiShiJu\\art_archives\\game_damo_taintaishiju\\2026-10-01-shumei-cg-cleanup-14cca4d9.zip",
+  "execution_record": "cleanup_result.json"
+}

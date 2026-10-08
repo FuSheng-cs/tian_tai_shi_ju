@@ -20,6 +20,8 @@
 - [五类 Prompt 与结算](engineering/prompts_and_settings.md)
 - [统一游戏 CG 清单](art_review_2026-07-31/unified_game_cg_manifest.md)
 - [image2 资源与候选清单](art_review_2026-07-31/unified_image2_manifest.md)
+- [美术资源维护](engineering/art_asset_maintenance.md)
+- [2026-10-08 master 美术清理迁移](art_review_2026-10-01/MASTER_MIGRATION.md)
 
 ## 历史审查
 

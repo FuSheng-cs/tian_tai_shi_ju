@@ -1,0 +1,49 @@
+{
+  "removed_count": 83,
+  "removed_bytes": 89452651,
+  "remaining_public_graphics": 98,
+  "remaining_graphics_bytes": 121628681,
+  "current_runtime_graphics": 33,
+  "retained_snapshot_hashes_unchanged": true,
+  "missing_runtime_asset_urls": [],
+  "deleted_files_recreated_by_default_generator": false,
+  "unified_generator_exit_code": 0,
+  "unified_generator_review_outputs_only_in_docs": true,
+  "unified_generator_public_reviews_recreated": false,
+  "production_public_graphics": 98,
+  "master_ref": "8675f6774fccbb29865bb235c2f1c722f5daf364",
+  "frontend_test_files_passed": 16,
+  "frontend_tests_passed": 113,
+  "frontend_lint": "passed",
+  "frontend_build": "passed",
+  "unified_production_file_count": 38,
+  "archive_read_only_restore_check": {
+    "verified_files": 83,
+    "restored_files": 0
+  },
+  "browser": {
+    "production_url": "http://127.0.0.1:5180/achievements",
+    "desktop_background": "/assets/images/menu_bg_rooftop_1600.webp",
+    "mobile_background": "/assets/images/menu_bg_rooftop_900.webp",
+    "both_backgrounds_decoded": true,
+    "mobile_viewport_width": 390,
+    "mobile_main_scroll_width": 380,
+    "screenshots": [
+      "achievements_desktop.png",
+      "achievements_mobile.png"
+    ]
+  },
+  "review_page": {
+    "title": "CG resources cleanup completed",
+    "cards": 220,
+    "enabled_candidate_checkboxes": 0,
+    "historical_art_previews_kept": true,
+    "in_app_browser_refreshed": true,
+    "pre_refresh_user_selections": [
+      "ART-041",
+      "ART-042",
+      "ART-043"
+    ]
+  },
+  "temporary_generator_fixture_removed": true
+}
