@@ -60,7 +60,11 @@ try {
   }
   [IO.File]::WriteAllText((Join-Path $releaseRoot 'SHA256SUMS'), (($hashLines -join "`n") + "`n"), $utf8)
   $archive = "$releaseRoot.tar.gz"
-  tar.exe -czf $archive -C $releaseRoot .
+  # Git's GNU tar treats a Windows drive colon as a remote host. Use the
+  # native Windows tar explicitly so absolute paths remain local paths.
+  $tarPath = Join-Path $env:WINDIR 'System32/tar.exe'
+  if (-not (Test-Path -LiteralPath $tarPath)) { throw 'Native Windows tar is required.' }
+  & $tarPath -czf $archive -C $releaseRoot .
   if ($LASTEXITCODE -ne 0) { throw 'V2 candidate archive failed.' }
   [pscustomobject]@{
     Candidate = $archive
