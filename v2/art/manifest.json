@@ -1,0 +1,166 @@
+{
+  "collection": "天台十句 · v2",
+  "origin": "Original images generated for this project through image_gen.imagegen",
+  "requestedModel": "image2.5",
+  "reportedModel": null,
+  "modelNote": "The available image generation interface does not expose a model selector or model identifier. No specific model version is claimed.",
+  "visualDirection": "Cinematic textured pixel illustration; charcoal, silver, mist and muted lavender; adult character sheltering a kraft paper envelope of photographic prints; humane quiet rooftop encounter; strong left negative space.",
+  "postprocessing": "WebP encoding with sharp, quality 90, effort 6; original dimensions and compositions preserved. No non-generative visual edits.",
+  "archivedIterations": [
+    {
+      "id": "rooftop-before-envelope",
+      "source": "archive/rooftop-before-envelope.png",
+      "generationId": "exec-c0da4054-beee-407d-9945-2cf99e67ed14",
+      "sha256": "454386521a411548611eae0754ae338ffad354c1536c78a3f862269ead5027bb",
+      "reason": "Initial frame retained as provenance; final frame adds the story's kraft paper envelope using reference-conditioned image generation."
+    },
+    {
+      "id": "listening-before-envelope",
+      "source": "archive/listening-before-envelope.png",
+      "generationId": "exec-a75df5bf-2011-4de2-ad79-dd63e9622c35",
+      "sha256": "2d2d64d7c4b3eb86f64a1dacbaa840017483d5a383372b24c126bacd9446a9e4",
+      "reason": "Initial close shot referenced the initial rooftop; final frame adds the matching envelope while retaining facial identity, camera and framing."
+    }
+  ],
+  "assets": [
+    {
+      "id": "rooftop",
+      "role": "Opening, cover and early conversation establishing shot",
+      "source": "originals/rooftop.png",
+      "publicPath": "/art/rooftop.webp",
+      "width": 1672,
+      "height": 941,
+      "bytes": 277872,
+      "sourceSha256": "0598b3121028ba76d044641c49d13631d03abbd48f1c1191184d7cfedfee5b19",
+      "webpSha256": "918954ee2f2d557fb3d1e6e04d7b7d91ce12cca2a7f67d897c437c98c2c7e7fb",
+      "generationId": "exec-130fb63f-61a7-440b-9907-82d5afbde866",
+      "references": [
+        "rooftop-before-envelope"
+      ],
+      "alt": "雨夜的旧楼天台，短发女子站在屋顶内侧，护着装有底片的牛皮纸袋，旧相机垂在腰侧，远处城市亮着零星灯光。",
+      "promptSummary": "Reference-conditioned continuity edit to original wide literary indie game frame: preserve woman, face, palette, pixel texture, city, clouds, building, camera and composition. Add a discreet muted-brown A4 kraft envelope under her left forearm against the front of her coat, sheltered from rain, natural hand and folded top; no text or other redesign."
+    },
+    {
+      "id": "listening",
+      "role": "Closer listening shot after the conversation opens up",
+      "source": "originals/listening.png",
+      "publicPath": "/art/listening.webp",
+      "width": 1671,
+      "height": 941,
+      "bytes": 306420,
+      "sourceSha256": "13fed75324fec616394bdd9044e226f223149675b583094723a67f4bebcd5984",
+      "webpSha256": "caeff1c67072d055d858f4e87be018fb302f7ff7b67a3e03115917c9cc6a5b51",
+      "generationId": "exec-3111bc9b-06e3-4c78-9f43-add980316ba7",
+      "references": [
+        "listening-before-envelope",
+        "rooftop"
+      ],
+      "alt": "女子稍稍转过身，认真听着来人的话，把牛皮纸袋护在身前，旧相机仍挂在腰侧，身后是雨中的城市。",
+      "promptSummary": "Reference-conditioned prop continuity edit to the first listening image, with the final rooftop as envelope reference. Preserve exact close framing, face, expression, hairstyle, light, city and camera. Add same muted-brown kraft envelope beneath forearm at lower chest, natural anatomy, old camera still visible at waist; no lettering or other redesign."
+    },
+    {
+      "id": "dawn",
+      "role": "Quiet conclusion after both people have walked downstairs",
+      "source": "originals/dawn.png",
+      "publicPath": "/art/dawn.webp",
+      "width": 1672,
+      "height": 941,
+      "bytes": 388936,
+      "sourceSha256": "6fcb93bb8daccfcbaef6c9cb705645c5d242f677c8391e9907a1470879bf8b09",
+      "webpSha256": "251fb20ca9b4cc5c2eba6d3a708389de277403773307bfdc14778580605df659",
+      "generationId": "exec-f59e26a3-f171-4e59-802f-261af140523a",
+      "references": [
+        "rooftop-before-envelope"
+      ],
+      "alt": "天亮了，雨后的天台空无一人，脚印通向亮着暖光的楼梯门，城市在晨雾中苏醒。",
+      "promptSummary": "Reference-conditioned identical rooftop at first dawn. Both characters have walked downstairs; open gently lit stairwell door and footprints lead inside. No abandoned camera or memorial objects. Rain ended, pale silver-lavender sky, wet concrete reflections, hopeful humane ordinary morning, no lettering."
+    },
+    {
+      "id": "detail-door",
+      "role": "Free scene observation detail, loaded on demand",
+      "source": "originals/details/door.png",
+      "publicPath": "/art/details/door.webp",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 385120,
+      "sourceSha256": "2a1f097822a9f7e8d00d6fa14c4db67332ab4d9e6da8ccf430176e165c102c84",
+      "webpSha256": "7fca2a2206fbdd41516429dc0405731f4f3a88950d7ca29ecb3b3b89ea31c784",
+      "generationId": "exec-aed9d489-5421-43c2-a15c-34aa0ca9fa5f",
+      "references": [
+        "rooftop"
+      ],
+      "alt": "半开的消防门，暖光照在干燥门槛，门外下着雨。",
+      "promptSpec": "DETAILS.md"
+    },
+    {
+      "id": "detail-camera",
+      "role": "Free scene observation detail, loaded on demand",
+      "source": "originals/details/camera.png",
+      "publicPath": "/art/details/camera.webp",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 259900,
+      "sourceSha256": "c001e24884d5847ed83df5d351168826474792d38a62c134cb4d7c8da5a94472",
+      "webpSha256": "2f14cc886ed5776c3b3cc2f974362eea08200c9a21c476027b62c20c6953adba",
+      "generationId": "exec-a0661d63-cbcf-4450-a4f3-fd3693820385",
+      "references": [
+        "rooftop"
+      ],
+      "alt": "深色外套前磨旧的相机，镜头盖扣着，背带有修补线。",
+      "promptSpec": "DETAILS.md"
+    },
+    {
+      "id": "detail-receipt",
+      "role": "Free scene observation detail, loaded on demand",
+      "source": "originals/details/receipt.png",
+      "publicPath": "/art/details/receipt.webp",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 339166,
+      "sourceSha256": "4453a24dd972826cd25f8feb32c13f7624565f13fc378d7aaee918cc6331f248",
+      "webpSha256": "9658cdc2b64c79285d768a0be1954f79c641e62cf61ef12ce3b84821d2fbedb4",
+      "generationId": "exec-cbf21da7-ffcd-4aa7-ba47-a0044e4a771b",
+      "references": [
+        "rooftop"
+      ],
+      "alt": "门槛旁湿透的小票，文字已经模糊，物主未知。",
+      "promptSpec": "DETAILS.md"
+    },
+    {
+      "id": "detail-rain",
+      "role": "Free scene observation detail, loaded on demand",
+      "source": "originals/details/rain.png",
+      "publicPath": "/art/details/rain.webp",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 416636,
+      "sourceSha256": "736b9430d13a4c8b69f3d22cbfe6250af5373f3c512811e972f1bee783b45614",
+      "webpSha256": "605d3288c191c33d2fc5ce4d333fe6de05ba013efb805ab10375174fdb7374ef",
+      "generationId": "exec-5c77580b-95ca-4fdb-88c6-a1d1c8b25d55",
+      "references": [
+        "rooftop"
+      ],
+      "alt": "雨夜城市里的夜班公交，屋檐下水滴落在天台地面。",
+      "promptSpec": "DETAILS.md"
+    },
+    {
+      "id": "threshold",
+      "role": "Confirmed indoor shelter during live or authored conversation",
+      "source": "originals/threshold.png",
+      "publicPath": "/art/threshold.webp",
+      "width": 1672,
+      "height": 941,
+      "bytes": 262628,
+      "sourceSha256": "e6a9ea792e7b3950ce01ac275abb2d3586355d8cfb261c19f0f70019775d78db",
+      "webpSha256": "688e95bcf27de1b214cd4d1b5c843e1f7625f259916cc56e7806d35b1e9952f6",
+      "generationId": "exec-a51d7c39-24c3-40a7-b3ea-853bd406d85d",
+      "references": [
+        "rooftop",
+        "listening"
+      ],
+      "alt": "艾抱着闭合纸袋站在干燥楼道里，旧相机垂在身侧，门外仍是雨夜。",
+      "promptSummary": "Reference-conditioned same adult woman, face, short dark hair with muted purple, dark coat and turtleneck, closed kraft envelope and capped old camera. Wide16:9, inside dry modest concrete stairwell landing, character on right with left negative space; ordinary warm wall lamp, charcoal silver lavender shadows. Open door reveals same nighttime rainy city. No indoor rain, no daylight, phone, arriving person, text or promise of healing. Only shown after accepted explicit narration proves entry."
+    }
+  ],
+  "detailPromptSet": "DETAILS.md"
+}

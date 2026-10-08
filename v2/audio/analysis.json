@@ -1,0 +1,108 @@
+{
+  "title": "没有关严的门",
+  "composition": "Original authored procedural composition and synthesis; no sampled songs or music-model service.",
+  "durationSeconds": 192,
+  "sections": [
+    {
+      "phase": "arrival",
+      "start": 0
+    },
+    {
+      "phase": "listening",
+      "start": 48
+    },
+    {
+      "phase": "threshold",
+      "start": 96
+    },
+    {
+      "phase": "dawn",
+      "start": 144
+    }
+  ],
+  "phrases": [
+    {
+      "start": 4.8,
+      "phase": "arrival",
+      "duration": 15.9
+    },
+    {
+      "start": 38.8,
+      "phase": "arrival",
+      "duration": 15.9
+    },
+    {
+      "start": 77.8,
+      "phase": "listening",
+      "duration": 15.9
+    },
+    {
+      "start": 109.8,
+      "phase": "threshold",
+      "duration": 15.9
+    },
+    {
+      "start": 152.8,
+      "phase": "dawn",
+      "duration": 15.9
+    }
+  ],
+  "motifFreeSeconds": 112.5,
+  "mastering": "Two-pass EBU R128 -23 LUFS target, -2 dBTP ceiling; runtime retains quieter reading levels.",
+  "files": {
+    "demo.ogg": {
+      "raw": {
+        "samplePeakDbfs": -32.85,
+        "rmsDbfs": -50.2,
+        "clippedSamples": 0,
+        "nonFiniteSamples": 0
+      },
+      "encoded": {
+        "durationSeconds": 192,
+        "codec_name": "vorbis",
+        "sample_rate": "48000",
+        "channels": 2,
+        "integratedLufs": -23.17,
+        "truePeakDbtp": -8.92,
+        "rmsDbfs": -26.140908
+      },
+      "bytes": 3615383
+    },
+    "music-only.ogg": {
+      "raw": {
+        "samplePeakDbfs": -35.37,
+        "rmsDbfs": -52.19,
+        "clippedSamples": 0,
+        "nonFiniteSamples": 0
+      },
+      "encoded": {
+        "durationSeconds": 192,
+        "codec_name": "vorbis",
+        "sample_rate": "48000",
+        "channels": 2,
+        "integratedLufs": -22.96,
+        "truePeakDbtp": -8.03,
+        "rmsDbfs": -24.846661
+      },
+      "bytes": 3168031
+    },
+    "rain-only.ogg": {
+      "raw": {
+        "samplePeakDbfs": -38.45,
+        "rmsDbfs": -54.54,
+        "clippedSamples": 0,
+        "nonFiniteSamples": 0
+      },
+      "encoded": {
+        "durationSeconds": 192,
+        "codec_name": "vorbis",
+        "sample_rate": "48000",
+        "channels": 2,
+        "integratedLufs": -23.34,
+        "truePeakDbtp": -11.68,
+        "rmsDbfs": -27.832586
+      },
+      "bytes": 3699127
+    }
+  }
+}
