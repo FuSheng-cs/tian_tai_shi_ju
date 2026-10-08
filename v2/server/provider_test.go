@@ -151,3 +151,43 @@ func TestLiveFinalizerReceivesOfferAndActualRefusal(t *testing.T) {
 		t.Fatal("model must not override server-owned ending fields")
 	}
 }
+
+func TestProviderReceivesSilenceAsActionAndDoesNotQuoteItsLabel(t *testing.T) {
+	model, err := NewModelNarrator("https://api.example.com/v1", "server-only-secret", "configured-model")
+	if err != nil {
+		t.Fatal(err)
+	}
+	model.lookup = func(context.Context, string) ([]net.IPAddr, error) {
+		return []net.IPAddr{{IP: net.ParseIP("8.8.8.8")}}, nil
+	}
+	model.client.Transport = transportFunc(func(request *http.Request) (*http.Response, error) {
+		var body struct {
+			Messages []struct {
+				Content string `json:"content"`
+			} `json:"messages"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&body); err != nil || len(body.Messages) != 2 {
+			t.Fatal("invalid provider envelope", err)
+		}
+		var payload struct {
+			PlayerLine   string    `json:"playerLine"`
+			PlayerIntent string    `json:"playerIntent"`
+			Transcript   []Message `json:"transcript"`
+		}
+		if err := json.Unmarshal([]byte(body.Messages[1].Content), &payload); err != nil || payload.PlayerIntent != "silence" || payload.PlayerLine != silenceText || payload.Transcript[0].Intent != "silence" {
+			t.Error("explicit silence action lost its meaning", err)
+		}
+		content := `{"reply":"不用急。","narration":"她低头擦了擦纸袋上的水。","memory":null}`
+		response, _ := json.Marshal(map[string]any{"choices": []any{map[string]any{"message": map[string]string{"content": content}, "finish_reason": "stop"}}})
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(string(response))), Header: make(http.Header)}, nil
+	})
+	command := TurnCommand{Text: silenceText, Intent: "silence"}
+	session := Session{Messages: []Message{{ID: "1-player", Role: "player", Text: silenceText, Intent: "silence"}}}
+	if _, err := model.Generate(context.Background(), session, command); err != nil {
+		t.Fatal("silence provider request failed", err)
+	}
+	_, err = decodeNarrative(`{"reply":"不用急。","narration":"她看着雨。","memory":{"title":"你说过","text":"让这一刻安静一会儿。"}}`, command)
+	if err == nil {
+		t.Fatal("silence action label was accepted as a player quote")
+	}
+}

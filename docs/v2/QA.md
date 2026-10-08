@@ -35,6 +35,8 @@ Rehearsal is fixed, authored narrative. A passing rehearsal run verifies the app
 
 ## Verification record
 
+Latest iteration: [2026-10-08 verification](ITERATION_2026-10-08.md). The final production preview run passed **9/9 scenarios in 37.4 seconds**, with 25 frontend unit tests and 27 Go top-level tests. It adds independent durable observations, explicit silence, chosen/blank echo, response-loss recovery and observation-only revision regression coverage. The historical initial record below is retained as provenance. Public deployment and actual-provider validation remain unverified because SSH is unreachable.
+
 Initial browser runs found two integration defects: Vite's shorthand proxy changed the request host and caused genuine session creation to fail the API's same-origin check; native dialog tab traversal could leave document focus. Both were repaired by preserving the proxy host explicitly and wrapping focus at modal boundaries. The browser suite rechecks these paths.
 
 Visual review also led to a mobile art crop adjustment so the character stays in frame, and a 16 px mobile composer font to avoid automatic zoom in browsers that zoom smaller form controls.

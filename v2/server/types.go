@@ -11,14 +11,17 @@ import (
 )
 
 const maxTurns = 10
+const maxRevision = maxTurns + 1 + 4
+const silenceText = "让这一刻安静一会儿。"
 
 var sessionIDPattern = regexp.MustCompile(`^[a-f0-9]{64}$`)
 var requestIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{8,96}$`)
 
 type Message struct {
-	ID   string `json:"id"`
-	Role string `json:"role"`
-	Text string `json:"text"`
+	ID     string `json:"id"`
+	Role   string `json:"role"`
+	Text   string `json:"text"`
+	Intent string `json:"intent,omitempty"`
 }
 
 type Memory struct {
@@ -56,12 +59,20 @@ type TurnCommand struct {
 	ExpectedRevision int    `json:"expectedRevision"`
 	Text             string `json:"text"`
 	Observation      string `json:"observation,omitempty"`
+	Intent           string `json:"intent,omitempty"`
+}
+
+type ObservationCommand struct {
+	RequestID        string `json:"requestId"`
+	ExpectedRevision int    `json:"expectedRevision"`
+	Observation      string `json:"observation"`
 }
 
 type EndingCommand struct {
-	RequestID        string `json:"requestId"`
-	ExpectedRevision int    `json:"expectedRevision"`
-	Choice           string `json:"choice"`
+	RequestID        string  `json:"requestId"`
+	ExpectedRevision int     `json:"expectedRevision"`
+	Choice           string  `json:"choice"`
+	EchoMessageID    *string `json:"echoMessageId,omitempty"`
 }
 
 type Narrative struct {
@@ -122,7 +133,7 @@ func validObservation(value string) bool {
 }
 
 func validateRequestID(id string, revision int) error {
-	if !requestIDPattern.MatchString(id) || revision < 0 || revision > maxTurns+1 {
+	if !requestIDPattern.MatchString(id) || revision < 0 || revision > maxRevision {
 		return failure(400, "invalid_command", "这句话的编号不完整，请刷新页面后重试。", false)
 	}
 	return nil
@@ -133,7 +144,7 @@ func validateTurn(command TurnCommand) error {
 		return err
 	}
 	text := strings.TrimSpace(command.Text)
-	if !utf8.ValidString(text) || text == "" || utf8.RuneCountInString(text) > 120 || !validObservation(command.Observation) {
+	if !utf8.ValidString(text) || text == "" || utf8.RuneCountInString(text) > 120 || !validObservation(command.Observation) || (command.Intent != "" && command.Intent != "silence") || (command.Intent == "silence" && text != silenceText) {
 		return failure(400, "invalid_input", "请写下 1 至 120 个字，并选择天台上真实存在的事物。", false)
 	}
 	return nil
@@ -147,14 +158,14 @@ func validateRecord(record Record, id string) error {
 	if s.Mode != "live" && s.Mode != "rehearsal" {
 		return fmt.Errorf("invalid session mode")
 	}
-	if s.Turn < 0 || s.Turn > maxTurns || s.Revision < 0 || s.Revision > maxTurns+1 {
+	if s.Turn < 0 || s.Turn > maxTurns || s.Revision < s.Turn || s.Revision > maxRevision {
 		return fmt.Errorf("invalid turn state")
 	}
 	if s.Status == "ended" {
-		if s.Ending == nil || s.Turn != maxTurns || s.Revision != maxTurns+1 || s.Phase != "dawn" {
+		if s.Ending == nil || s.Turn != maxTurns || s.Revision < maxTurns+1 || s.Revision > maxTurns+1+len(s.Observations) || s.Phase != "dawn" {
 			return fmt.Errorf("invalid ending state")
 		}
-	} else if s.Ending != nil || s.Revision != s.Turn || (s.Status != "active" && s.Status != "choosing") || (s.Status == "choosing") != (s.Turn == maxTurns) {
+	} else if s.Ending != nil || s.Revision > s.Turn+len(s.Observations) || (s.Status != "active" && s.Status != "choosing") || (s.Status == "choosing") != (s.Turn == maxTurns) {
 		return fmt.Errorf("invalid active state")
 	}
 	if s.Phase != phaseForTurn(s.Turn) || s.Messages == nil || s.Observations == nil || s.Memories == nil || s.CreatedAt.IsZero() || s.UpdatedAt.Before(s.CreatedAt) {
@@ -164,6 +175,9 @@ func validateRecord(record Record, id string) error {
 	for _, message := range s.Messages {
 		if message.ID == "" || strings.TrimSpace(message.Text) == "" || (message.Role != "player" && message.Role != "character" && message.Role != "narrator") {
 			return fmt.Errorf("invalid message")
+		}
+		if message.Intent != "" && (message.Intent != "silence" || message.Role != "player" || message.Text != silenceText) {
+			return fmt.Errorf("invalid player action")
 		}
 		if message.Role == "player" {
 			playerCount++

@@ -7,7 +7,14 @@ vi.mock('../api', async (importOriginal) => {
   const original = await importOriginal<typeof import('../api')>()
   return {
     ...original,
-    api: { health: vi.fn(), create: vi.fn(), restore: vi.fn(), turn: vi.fn(), ending: vi.fn() },
+    api: {
+      health: vi.fn(),
+      create: vi.fn(),
+      restore: vi.fn(),
+      turn: vi.fn(),
+      ending: vi.fn(),
+      observe: vi.fn(),
+    },
   }
 })
 
@@ -129,10 +136,54 @@ describe('recoverable conversation requests', () => {
     vi.mocked(api.ending)
       .mockRejectedValueOnce(new ApiError('断线', 'NETWORK_ERROR', true))
       .mockResolvedValueOnce({ ...makeSession(11), status: 'ended', turn: 10 })
-    await game.end('separate')
+    await game.end('separate', '3-player')
     const command = game.pendingEnding.value
-    await game.end('correspondence')
+    await game.end('correspondence', '6-player')
     expect(vi.mocked(api.ending).mock.calls[1]?.[1]).toEqual(command)
+    expect(command?.echoMessageId).toBe('3-player')
     expect(game.pendingEnding.value).toBeNull()
+  })
+
+  it('persists a free observation, reuses its request after loss and submits the next sentence at the new revision', async () => {
+    const game = useGame()
+    await game.start('rehearsal')
+    vi.mocked(api.observe)
+      .mockRejectedValueOnce(new ApiError('断线', 'NETWORK_ERROR', true))
+      .mockResolvedValueOnce({ ...makeSession(1), turn: 0, observations: ['door'] })
+    expect(await game.observe('door')).toBe(false)
+    const original = game.pendingObservation.value
+    expect(await game.send('门还开着。')).toBe(false)
+    expect(api.turn).not.toHaveBeenCalled()
+    expect(await game.observe('rain')).toBe(true)
+    expect(vi.mocked(api.observe).mock.calls[1]?.[1]).toEqual(original)
+    expect(game.session.value?.turn).toBe(0)
+    expect(game.session.value?.revision).toBe(1)
+    expect(await game.observe('door')).toBe(true)
+    expect(api.observe).toHaveBeenCalledTimes(2)
+    vi.mocked(api.turn).mockResolvedValue({ ...makeSession(2), turn: 1, observations: ['door'] })
+    await game.send('门还开着。')
+    expect(vi.mocked(api.turn).mock.calls[0]?.[1].expectedRevision).toBe(1)
+  })
+
+  it('represents a deliberate silence as an action and retries that action without turning it into new speech', async () => {
+    const game = useGame()
+    await game.start('rehearsal')
+    vi.mocked(api.turn)
+      .mockRejectedValueOnce(new ApiError('断线', 'NETWORK_ERROR', true))
+      .mockResolvedValueOnce(makeSession(1))
+    await game.silence()
+    const original = game.pendingTurn.value
+    expect(original).toMatchObject({ text: '让这一刻安静一会儿。', intent: 'silence' })
+    await game.send('还没送出的草稿')
+    expect(vi.mocked(api.turn).mock.calls[1]?.[1]).toEqual(original)
+  })
+
+  it('leaves the keepsake blank when the player has not chosen a quote', async () => {
+    const game = useGame()
+    vi.mocked(api.create).mockResolvedValue({ ...makeSession(10), status: 'choosing' })
+    vi.mocked(api.ending).mockResolvedValue({ ...makeSession(11), turn: 10, status: 'ended' })
+    await game.start('rehearsal')
+    await game.end('separate')
+    expect(vi.mocked(api.ending).mock.calls[0]?.[1].echoMessageId).toBe('')
   })
 })

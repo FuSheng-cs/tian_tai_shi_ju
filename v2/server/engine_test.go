@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -69,7 +70,7 @@ func TestTurnIdempotencyAndDurableReload(t *testing.T) {
 	_, err = reloaded.Turn(context.Background(), session.ID, command)
 	assertCode(t, err, "request_conflict")
 	file, err := os.Stat(filepath.Join(game.store.dir, session.ID+".json"))
-	if err != nil || file.Mode().Perm() != 0600 {
+	if err != nil || (runtime.GOOS != "windows" && file.Mode().Perm() != 0600) {
 		t.Fatalf("private file mode missing: %v", err)
 	}
 	stored, err := reloaded.Get(session.ID)
@@ -177,7 +178,8 @@ func TestTenTurnEndingGateAndExactPlayerEcho(t *testing.T) {
 			}
 			_, err = game.Turn(context.Background(), session.ID, TurnCommand{RequestID: "request-extra", ExpectedRevision: 10, Text: "不应该有第十一句。"})
 			assertCode(t, err, "night_complete")
-			command := EndingCommand{RequestID: "ending-001", ExpectedRevision: 10, Choice: choice}
+			echoID := "6-player"
+			command := EndingCommand{RequestID: "ending-001", ExpectedRevision: 10, Choice: choice, EchoMessageID: &echoID}
 			ended, err := game.End(context.Background(), session.ID, command)
 			if err != nil || ended.Revision != 11 || ended.Ending.ID != choice || ended.Ending.Echo != "这是我真正在第6句说的话。" || ended.Status != "ended" {
 				t.Fatalf("ending failed or fabricated echo: %v", err)
@@ -243,7 +245,8 @@ func TestLiveFinaleRespectsRefusalAndIsAtomic(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	command := EndingCommand{RequestID: "live-ending-001", ExpectedRevision: 10, Choice: "correspondence"}
+	echoID := "6-player"
+	command := EndingCommand{RequestID: "live-ending-001", ExpectedRevision: 10, Choice: "correspondence", EchoMessageID: &echoID}
 	_, err := game.End(context.Background(), session.ID, command)
 	assertCode(t, err, "narrative_unavailable")
 	afterFailure, err := game.Get(session.ID)

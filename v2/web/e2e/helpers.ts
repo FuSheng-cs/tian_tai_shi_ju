@@ -12,6 +12,12 @@ export async function capture(page: Page, name: string, testInfo: TestInfo) {
     return artwork.complete && artwork.naturalWidth > 0
   })).toBe(true)
   await page.evaluate(() => document.fonts.ready.then(() => undefined))
+  if (await page.locator('.observation-photo img').count()) {
+    await expect.poll(() => page.locator('.observation-photo img').evaluate((element) => {
+      const artwork = element as HTMLImageElement
+      return artwork.complete && artwork.naturalWidth > 0
+    })).toBe(true)
+  }
   // Normalize scroll before full-page capture so fixed elements retain their
   // actual viewport position rather than being offset by the last clicked item.
   await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }))

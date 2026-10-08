@@ -1,7 +1,7 @@
 {
   "title": "没有关严的门",
-  "composition": "Original authored generative score; no sampled songs or music-model service.",
-  "durationSeconds": 84,
+  "composition": "Original authored procedural composition and synthesis; no sampled songs or music-model service.",
+  "durationSeconds": 192,
   "sections": [
     {
       "phase": "arrival",
@@ -9,54 +9,100 @@
     },
     {
       "phase": "listening",
-      "start": 21
+      "start": 48
     },
     {
       "phase": "threshold",
-      "start": 42
+      "start": 96
     },
     {
       "phase": "dawn",
-      "start": 63
+      "start": 144
     }
   ],
-  "mastering": "EBU R128 -23 LUFS target, -2 dBTP ceiling; runtime retains quieter reading levels.",
+  "phrases": [
+    {
+      "start": 4.8,
+      "phase": "arrival",
+      "duration": 15.9
+    },
+    {
+      "start": 38.8,
+      "phase": "arrival",
+      "duration": 15.9
+    },
+    {
+      "start": 77.8,
+      "phase": "listening",
+      "duration": 15.9
+    },
+    {
+      "start": 109.8,
+      "phase": "threshold",
+      "duration": 15.9
+    },
+    {
+      "start": 152.8,
+      "phase": "dawn",
+      "duration": 15.9
+    }
+  ],
+  "motifFreeSeconds": 112.5,
+  "mastering": "Two-pass EBU R128 -23 LUFS target, -2 dBTP ceiling; runtime retains quieter reading levels.",
   "files": {
     "demo.ogg": {
       "raw": {
-        "samplePeakDbfs": -27.25,
-        "rmsDbfs": -41.67,
+        "samplePeakDbfs": -32.85,
+        "rmsDbfs": -50.2,
         "clippedSamples": 0,
         "nonFiniteSamples": 0
       },
       "encoded": {
-        "durationSeconds": 84,
+        "durationSeconds": 192,
         "codec_name": "vorbis",
         "sample_rate": "48000",
         "channels": 2,
-        "integratedLufs": -23.46,
-        "truePeakDbtp": -12.27,
-        "rmsDbfs": -25.59413
+        "integratedLufs": -23.17,
+        "truePeakDbtp": -8.92,
+        "rmsDbfs": -26.140908
       },
-      "bytes": 1560657
+      "bytes": 3615383
     },
     "music-only.ogg": {
       "raw": {
-        "samplePeakDbfs": -28.32,
-        "rmsDbfs": -41.97,
+        "samplePeakDbfs": -35.37,
+        "rmsDbfs": -52.19,
         "clippedSamples": 0,
         "nonFiniteSamples": 0
       },
       "encoded": {
-        "durationSeconds": 84,
+        "durationSeconds": 192,
         "codec_name": "vorbis",
         "sample_rate": "48000",
         "channels": 2,
-        "integratedLufs": -23.27,
-        "truePeakDbtp": -12.33,
-        "rmsDbfs": -25.16194
+        "integratedLufs": -22.96,
+        "truePeakDbtp": -8.03,
+        "rmsDbfs": -24.846661
       },
-      "bytes": 1275316
+      "bytes": 3168031
+    },
+    "rain-only.ogg": {
+      "raw": {
+        "samplePeakDbfs": -38.45,
+        "rmsDbfs": -54.54,
+        "clippedSamples": 0,
+        "nonFiniteSamples": 0
+      },
+      "encoded": {
+        "durationSeconds": 192,
+        "codec_name": "vorbis",
+        "sample_rate": "48000",
+        "channels": 2,
+        "integratedLufs": -23.34,
+        "truePeakDbtp": -11.68,
+        "rmsDbfs": -27.832586
+      },
+      "bytes": 3699127
     }
   }
 }

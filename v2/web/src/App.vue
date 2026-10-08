@@ -23,8 +23,10 @@ import { usePreferences } from './composables/usePreferences'
 import {
   countCharacters,
   makeMemento,
+  memorySource,
   observations,
   phaseNames,
+  playerLines,
   rehearsalLines,
   type EndingChoice,
   type Observation,
@@ -43,6 +45,7 @@ const {
   notice,
   pendingTurn,
   pendingEnding,
+  pendingObservation,
 } = game
 const { preferences, systemReducedMotion } = usePreferences()
 const audio = useAmbientAudio()
@@ -57,19 +60,29 @@ const inspecting = ref<Observation | null>(null)
 const composing = ref(false)
 const textarea = ref<HTMLTextAreaElement>()
 const exportNotice = ref('')
+const selectedEcho = ref('')
+const silenceConfirming = ref(false)
+const echoOptions = computed(() => (session.value ? playerLines(session.value) : []))
+const observedDetails = computed(() =>
+  (session.value?.observations ?? []).flatMap((id) => {
+    const item = observations.find((entry) => entry.id === id)
+    return item ? [item] : []
+  }),
+)
 const chars = computed(() => countCharacters(input.value))
 const reducedMotion = computed(
   () => preferences.value.motion === 'reduced' || systemReducedMotion.value,
 )
 const sceneArt = computed(() => {
   if (screen.value !== 'game' || !session.value) return '/art/rooftop.webp'
-  if (session.value.status === 'ended') return '/art/dawn.webp'
+  if (session.value.status === 'ended' && session.value.mode === 'rehearsal')
+    return '/art/dawn.webp'
   if (session.value.phase !== 'arrival') return '/art/listening.webp'
   return '/art/rooftop.webp'
 })
 const sceneTime = computed(() => {
   const turn = session.value?.turn ?? 0
-  return turn < 3 ? '23:47' : turn < 7 ? '23:52' : turn < 10 ? '00:03' : '00:12'
+  return turn === 0 ? '23:47' : turn < 10 ? '这一夜' : '十句话之后'
 })
 const lastCharacter = computed(() =>
   [...(session.value?.messages ?? [])].reverse().find((message) => message.role === 'character'),
@@ -91,6 +104,7 @@ const selectedObject = computed(() =>
 const canSend = computed(
   () =>
     !busy.value &&
+    !pendingObservation.value &&
     (Boolean(pendingTurn.value) ||
       (chars.value > 0 && chars.value <= 120 && input.value.trim().length > 0)),
 )
@@ -144,6 +158,8 @@ watch(
     input.value = ''
     selectedObservation.value = undefined
     inspecting.value = null
+    selectedEcho.value = ''
+    silenceConfirming.value = false
   },
 )
 watch(
@@ -183,8 +199,18 @@ async function start(mode: PlayMode) {
 
 async function resume() {
   const previousPending = pendingTurn.value
+  const previousTurn = session.value?.turn ?? 0
   if (await game.resume()) {
-    if (previousPending && !pendingTurn.value && lastPlayer.value?.text === previousPending.text) {
+    if (previousPending?.intent === 'silence' && (session.value?.turn ?? 0) > previousTurn) {
+      silenceConfirming.value = false
+    }
+    if (
+      previousPending &&
+      previousPending.intent !== 'silence' &&
+      !pendingTurn.value &&
+      (session.value?.turn ?? 0) > previousTurn &&
+      lastPlayer.value?.text === previousPending.text
+    ) {
       input.value = ''
       selectedObservation.value = undefined
     }
@@ -199,10 +225,29 @@ function enterGame() {
 
 async function send() {
   if (!canSend.value || composing.value) return
+  const wasSilence = pendingTurn.value?.intent === 'silence'
   if (await game.send(input.value, selectedObservation.value)) {
-    input.value = ''
+    if (!wasSilence) input.value = ''
+    if (wasSilence) silenceConfirming.value = false
     selectedObservation.value = undefined
     inspecting.value = null
+  }
+}
+
+async function inspectObservation(id: Observation) {
+  if (inspecting.value === id) {
+    inspecting.value = null
+    return
+  }
+  inspecting.value = id
+  if (!busy.value && !pendingTurn.value && !pendingObservation.value) await game.observe(id)
+}
+
+async function leaveSilence() {
+  if (await game.silence()) {
+    silenceConfirming.value = false
+    inspecting.value = null
+    selectedObservation.value = undefined
   }
 }
 
@@ -220,7 +265,7 @@ function onComposeKey(event: KeyboardEvent) {
 }
 
 function chooseObservation() {
-  if (!inspecting.value || pendingTurn.value || busy.value) return
+  if (!inspecting.value || pendingTurn.value || pendingObservation.value || busy.value) return
   selectedObservation.value =
     selectedObservation.value === inspecting.value ? undefined : inspecting.value
   inspecting.value = null
@@ -234,7 +279,7 @@ function useAuthoredLine(line: string) {
 }
 
 async function chooseEnding(choice: EndingChoice) {
-  await game.end(choice)
+  await game.end(choice, selectedEcho.value)
 }
 
 function goHome() {
@@ -386,7 +431,14 @@ async function onJournalKeys(event: KeyboardEvent) {
           </button>
         </div>
       </Transition>
-      <div class="intro-progress" aria-label="序章进度">
+      <div
+        class="intro-progress"
+        role="progressbar"
+        aria-label="序章进度"
+        aria-valuemin="1"
+        aria-valuemax="3"
+        :aria-valuenow="introStep + 1"
+      >
         <span v-for="n in 3" :key="n" :class="{ filled: n <= introStep + 1 }" />
       </div>
     </main>
@@ -398,6 +450,7 @@ async function onJournalKeys(event: KeyboardEvent) {
       class="game-main"
       :class="{ 'ending-main': session.status === 'ended' }"
     >
+      <h1 v-if="session.status !== 'ended'" class="sr-only">未寄出的底片 · 雨夜对话</h1>
       <div class="game-topline">
         <button class="back-home text-button" @click="goHome">
           <ArrowLeft :size="14" />暂离天台
@@ -409,7 +462,7 @@ async function onJournalKeys(event: KeyboardEvent) {
         >
         <button class="journal-button" @click="modal = 'journal'">
           <BookOpen :size="15" :stroke-width="1.4" />这一夜的留存<span>{{
-            String(session.memories.length).padStart(2, '0')
+            String(session.memories.length + session.observations.length).padStart(2, '0')
           }}</span>
         </button>
       </div>
@@ -426,12 +479,19 @@ async function onJournalKeys(event: KeyboardEvent) {
           </div>
           <Transition name="dialogue" mode="out-in">
             <section
-              :key="session.revision"
+              :key="session.turn"
               class="dialogue-content"
               aria-live="polite"
               aria-atomic="true"
             >
-              <p v-if="lastPlayer" class="last-player"><span>你</span>{{ lastPlayer.text }}</p>
+              <p
+                v-if="lastPlayer"
+                class="last-player"
+                :class="{ 'player-action': lastPlayer.intent === 'silence' }"
+              >
+                <span>{{ lastPlayer.intent === 'silence' ? '你留下的停顿' : '你' }}</span
+                >{{ lastPlayer.text }}
+              </p>
               <p v-if="lastNarration" class="narrator-line">{{ lastNarration.text }}</p>
               <p class="speaker-label"><span class="speaker-rule" />天台上的人</p>
               <blockquote class="character-line">
@@ -449,7 +509,7 @@ async function onJournalKeys(event: KeyboardEvent) {
         <div v-if="session.status === 'active'" class="interaction-area">
           <div class="observation-bar">
             <span class="observation-label"><Camera :size="13" :stroke-width="1.3" />看看身边</span>
-            <div class="observation-options" aria-label="观察身边的事物">
+            <div class="observation-options" role="group" aria-label="观察身边的事物">
               <button
                 v-for="item in observations"
                 :key="item.id"
@@ -458,7 +518,10 @@ async function onJournalKeys(event: KeyboardEvent) {
                   inspected: session.observations.includes(item.id),
                 }"
                 :aria-pressed="selectedObservation === item.id"
-                @click="inspecting = inspecting === item.id ? null : item.id"
+                :aria-expanded="inspecting === item.id"
+                aria-controls="observation-detail"
+                :disabled="busy || Boolean(pendingTurn) || Boolean(pendingObservation)"
+                @click="inspectObservation(item.id)"
               >
                 <span class="object-mark">{{ item.mark }}</span
                 >{{ item.title }}<Check v-if="selectedObservation === item.id" :size="11" /><span
@@ -469,27 +532,49 @@ async function onJournalKeys(event: KeyboardEvent) {
               </button>
             </div>
           </div>
+          <p class="observation-hint">观察不占句数，会留在「这一夜的留存」里。</p>
           <Transition name="detail">
             <section
               v-if="observation"
+              id="observation-detail"
               class="observation-detail"
+              :class="{ 'with-image': observation.image }"
               :aria-label="`观察${observation.title}`"
             >
-              <div>
-                <span class="eyebrow">{{ observation.mark }} / {{ observation.title }}</span>
+              <figure v-if="observation.image" class="observation-photo">
+                <img :src="observation.image" alt="" loading="lazy" />
+                <figcaption>雨夜里的一个细节</figcaption>
+              </figure>
+              <div class="observation-copy">
+                <span class="eyebrow">你看见 / {{ observation.title }}</span>
                 <p>{{ observation.text }}</p>
+                <p class="observation-saved" role="status">
+                  <template v-if="session.observations.includes(observation.id)"
+                    ><Check :size="12" />已记下 · 不占句数</template
+                  >
+                  <template v-else-if="busy && pendingObservation">正在记下这个细节……</template>
+                  <template v-else>可以留意，不必急着提问。</template>
+                </p>
+                <button
+                  v-if="pendingObservation && !busy"
+                  class="text-button observation-retry"
+                  @click="game.observe(pendingObservation.observation)"
+                >
+                  重试保存观察 <ArrowRight :size="14" />
+                </button>
+                <button
+                  v-else
+                  class="text-button"
+                  :disabled="busy || Boolean(pendingTurn) || Boolean(pendingObservation)"
+                  @click="chooseObservation"
+                >
+                  {{
+                    selectedObservation === observation.id
+                      ? '先放下这个念头'
+                      : '把这个细节带进下一句话'
+                  }}<ArrowDown :size="14" />
+                </button>
               </div>
-              <button
-                class="text-button"
-                :disabled="busy || Boolean(pendingTurn)"
-                @click="chooseObservation"
-              >
-                {{
-                  selectedObservation === observation.id
-                    ? '先放下这个念头'
-                    : '把这个细节带进下一句话'
-                }}<ArrowDown :size="14" />
-              </button>
               <button class="detail-close" aria-label="收起观察" @click="inspecting = null">
                 ×
               </button>
@@ -549,7 +634,15 @@ async function onJournalKeys(event: KeyboardEvent) {
                 type="submit"
                 class="send-button"
                 :disabled="!canSend"
-                :aria-label="busy ? '等待回应' : pendingTurn ? '重试这句话' : '说出这句话'"
+                :aria-label="
+                  busy
+                    ? '等待回应'
+                    : pendingTurn
+                      ? pendingTurn.intent === 'silence'
+                        ? '重试这次停顿'
+                        : '重试这句话'
+                      : '说出这句话'
+                "
               >
                 <LoaderCircle
                   v-if="busy"
@@ -565,7 +658,9 @@ async function onJournalKeys(event: KeyboardEvent) {
               <p id="compose-hint">
                 {{
                   busy
-                    ? '给她一点时间。你的话已经留在这里。'
+                    ? pendingObservation
+                      ? '正在保存观察。不占用回应次数。'
+                      : '给她一点时间。这次回应还没有计入句数。'
                     : pendingTurn
                       ? '原话已保留。重试会接上同一次对话，不重复计次。'
                       : 'Ctrl / ⌘ + Enter 发送'
@@ -578,11 +673,11 @@ async function onJournalKeys(event: KeyboardEvent) {
             <div
               class="turn-ticks"
               role="progressbar"
-              aria-label="这一夜的十次开口"
+              aria-label="这一夜的十次回应"
               :aria-valuenow="session.turn"
               :aria-valuemin="0"
               :aria-valuemax="10"
-              :aria-valuetext="`已说 ${session.turn} 句，共十句`"
+              :aria-valuetext="`已回应 ${session.turn} 次，共十次`"
             >
               <span
                 v-for="n in 10"
@@ -591,6 +686,39 @@ async function onJournalKeys(event: KeyboardEvent) {
               />
             </div>
           </form>
+          <div class="silence-choice">
+            <button
+              v-if="!silenceConfirming"
+              class="text-button"
+              :disabled="busy || Boolean(pendingTurn) || Boolean(pendingObservation)"
+              @click="silenceConfirming = true"
+            >
+              让这一刻安静一会儿 <span>计入一次回应</span>
+            </button>
+            <div v-else class="silence-confirmation">
+              <p>留一拍沉默，故事也会继续。它占用一次回应；只是停下来阅读，不会扣句数。</p>
+              <div>
+                <button
+                  class="text-button"
+                  :disabled="busy || Boolean(pendingTurn) || Boolean(pendingObservation)"
+                  @click="leaveSilence"
+                >
+                  留一拍沉默 <ArrowRight :size="14" />
+                </button>
+                <button class="text-button" :disabled="busy" @click="silenceConfirming = false">
+                  我再想想
+                </button>
+              </div>
+            </div>
+          </div>
+          <button
+            v-if="pendingObservation && !inspecting"
+            class="text-button observation-retry"
+            :disabled="busy"
+            @click="game.observe(pendingObservation.observation)"
+          >
+            重试保存观察
+          </button>
           <p v-if="error" class="inline-error" role="alert">{{ error }}</p>
           <p v-if="notice" class="inline-notice" role="status">{{ notice }}</p>
           <p v-if="session.mode === 'rehearsal'" class="rehearsal-note">
@@ -602,8 +730,34 @@ async function onJournalKeys(event: KeyboardEvent) {
           <div class="choice-heading">
             <p class="eyebrow">十句话之后</p>
             <h2 id="choice-heading">这段路，想怎么走完？</h2>
-            <p>没有标准答案。只是一个你愿意做出的动作。</p>
+            <p>这是你的提议。她仍然可以答应、拒绝，或暂时不决定。</p>
           </div>
+          <details class="echo-picker">
+            <summary>
+              给这一夜留一句原话 <span>{{ selectedEcho ? '已选一句' : '也可以留白' }}</span>
+            </summary>
+            <p>只从你真正说过的话里选。它会保存在最后的纪念页，不决定她的回应。</p>
+            <label class="echo-option">
+              <input
+                v-model="selectedEcho"
+                type="radio"
+                name="echo"
+                value=""
+                :disabled="busy || Boolean(pendingEnding)"
+              />
+              <span>不选一句。让这一页留白。</span>
+            </label>
+            <label v-for="message in echoOptions" :key="message.id" class="echo-option">
+              <input
+                v-model="selectedEcho"
+                type="radio"
+                name="echo"
+                :value="message.id"
+                :disabled="busy || Boolean(pendingEnding)"
+              />
+              <span>{{ message.text }}</span>
+            </label>
+          </details>
           <button
             v-for="choice in endingChoices"
             :key="choice.id"
@@ -628,7 +782,7 @@ async function onJournalKeys(event: KeyboardEvent) {
         <div class="ending-kicker">
           <span class="tiny-cross">+</span> 这一夜，留下一张底片 <span class="tiny-cross">+</span>
         </div>
-        <span class="ending-frame-number">翌日 06:10 / 余响</span>
+        <span class="ending-frame-number">这段谈话之后 / 余响</span>
         <h1>{{ session.ending.title }}</h1>
         <p class="ending-subtitle">{{ session.ending.subtitle }}</p>
         <div class="ending-prose">
@@ -637,7 +791,7 @@ async function onJournalKeys(event: KeyboardEvent) {
           </p>
         </div>
         <div v-if="session.ending.echo" class="player-echo">
-          <span class="eyebrow">你在那个雨夜说过</span>
+          <span class="eyebrow">这一夜留下的原话</span>
           <blockquote>{{ session.ending.echo }}</blockquote>
           <span class="echo-rule" />
         </div>
@@ -780,7 +934,7 @@ async function onJournalKeys(event: KeyboardEvent) {
             type="range"
             min="0"
             max="1"
-            step="0.05"
+            step="0.01"
             :value="musicVolume"
             aria-label="音乐音量"
             @input="
@@ -792,7 +946,7 @@ async function onJournalKeys(event: KeyboardEvent) {
             type="range"
             min="0"
             max="1"
-            step="0.05"
+            step="0.01"
             :value="rainVolume"
             aria-label="雨声音量"
             @input="audio.setRainVolume(Number(($event.target as HTMLInputElement).value))"
@@ -804,6 +958,7 @@ async function onJournalKeys(event: KeyboardEvent) {
               : '所有设置只保存在当前浏览器。声音不会自动播放。'
           }}
         </p>
+        <p class="settings-note">只想听雨，可以把音乐音量调到 0。关闭声音也能完整阅读故事。</p>
       </div>
     </SceneDialog>
 
@@ -848,7 +1003,7 @@ async function onJournalKeys(event: KeyboardEvent) {
             aria-controls="memory-panel"
             @click="journalTab = 'memories'"
           >
-            底片 <span>{{ session.memories.length }}</span></button
+            底片 <span>{{ session.memories.length + session.observations.length }}</span></button
           ><button
             id="transcript-tab"
             role="tab"
@@ -867,9 +1022,25 @@ async function onJournalKeys(event: KeyboardEvent) {
           role="tabpanel"
           aria-labelledby="memories-tab"
         >
-          <p v-if="!session.memories.length" class="journal-empty">
+          <section
+            v-if="observedDetails.length"
+            class="observed-facts"
+            aria-labelledby="facts-heading"
+          >
+            <h3 id="facts-heading">你看见的现场</h3>
+            <p>这里只记能看见的事。不替她解释，也不代表她已经同意。</p>
+            <article v-for="item in observedDetails" :key="item.id" class="observed-fact">
+              <img v-if="item.image" :src="item.image" alt="" loading="lazy" />
+              <div>
+                <h4>{{ item.title }}</h4>
+                <p>{{ item.text }}</p>
+              </div>
+            </article>
+          </section>
+          <p v-if="!session.memories.length && !observedDetails.length" class="journal-empty">
             底片还没有显影。<br />先听听她，也看看这场雨。
           </p>
+          <h3 v-if="session.memories.length" class="memory-section-title">对话里留下的原句</h3>
           <article
             v-for="(memory, index) in session.memories"
             :key="memory.id"
@@ -877,7 +1048,9 @@ async function onJournalKeys(event: KeyboardEvent) {
           >
             <span class="memory-index">{{ String(index + 1).padStart(2, '0') }}</span>
             <div>
-              <p class="memory-turn">第 {{ memory.sourceTurn }} 次开口之后</p>
+              <p class="memory-turn">
+                {{ memorySource(session, memory) }} · 第 {{ memory.sourceTurn }} 次回应
+              </p>
               <h3>{{ memory.title }}</h3>
               <p>{{ memory.text }}</p>
             </div>
@@ -904,7 +1077,9 @@ async function onJournalKeys(event: KeyboardEvent) {
           >
             <span>{{
               message.role === 'player'
-                ? '你'
+                ? message.intent === 'silence'
+                  ? '你留下的停顿'
+                  : '你'
                 : message.role === 'character'
                   ? '天台上的人'
                   : '雨夜'

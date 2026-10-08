@@ -1,6 +1,6 @@
 # 天台十句 · v2 原创视觉
 
-三张图由本次开发调用 `image_gen.imagegen` 生成；另进行两次有参考图的局部生成，补齐角色护着底片纸袋的叙事道具。接口没有暴露模型版本或模型选择参数，因此没有将用户期望的 `image2.5` 冒称为已验证的底层模型。
+三张主场景由前一轮开发调用 `image_gen.imagegen` 生成；另进行两次有参考图的局部生成，补齐角色护着底片纸袋的叙事道具。2026-10-08 新增四张同风格观察细节，提示词与审查见 [DETAILS.md](DETAILS.md)。接口没有暴露模型版本或模型选择参数，因此没有将用户期望的 `image2.5` 冒称为已验证的底层模型。
 
 这组视觉保留旧作的雨夜、短发、相机与银灰城市，重建为带像素颗粒的电影场景。人物为成年女性；站位始终在屋顶内侧。结尾用打开的楼梯门表达走下楼、回到日常生活。
 
@@ -8,7 +8,11 @@
 | --- | --- | --- |
 | `/art/rooftop.webp` | 开场、标题和对话前段的广角场景 | 271 KiB |
 | `/art/listening.webp` | 对话建立后，聆听的半身近景 | 299 KiB |
-| `/art/dawn.webp` | 雨停后的结局场景 | 380 KiB |
+| `/art/dawn.webp` | 固定排演的雨后收束；即时模式不自动宣布天亮 | 380 KiB |
+| `/art/details/camera.webp` | 旧相机观察 | 254 KiB |
+| `/art/details/receipt.webp` | 湿小票观察 | 331 KiB |
+| `/art/details/door.webp` | 门灯与门槛观察 | 376 KiB |
+| `/art/details/rain.webp` | 雨城与夜班车观察 | 407 KiB |
 
 `originals/` 保存最终完整 PNG 原稿，`archive/` 保存加入纸袋前的两个画面；`manifest.json` 记录生成来源、参考关系、提示词摘要、尺寸、用途、替代文字和 SHA-256。原始工具输出同时保留在 `/workspace/generated_images/`。
 

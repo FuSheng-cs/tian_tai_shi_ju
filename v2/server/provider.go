@@ -147,7 +147,8 @@ func (m *ModelNarrator) Generate(ctx context.Context, session Session, command T
 		KnownObservations []string  `json:"knownObservations"`
 		Observation       string    `json:"observation"`
 		PlayerLine        string    `json:"playerLine"`
-	}{session.Turn + 1, phaseForTurn(session.Turn + 1), session.Messages, session.Memories, observations, observationText(command.Observation), command.Text})
+		PlayerIntent      string    `json:"playerIntent,omitempty"`
+	}{session.Turn + 1, phaseForTurn(session.Turn + 1), session.Messages, session.Memories, observations, observationText(command.Observation), command.Text, command.Intent})
 	if err != nil {
 		return Narrative{}, err
 	}
@@ -264,7 +265,8 @@ func validateNarrative(result Narrative, command TurnCommand) error {
 	}
 	if result.Memory != nil {
 		memory := result.Memory
-		if !boundedText(memory.Title, 18) || !boundedText(memory.Text, 80) || (!strings.Contains(result.Reply, memory.Text) && !strings.Contains(command.Text, memory.Text)) {
+		playerQuote := command.Intent != "silence" && strings.Contains(command.Text, memory.Text)
+		if !boundedText(memory.Title, 18) || !boundedText(memory.Text, 80) || (!strings.Contains(result.Reply, memory.Text) && !playerQuote) {
 			return errors.New("memory is not grounded in the current conversation")
 		}
 	}

@@ -1,10 +1,19 @@
 import { onUnmounted, ref } from 'vue'
 import {
-  BELL_PHRASE,
-  BELL_RESTS_MS,
   DRONE_DETUNE,
+  DRONE_LEVELS,
   DRONE_PAN,
+  KEY_ATTACK_SECONDS,
+  KEY_PARTIALS,
+  KEY_TAIL_SECONDS,
+  nextPhraseDelay,
+  PHASE_TRANSITION_SECONDS,
   PHASE_SCORE,
+  PHRASE_OFFSETS_SECONDS,
+  PHRASE_OPENING_SECONDS,
+  PHRASE_VELOCITIES,
+  phraseFor,
+  ROOM_TAPS,
   type AmbientPhase,
 } from '../audio/score'
 
@@ -23,6 +32,7 @@ interface AmbientEngine {
   master: GainNode
   music: GainNode
   rain: GainNode
+  rainFilter: BiquadFilterNode
   nodes: Set<AudioNode>
   sources: Set<AudioScheduledSourceNode>
   drone?: {
@@ -87,12 +97,13 @@ export function useAmbientAudio() {
   const isPlaying = ref(false)
 
   let engine: AmbientEngine | undefined
-  let bellTimer: ReturnType<typeof setTimeout> | undefined
+  let phraseTimer: ReturnType<typeof setTimeout> | undefined
   let suspendTimer: ReturnType<typeof setTimeout> | undefined
   let requestedEnabled = false
   let disposed = false
   let transition = 0
   let phrasePosition = 0
+  let nextPhraseAt = PHRASE_OPENING_SECONDS
   let phase: AmbientPhase = 'arrival'
 
   function persistPreferences(): void {
@@ -142,6 +153,25 @@ export function useAmbientAudio() {
       warmth.Q.value = 0.4
       music.connect(warmth)
       warmth.connect(master)
+      // Three very quiet early reflections give the keys a small, imperfect
+      // room. No feedback loop, cavernous reverb or endless ringing tail.
+      for (const tap of ROOM_TAPS) {
+        const delay = track(context.createDelay(1))
+        const level = track(context.createGain())
+        const pan = track(context.createStereoPanner())
+        const softened = track(context.createBiquadFilter())
+        delay.delayTime.value = tap.seconds
+        level.gain.value = tap.level
+        pan.pan.value = tap.pan
+        softened.type = 'lowpass'
+        softened.frequency.value = 950
+        softened.Q.value = 0.4
+        warmth.connect(delay)
+        delay.connect(softened)
+        softened.connect(level)
+        level.connect(pan)
+        pan.connect(master)
+      }
       rain.connect(master)
       master.connect(context.destination)
 
@@ -169,7 +199,7 @@ export function useAmbientAudio() {
       rainLow.frequency.value = 460
       rainLow.Q.value = 0.35
       rainHigh.type = 'lowpass'
-      rainHigh.frequency.value = 4300
+      rainHigh.frequency.value = PHASE_SCORE[phase].rainLowpass
       rainHigh.Q.value = 0.35
       rainLevel.gain.value = 0.18
       weather.frequency.value = 0.031
@@ -184,9 +214,10 @@ export function useAmbientAudio() {
       weather.start()
 
       context.onstatechange = () => {
-        isPlaying.value = requestedEnabled && context.state === 'running' && !disposed
+        isPlaying.value =
+          requestedEnabled && context.state === 'running' && !document.hidden && !disposed
       }
-      const activeEngine = { context, master, music, rain, nodes, sources }
+      const activeEngine = { context, master, music, rain, rainFilter: rainHigh, nodes, sources }
       startDrone(activeEngine, phase, 1.6)
       return activeEngine
     } catch {
@@ -203,7 +234,11 @@ export function useAmbientAudio() {
     }
   }
 
-  function startDrone(activeEngine: AmbientEngine, nextPhase: AmbientPhase, seconds = 7): void {
+  function startDrone(
+    activeEngine: AmbientEngine,
+    nextPhase: AmbientPhase,
+    seconds = PHASE_TRANSITION_SECONDS,
+  ): void {
     const { context, nodes, sources, music } = activeEngine
     const now = context.currentTime
     const previous = activeEngine.drone
@@ -244,10 +279,10 @@ export function useAmbientAudio() {
       tone.type = 'sine'
       tone.frequency.value = frequency
       tone.detune.value = DRONE_DETUNE[index] ?? 0
-      envelope.gain.value = index === 0 ? 0.055 : 0.027
+      envelope.gain.value = DRONE_LEVELS[index] ?? 0.007
       breath.type = 'sine'
       breath.frequency.value = 0.018 + index * 0.007
-      depth.gain.value = 0.009
+      depth.gain.value = (DRONE_LEVELS[index] ?? 0.007) * 0.32
       pan.pan.value = DRONE_PAN[index] ?? 0
       breath.connect(depth)
       depth.connect(envelope.gain)
@@ -267,35 +302,33 @@ export function useAmbientAudio() {
     activeEngine.drone = group
   }
 
-  function playBell(activeEngine: AmbientEngine): void {
+  function playKey(activeEngine: AmbientEngine, frequency: number, position: number): void {
     const { context, music, nodes, sources } = activeEngine
-    const now = context.currentTime
-    // A small authored motif, with generous rests rather than random notes.
-    const frequency = BELL_PHRASE[phrasePosition % BELL_PHRASE.length] ?? BELL_PHRASE[0]
-    const envelope = context.createGain()
+    const now = context.currentTime + (PHRASE_OFFSETS_SECONDS[position] ?? 0)
     const pan = context.createStereoPanner()
-    nodes.add(envelope)
     nodes.add(pan)
-    pan.pan.value = Math.sin(phrasePosition * 1.7) * 0.32
-    envelope.gain.setValueAtTime(0.00001, now)
-    envelope.gain.exponentialRampToValueAtTime(0.095, now + 0.065)
-    envelope.gain.exponentialRampToValueAtTime(0.00001, now + 7.5)
-    envelope.connect(pan)
+    pan.pan.value = [-0.16, 0.12, -0.04][position] ?? 0
     pan.connect(music)
 
-    const harmonics = [1, 2]
-    let remaining = harmonics.length
-    harmonics.forEach((harmonic) => {
+    // The upper partials decay sooner than the fundamental, as a damped key
+    // does. This removes the fixed metallic overtone of the old bell voice.
+    let remaining = KEY_PARTIALS.length
+    KEY_PARTIALS.forEach((harmonic) => {
       const tone = context.createOscillator()
       const partial = context.createGain()
       nodes.add(tone)
       nodes.add(partial)
       sources.add(tone)
       tone.type = 'sine'
-      tone.frequency.value = frequency * harmonic
-      partial.gain.value = harmonic === 1 ? 1 : 0.085
+      tone.frequency.value = frequency * harmonic.ratio
+      partial.gain.setValueAtTime(0.00001, now)
+      partial.gain.exponentialRampToValueAtTime(
+        (PHRASE_VELOCITIES[position] ?? 0.05) * harmonic.level,
+        now + KEY_ATTACK_SECONDS,
+      )
+      partial.gain.exponentialRampToValueAtTime(0.00001, now + harmonic.tail)
       tone.connect(partial)
-      partial.connect(envelope)
+      partial.connect(pan)
       tone.onended = () => {
         tone.disconnect()
         partial.disconnect()
@@ -304,29 +337,38 @@ export function useAmbientAudio() {
         nodes.delete(partial)
         remaining -= 1
         if (remaining === 0) {
-          envelope.disconnect()
           pan.disconnect()
-          nodes.delete(envelope)
           nodes.delete(pan)
         }
       }
       tone.start(now)
-      tone.stop(now + 7.6)
+      tone.stop(now + KEY_TAIL_SECONDS + 0.1)
     })
-    phrasePosition += 1
   }
 
-  function scheduleBell(delay = 2400): void {
-    clearTimeout(bellTimer)
-    bellTimer = setTimeout(() => {
+  function schedulePhrase(): void {
+    clearTimeout(phraseTimer)
+    if (!engine) return
+    const delay = Math.max(100, (nextPhraseAt - engine.context.currentTime) * 1000)
+    phraseTimer = setTimeout(() => {
       if (!engine || !requestedEnabled || disposed) return
-      if (engine.context.state === 'running') playBell(engine)
-      scheduleBell(BELL_RESTS_MS[phrasePosition % BELL_RESTS_MS.length] ?? 9300)
+      if (engine.context.state === 'running' && !document.hidden) {
+        phraseFor(phase, phrasePosition).forEach((frequency, index) => {
+          playKey(engine!, frequency, index)
+        })
+        nextPhraseAt = engine.context.currentTime + nextPhraseDelay(phrasePosition)
+        phrasePosition += 1
+      } else {
+        // A browser interruption must never create a burst of overdue notes.
+        nextPhraseAt = engine.context.currentTime + PHRASE_OPENING_SECONDS
+      }
+      schedulePhrase()
     }, delay)
   }
 
   async function enable(): Promise<void> {
     if (disposed) return
+    if (requestedEnabled && isPlaying.value) return
     requestedEnabled = true
     const currentTransition = ++transition
     clearTimeout(suspendTimer)
@@ -340,6 +382,10 @@ export function useAmbientAudio() {
         return
       }
       const activeEngine = engine
+      if (document.hidden) {
+        soundEnabled.value = true
+        return
+      }
       await activeEngine.context.resume()
       if (disposed || currentTransition !== transition || !requestedEnabled) return
       if (activeEngine.context.state !== 'running') {
@@ -351,7 +397,7 @@ export function useAmbientAudio() {
       fade(activeEngine.master.gain, MASTER_VOLUME, activeEngine.context.currentTime, 1.1)
       soundEnabled.value = true
       isPlaying.value = true
-      scheduleBell()
+      schedulePhrase()
     } catch {
       if (currentTransition !== transition) return
       requestedEnabled = false
@@ -365,7 +411,7 @@ export function useAmbientAudio() {
     requestedEnabled = false
     soundEnabled.value = false
     isPlaying.value = false
-    clearTimeout(bellTimer)
+    clearTimeout(phraseTimer)
     clearTimeout(suspendTimer)
     if (!engine || engine.context.state === 'closed') return
     const activeEngine = engine
@@ -375,6 +421,31 @@ export function useAmbientAudio() {
         void activeEngine.context.suspend().catch(() => undefined)
       }
     }, 720)
+  }
+
+  function visibilityChanged(): void {
+    if (!requestedEnabled || !engine || disposed) return
+    if (!document.hidden) {
+      void enable()
+      return
+    }
+    // Keep the user's sound preference, but respect leaving the page. The
+    // audio clock pauses with the context, preserving rests on return.
+    transition += 1
+    isPlaying.value = false
+    clearTimeout(phraseTimer)
+    clearTimeout(suspendTimer)
+    const activeEngine = engine
+    fade(activeEngine.master.gain, 0, activeEngine.context.currentTime, 0.15)
+    suspendTimer = setTimeout(() => {
+      if (document.hidden && !disposed && activeEngine.context.state !== 'closed') {
+        void activeEngine.context.suspend().catch(() => undefined)
+      }
+    }, 180)
+  }
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', visibilityChanged)
   }
 
   async function toggle(): Promise<void> {
@@ -407,8 +478,19 @@ export function useAmbientAudio() {
     phase = nextPhase
     if (!engine || engine.context.state === 'closed') return
     const now = engine.context.currentTime
-    fade(engine.music.gain, musicVolume.value * PHASE_SCORE[phase].music, now, 7)
-    fade(engine.rain.gain, rainVolume.value * PHASE_SCORE[phase].rain, now, 7)
+    fade(
+      engine.music.gain,
+      musicVolume.value * PHASE_SCORE[phase].music,
+      now,
+      PHASE_TRANSITION_SECONDS,
+    )
+    fade(
+      engine.rain.gain,
+      rainVolume.value * PHASE_SCORE[phase].rain,
+      now,
+      PHASE_TRANSITION_SECONDS,
+    )
+    fade(engine.rainFilter.frequency, PHASE_SCORE[phase].rainLowpass, now, PHASE_TRANSITION_SECONDS)
     startDrone(engine, phase)
   }
 
@@ -418,8 +500,11 @@ export function useAmbientAudio() {
     requestedEnabled = false
     soundEnabled.value = false
     isPlaying.value = false
-    clearTimeout(bellTimer)
+    clearTimeout(phraseTimer)
     clearTimeout(suspendTimer)
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', visibilityChanged)
+    }
     if (!engine) return
     engine.context.onstatechange = null
     engine.sources.forEach((node) => {

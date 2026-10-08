@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Reproducible original-score renderer. Requires Node 24+ and ffmpeg/ffprobe.
+ * Reproducible original-score renderer. Requires Node 24+ and ffmpeg.
  * Run from any directory: node v2/audio/render-score.mjs
  * The browser and this renderer share notes, rests, voicings and scene dynamics.
  */
@@ -10,20 +10,24 @@ import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 import {
-  BELL_PHRASE, BELL_RESTS_MS, DRONE_DETUNE, DRONE_PAN, PHASE_SCORE, SCORE_TITLE,
+  DRONE_DETUNE, DRONE_LEVELS, DRONE_PAN, KEY_ATTACK_SECONDS, KEY_PARTIALS,
+  KEY_TAIL_SECONDS, nextPhraseDelay, PHASE_SCORE, PHASE_TRANSITION_SECONDS,
+  PHRASE_OFFSETS_SECONDS, PHRASE_OPENING_SECONDS, PHRASE_VELOCITIES, phraseFor,
+  ROOM_TAPS, SCORE_TITLE,
 } from '../web/src/audio/score.ts'
 
 const outputDirectory = dirname(fileURLToPath(import.meta.url))
 const sampleRate = 48000
-const duration = 84
+const duration = 192
 const frames = sampleRate * duration
 const tau = Math.PI * 2
 const sections = [
   { phase: 'arrival', start: 0 },
-  { phase: 'listening', start: 21 },
-  { phase: 'threshold', start: 42 },
-  { phase: 'dawn', start: 63 },
+  { phase: 'listening', start: 48 },
+  { phase: 'threshold', start: 96 },
+  { phase: 'dawn', start: 144 },
 ]
+const ffmpeg = process.env.AUDIO_FFMPEG || 'ffmpeg'
 
 function command(executable, args) {
   const result = spawnSync(executable, args, { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
@@ -103,11 +107,7 @@ function pcmStatistics(samples) {
 }
 
 function analyzeEncoded(path) {
-  const probe = JSON.parse(command('ffprobe', [
-    '-v', 'error', '-show_entries', 'format=duration:stream=codec_name,sample_rate,channels',
-    '-of', 'json', path,
-  ]).stdout)
-  const analysis = command('ffmpeg', [
+  const analysis = command(ffmpeg, [
     '-hide_banner', '-nostats', '-i', path,
     '-af', 'astats=metadata=0:reset=0,loudnorm=I=-23:TP=-2:LRA=9:print_format=json',
     '-f', 'null', '-',
@@ -115,13 +115,31 @@ function analyzeEncoded(path) {
   const json = analysis.match(/\{\s*"input_i"[\s\S]*?\}/)?.[0]
   const loudness = json ? JSON.parse(json) : null
   const rms = [...analysis.matchAll(/RMS level dB:\s*(-?[\d.]+)/g)].at(-1)?.[1]
+  const length = analysis.match(/Duration: (\d+):(\d+):([\d.]+)/)
+  const stream = analysis.match(/Audio: (\w+), (\d+) Hz, (stereo|mono)/)
   return {
-    durationSeconds: Number(probe.format.duration),
-    ...probe.streams[0],
+    durationSeconds: length ? Number(length[1]) * 3600 + Number(length[2]) * 60 + Number(length[3]) : null,
+    codec_name: stream?.[1] ?? null,
+    sample_rate: stream?.[2] ?? null,
+    channels: stream?.[3] === 'stereo' ? 2 : stream?.[3] === 'mono' ? 1 : null,
     integratedLufs: loudness ? Number(loudness.input_i) : null,
     truePeakDbtp: loudness ? Number(loudness.input_tp) : null,
     rmsDbfs: rms ? Number(rms) : null,
   }
+}
+
+function masteringFilter(path) {
+  const analysis = command(ffmpeg, [
+    '-hide_banner', '-nostats', '-i', path,
+    '-af', 'loudnorm=I=-23:TP=-2:LRA=11:print_format=json', '-f', 'null', '-',
+  ]).stderr
+  const json = analysis.match(/\{\s*"input_i"[\s\S]*?\}/)?.[0]
+  if (!json) throw new Error('ffmpeg did not return first-pass loudness measurements')
+  const measured = JSON.parse(json)
+  return 'loudnorm=I=-23:TP=-2:LRA=11:linear=true'
+    + `:measured_I=${measured.input_i}:measured_TP=${measured.input_tp}`
+    + `:measured_LRA=${measured.input_lra}:measured_thresh=${measured.input_thresh}`
+    + `:offset=${measured.target_offset}`
 }
 
 // A fixed seed makes every render repeatable without an external sample library.
@@ -137,14 +155,20 @@ for (const channel of noise) {
   }
 }
 
-const bells = []
-for (let position = 0, start = 2.4; start < duration - 8; position += 1) {
-  bells.push({
-    start,
-    frequency: BELL_PHRASE[position % BELL_PHRASE.length],
-    pan: stereoPosition(Math.sin(position * 1.7) * 0.32),
+const keys = []
+const phrases = []
+for (let position = 0, start = PHRASE_OPENING_SECONDS; start < duration - 16; position += 1) {
+  const section = sections.findLast((section) => start >= section.start)
+  phrases.push({ start, phase: section.phase, duration: 15.9 })
+  phraseFor(section.phase, position).forEach((frequency, index) => {
+    keys.push({
+      start: start + PHRASE_OFFSETS_SECONDS[index],
+      frequency,
+      velocity: PHRASE_VELOCITIES[index],
+      pan: stereoPosition([-0.16, 0.12, -0.04][index]),
+    })
   })
-  start += BELL_RESTS_MS[(position + 1) % BELL_RESTS_MS.length] / 1000
+  start += nextPhraseDelay(position)
 }
 
 const voices = sections.map((section, sectionIndex) => ({
@@ -153,58 +177,85 @@ const voices = sections.map((section, sectionIndex) => ({
   notes: PHASE_SCORE[section.phase].chord.map((frequency, index) => ({
     frequency: frequency * 2 ** (DRONE_DETUNE[index] / 1200),
     pan: stereoPosition(DRONE_PAN[index]),
-    level: index === 0 ? 0.055 : 0.027,
+    level: DRONE_LEVELS[index],
     breath: 0.018 + index * 0.007,
   })),
 }))
 const warmth = [biquad('lowpass', 1650, 0.4), biquad('lowpass', 1650, 0.4)]
 const rainLow = [biquad('highpass', 460, 0.35), biquad('highpass', 460, 0.35)]
-const rainHigh = [biquad('lowpass', 4300, 0.35), biquad('lowpass', 4300, 0.35)]
+const rainHigh = sections.map((section) => [
+  biquad('lowpass', PHASE_SCORE[section.phase].rainLowpass, 0.35),
+  biquad('lowpass', PHASE_SCORE[section.phase].rainLowpass, 0.35),
+])
+const reflections = ROOM_TAPS.map((tap) => ({
+  ...tap,
+  pan: stereoPosition(tap.pan),
+  buffer: new Float32Array(Math.round(sampleRate * tap.seconds)),
+  filter: biquad('lowpass', 950, 0.4),
+}))
 const demo = new Float32Array(frames * 2)
 const score = new Float32Array(frames * 2)
+const rainTrack = new Float32Array(frames * 2)
 
 for (let frame = 0; frame < frames; frame += 1) {
   const time = frame / sampleRate
   const music = [0, 0]
-  const sectionIndex = Math.min(sections.length - 1, Math.floor(time / 21))
+  const sectionIndex = Math.min(sections.length - 1, Math.floor(time / 48))
   const current = PHASE_SCORE[sections[sectionIndex].phase]
   const previous = PHASE_SCORE[sections[Math.max(0, sectionIndex - 1)].phase]
-  const transition = Math.min(1, (time - sections[sectionIndex].start) / 7)
+  const transition = Math.min(1, (time - sections[sectionIndex].start) / PHASE_TRANSITION_SECONDS)
   const musicLevel = 0.4 * (previous.music + (current.music - previous.music) * transition)
   const rainLevel = 0.28 * (previous.rain + (current.rain - previous.rain) * transition)
 
   for (const section of voices) {
     const elapsed = time - section.start
-    if (elapsed < 0 || time > section.end + 7) continue
-    const attack = Math.min(1, elapsed / (section.start === 0 ? 1.6 : 7))
-    const release = Math.max(0, Math.min(1, (section.end + 7 - time) / 7))
+    if (elapsed < 0 || time > section.end + PHASE_TRANSITION_SECONDS) continue
+    const attack = Math.min(1, elapsed / (section.start === 0 ? 1.6 : PHASE_TRANSITION_SECONDS))
+    const release = Math.max(0, Math.min(1, (section.end + PHASE_TRANSITION_SECONDS - time) / PHASE_TRANSITION_SECONDS))
     for (const note of section.notes) {
-      const envelope = note.level + Math.sin(tau * note.breath * elapsed) * 0.009
+      const envelope = note.level * (1 + Math.sin(tau * note.breath * elapsed) * 0.32)
       const signal = Math.sin(tau * note.frequency * elapsed) * envelope * attack * release
       music[0] += signal * note.pan[0]
       music[1] += signal * note.pan[1]
     }
   }
 
-  for (const bell of bells) {
-    const elapsed = time - bell.start
-    if (elapsed < 0 || elapsed > 7.5) continue
-    const amplitude = elapsed < 0.065
-      ? 0.00001 * (0.095 / 0.00001) ** (elapsed / 0.065)
-      : 0.095 * (0.00001 / 0.095) ** ((elapsed - 0.065) / (7.5 - 0.065))
-    const fundamental = Math.sin(tau * bell.frequency * elapsed)
-    const partial = Math.sin(tau * bell.frequency * 2 * elapsed) * 0.085
-    music[0] += (fundamental + partial) * amplitude * bell.pan[0]
-    music[1] += (fundamental + partial) * amplitude * bell.pan[1]
+  for (const key of keys) {
+    const elapsed = time - key.start
+    if (elapsed < 0 || elapsed > KEY_TAIL_SECONDS) continue
+    let signal = 0
+    for (const partial of KEY_PARTIALS) {
+      if (elapsed > partial.tail) continue
+      const peak = key.velocity * partial.level
+      const amplitude = elapsed < KEY_ATTACK_SECONDS
+        ? 0.00001 * (peak / 0.00001) ** (elapsed / KEY_ATTACK_SECONDS)
+        : peak * (0.00001 / peak) ** ((elapsed - KEY_ATTACK_SECONDS) / (partial.tail - KEY_ATTACK_SECONDS))
+      signal += Math.sin(tau * key.frequency * partial.ratio * elapsed) * amplitude
+    }
+    music[0] += signal * key.pan[0]
+    music[1] += signal * key.pan[1]
   }
 
   const master = 0.55 * Math.min(1, time / 1.1) * Math.min(1, (duration - time) / 4)
+  const dry = music.map((sample, channel) => warmth[channel](sample * musicLevel))
+  const room = [0, 0]
+  for (const tap of reflections) {
+    const slot = frame % tap.buffer.length
+    const sample = tap.filter(tap.buffer[slot]) * tap.level
+    tap.buffer[slot] = (dry[0] + dry[1]) * 0.5
+    room[0] += sample * tap.pan[0]
+    room[1] += sample * tap.pan[1]
+  }
   for (let channel = 0; channel < 2; channel += 1) {
-    const musicSample = warmth[channel](music[channel] * musicLevel)
-    const rainSample = rainHigh[channel](rainLow[channel](noise[channel][frame % noiseFrames]))
+    const musicSample = dry[channel] + room[channel]
+    const rainInput = rainLow[channel](noise[channel][frame % noiseFrames])
+    const rainOutputs = rainHigh.map((filters) => filters[channel](rainInput))
+    const previousRain = rainOutputs[Math.max(0, sectionIndex - 1)]
+    const rainSample = (previousRain + (rainOutputs[sectionIndex] - previousRain) * transition)
       * (0.18 + Math.sin(tau * 0.031 * time) * 0.025) * rainLevel
     score[frame * 2 + channel] = musicSample * master
     demo[frame * 2 + channel] = (musicSample + rainSample) * master
+    rainTrack[frame * 2 + channel] = rainSample * master
   }
 }
 
@@ -212,15 +263,17 @@ await mkdir(outputDirectory, { recursive: true })
 const temporary = await mkdtemp(join(tmpdir(), 'tiantai-score-'))
 const report = {
   title: SCORE_TITLE,
-  composition: 'Original authored generative score; no sampled songs or music-model service.',
+  composition: 'Original authored procedural composition and synthesis; no sampled songs or music-model service.',
   durationSeconds: duration,
   sections,
-  mastering: 'EBU R128 -23 LUFS target, -2 dBTP ceiling; runtime retains quieter reading levels.',
+  phrases,
+  motifFreeSeconds: Number((duration - phrases.reduce((sum, phrase) => sum + phrase.duration, 0)).toFixed(1)),
+  mastering: 'Two-pass EBU R128 -23 LUFS target, -2 dBTP ceiling; runtime retains quieter reading levels.',
   files: {},
 }
 
 try {
-  for (const [name, samples] of [['demo', demo], ['music-only', score]]) {
+  for (const [name, samples] of [['demo', demo], ['music-only', score], ['rain-only', rainTrack]]) {
     const raw = join(temporary, `${name}.wav`)
     const target = join(outputDirectory, `${name}.ogg`)
     const statistics = pcmStatistics(samples)
@@ -228,11 +281,11 @@ try {
       throw new Error(`Refusing to encode invalid PCM: ${JSON.stringify(statistics)}`)
     }
     await writeFile(raw, writeWave(samples))
-    command('ffmpeg', [
+    command(ffmpeg, [
       '-hide_banner', '-loglevel', 'error', '-y', '-i', raw,
-      '-af', 'loudnorm=I=-23:TP=-2:LRA=9', '-ar', String(sampleRate),
+      '-af', masteringFilter(raw), '-ar', String(sampleRate),
       '-c:a', 'libvorbis', '-q:a', '5',
-      '-metadata', `title=${SCORE_TITLE}${name === 'music-only' ? '（配乐分轨）' : '（雨夜）'}`,
+      '-metadata', `title=${SCORE_TITLE}${name === 'music-only' ? '（配乐分轨）' : name === 'rain-only' ? '（雨幕分轨）' : '（雨夜）'}`,
       '-metadata', 'artist=天台十句 V2 · Original procedural score',
       '-metadata', 'comment=Original generated score. Rebuild with v2/audio/render-score.mjs.',
       target,

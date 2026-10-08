@@ -140,7 +140,7 @@ func (g *Game) Turn(ctx context.Context, id string, command TurnCommand) (Sessio
 		session.Status = "choosing"
 	}
 	session.Messages = append(session.Messages,
-		Message{ID: fmt.Sprintf("%d-player", session.Turn), Role: "player", Text: command.Text},
+		Message{ID: fmt.Sprintf("%d-player", session.Turn), Role: "player", Text: command.Text, Intent: command.Intent},
 		Message{ID: fmt.Sprintf("%d-narrator", session.Turn), Role: "narrator", Text: narrative.Narration},
 		Message{ID: fmt.Sprintf("%d-character", session.Turn), Role: "character", Text: narrative.Reply},
 	)
@@ -153,6 +153,52 @@ func (g *Game) Turn(ctx context.Context, id string, command TurnCommand) (Sessio
 			Text: narrative.Memory.Text, SourceTurn: session.Turn,
 		})
 	}
+	record.Session = session
+	record.Receipts[command.RequestID] = Receipt{Digest: digest, Session: cloneSession(session)}
+	if err := g.store.Write(record); err != nil {
+		return Session{}, err
+	}
+	return session, nil
+}
+
+// Observe commits a visible fact without spending dialogue or consulting the
+// model. It uses the same lock and durable receipt as every other mutation.
+func (g *Game) Observe(ctx context.Context, id string, command ObservationCommand) (Session, error) {
+	if err := validateRequestID(command.RequestID, command.ExpectedRevision); err != nil {
+		return Session{}, err
+	}
+	if command.Observation == "" || !validObservation(command.Observation) {
+		return Session{}, failure(400, "invalid_observation", "请留意天台上真实存在的事物。", false)
+	}
+	unlock, err := g.store.acquire(id)
+	if err != nil {
+		return Session{}, err
+	}
+	defer unlock()
+	record, err := g.store.Read(id)
+	if err != nil {
+		return Session{}, err
+	}
+	digest := commandDigest("observation", command)
+	if session, found, err := checkReceipt(record, command.RequestID, digest); found || err != nil {
+		return session, err
+	}
+	session := record.Session
+	if command.ExpectedRevision != session.Revision {
+		return Session{}, failure(409, "revision_conflict", "这一夜已有新的记录，请重新载入后继续。", true)
+	}
+	if session.Status == "ended" {
+		return Session{}, failure(409, "night_complete", "这一夜已收好，可以在记录里回看。", false)
+	}
+	if contains(session.Observations, command.Observation) {
+		return Session{}, failure(409, "observation_known", "这处细节已经记下了。", false)
+	}
+	if err := ctx.Err(); err != nil {
+		return Session{}, failure(408, "request_cancelled", "连接已暂停。这处细节尚未保存。", true)
+	}
+	session.Observations = append(session.Observations, command.Observation)
+	session.Revision++
+	session.UpdatedAt = g.now().UTC()
 	record.Session = session
 	record.Receipts[command.RequestID] = Receipt{Digest: digest, Session: cloneSession(session)}
 	if err := g.store.Write(record); err != nil {
@@ -188,6 +234,10 @@ func (g *Game) End(ctx context.Context, id string, command EndingCommand) (Sessi
 	if session.Status != "choosing" || session.Turn != maxTurns {
 		return Session{}, failure(409, "ending_not_ready", "这一夜还有话没有说完。", false)
 	}
+	echo, err := selectedEcho(session, command.EchoMessageID)
+	if err != nil {
+		return Session{}, err
+	}
 	if err := ctx.Err(); err != nil {
 		return Session{}, err
 	}
@@ -210,6 +260,7 @@ func (g *Game) End(ctx context.Context, id string, command EndingCommand) (Sessi
 	} else {
 		session.Ending = makeEnding(session, command.Choice)
 	}
+	session.Ending.Echo = echo
 	session.Status = "ended"
 	session.Revision++
 	session.UpdatedAt = g.now().UTC()
@@ -219,6 +270,18 @@ func (g *Game) End(ctx context.Context, id string, command EndingCommand) (Sessi
 		return Session{}, err
 	}
 	return session, nil
+}
+
+func selectedEcho(session Session, messageID *string) (string, error) {
+	if messageID == nil || *messageID == "" {
+		return "", nil
+	}
+	for _, message := range session.Messages {
+		if message.ID == *messageID && message.Role == "player" && message.Intent != "silence" {
+			return message.Text, nil
+		}
+	}
+	return "", failure(400, "invalid_echo", "只能留下这一夜里你实际说过的一句话，也可以不留。", false)
 }
 
 func contains(values []string, value string) bool {

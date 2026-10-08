@@ -42,6 +42,17 @@ body,
 body {
   margin: 0;
 }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
 button,
 input,
 textarea {
@@ -608,7 +619,7 @@ main:focus {
   top: -14px;
   font-family: var(--serif);
   font-size: 56px;
-  color: rgba(197, 176, 222, 0.18);
+  color: #94839f;
   font-weight: 400;
 }
 .intro-scene .eyebrow {
@@ -883,8 +894,9 @@ main:focus {
   align-items: flex-start;
   gap: 27px;
 }
-.observation-detail > div {
+.observation-detail > .observation-copy {
   flex: 1;
+  min-width: 0;
 }
 .observation-detail p {
   font-family: var(--serif);
@@ -897,6 +909,7 @@ main:focus {
   font-size: 9px;
   align-self: center;
   white-space: nowrap;
+  margin-top: 16px;
 }
 .detail-close {
   position: absolute;
@@ -2905,6 +2918,290 @@ main:focus {
     widows: 3;
   }
   button {
+    display: none !important;
+  }
+}
+
+/* These are fragments of the same night: a photograph, its visible facts,
+   and words the player has actually chosen to keep. */
+.observation-hint {
+  color: #b7a9c4;
+  font-size: 11px;
+  line-height: 1.8;
+  margin: -11px 0 17px;
+}
+.observation-detail.with-image {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.9fr) minmax(0, 1.1fr);
+  gap: 24px;
+  padding: 18px 30px 20px 18px;
+  border: 1px solid #68586f;
+  background: rgba(22, 21, 29, 0.96);
+}
+.observation-photo {
+  margin: 0;
+  min-width: 0;
+  align-self: stretch;
+}
+.observation-photo img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border: 6px solid #34303a;
+}
+.observation-photo figcaption {
+  margin-top: 9px;
+  font-size: 9px;
+  line-height: 1.7;
+  color: #9f94a7;
+}
+.observation-copy {
+  align-self: center;
+}
+.observation-copy .eyebrow {
+  color: #d1c4dc;
+}
+.observation-copy p {
+  color: #d8d0df;
+}
+.observation-copy .observation-saved {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: inherit;
+  font-size: 10px;
+  color: #b8adbf;
+  margin-top: 13px;
+}
+.observation-detail .detail-close {
+  min-width: 34px;
+  min-height: 34px;
+  top: 1px;
+  right: 1px;
+}
+.silence-choice {
+  margin: 15px 0;
+}
+.silence-choice > .text-button {
+  font-size: 11px;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-height: 30px;
+}
+.silence-choice > .text-button span {
+  color: #a99bb5;
+  font-size: 10px;
+}
+.silence-confirmation {
+  padding: 16px 18px;
+  border-left: 1px solid #887196;
+  background: rgba(25, 22, 32, 0.9);
+}
+.silence-confirmation p {
+  color: #cabcd6;
+  font-size: 12px;
+  line-height: 1.9;
+}
+.silence-confirmation > div {
+  display: flex;
+  gap: 25px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.silence-confirmation .text-button {
+  font-size: 11px;
+  min-height: 30px;
+}
+.player-action > span {
+  white-space: normal;
+  min-width: 3em;
+}
+.echo-picker {
+  margin: 20px 0 28px;
+  border: 1px solid #55475f;
+  padding: 0 18px;
+  background: rgba(24, 22, 31, 0.75);
+}
+.echo-picker summary {
+  padding: 17px 0;
+  cursor: pointer;
+  color: #e1d3ec;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.echo-picker summary > span {
+  margin-left: 12px;
+  font-size: 10px;
+  color: #b5a3c2;
+}
+.echo-picker summary:focus-visible {
+  outline: 2px solid var(--lavender);
+  outline-offset: 4px;
+}
+.echo-picker > p {
+  color: #b8a9c4;
+  font-size: 11px;
+  line-height: 1.9;
+  margin-bottom: 13px;
+}
+.echo-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid #403748;
+  cursor: pointer;
+}
+.echo-option input {
+  margin: 5px 0 0;
+  accent-color: #c8b9e0;
+  flex-shrink: 0;
+}
+.echo-option span {
+  color: #d8cedf;
+  font-family: var(--serif);
+  font-size: 13px;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+.observed-facts {
+  margin: 26px 0 16px;
+}
+.observed-facts > h3,
+.memory-section-title {
+  color: #decceb;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 1px;
+}
+.observed-facts > p {
+  margin-top: 9px;
+  color: #b3a3bf;
+  font-size: 11px;
+  line-height: 1.9;
+}
+.observed-fact {
+  display: flex;
+  gap: 14px;
+  margin-top: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #4d3e58;
+}
+.observed-fact > img {
+  width: 94px;
+  height: 94px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 4px solid #3d3444;
+}
+.observed-fact h4 {
+  margin: 0 0 7px;
+  color: #decceb;
+  font-size: 12px;
+  font-weight: 400;
+}
+.observed-fact p {
+  color: #c3b5ce;
+  font-family: var(--serif);
+  font-size: 12px;
+  line-height: 1.9;
+}
+.memory-section-title {
+  margin-top: 29px;
+}
+.memory-turn {
+  font-size: 10px;
+}
+
+@media (max-width: 520px) {
+  .observation-detail.with-image {
+    grid-template-columns: 1fr;
+    gap: 17px;
+    padding: 18px;
+  }
+  .observation-photo img {
+    aspect-ratio: 16 / 9;
+  }
+  .observation-detail .text-button {
+    font-size: 11px;
+    min-height: 34px;
+  }
+  .observation-detail p {
+    font-size: 13px;
+  }
+  .observation-detail .eyebrow {
+    font-size: 10px;
+  }
+  .observation-copy .observation-saved {
+    font-size: 10px;
+  }
+  .observation-options button {
+    font-size: 11px;
+    min-height: 40px;
+  }
+  .observation-label {
+    font-size: 10px;
+  }
+  .observation-hint {
+    font-size: 10px;
+    margin-bottom: 14px;
+  }
+  .rehearsal-assist summary,
+  .rehearsal-assist > p {
+    font-size: 10px;
+  }
+  .back-home,
+  .journal-button {
+    font-size: 10px;
+  }
+  .mode-label {
+    font-size: 8px;
+  }
+  .composer-top label {
+    font-size: 12px;
+  }
+  .composer-top label > span {
+    font-size: 9px;
+  }
+  .composer-bottom,
+  .composer-bottom > p {
+    font-size: 9px;
+  }
+  .send-button {
+    min-width: 48px;
+    min-height: 48px;
+  }
+  .send-button > span {
+    font-size: 9px;
+  }
+  .rehearsal-note {
+    font-size: 10px;
+  }
+  .dialogue-stage {
+    min-height: 312px;
+  }
+  .choice-copy > strong {
+    font-size: 15px;
+  }
+  .choice-copy > span,
+  .choice-heading > p:last-child {
+    font-size: 12px;
+  }
+  .observed-fact > img {
+    width: 76px;
+    height: 76px;
+  }
+  .observed-fact {
+    gap: 12px;
+  }
+  .silence-choice {
+    margin: 10px 0;
+  }
+}
+@media print {
+  .echo-picker,
+  .silence-choice {
     display: none !important;
   }
 }

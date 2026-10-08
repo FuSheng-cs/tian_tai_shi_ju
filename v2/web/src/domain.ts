@@ -6,6 +6,7 @@ export interface Message {
   id: string
   role: 'player' | 'character' | 'narrator'
   text: string
+  intent?: 'silence'
 }
 
 export interface Memory {
@@ -50,10 +51,12 @@ export const observations: {
   mark: string
   text: string
   prompt: string
+  image?: string
 }[] = [
   {
     id: 'camera',
     title: '旧相机',
+    image: '/art/details/camera.webp',
     mark: '01',
     text: '相机边角磨得发白。背带上有一道手缝的线，镜头盖扣着。',
     prompt: '留意她手边的相机',
@@ -61,6 +64,7 @@ export const observations: {
   {
     id: 'receipt',
     title: '湿掉的小票',
+    image: '/art/details/receipt.webp',
     mark: '02',
     text: '门边有一张湿掉的小票。字迹已经模糊，只剩便利店的标志。它是谁留下的，你还不知道。',
     prompt: '留意门边的小票',
@@ -68,6 +72,7 @@ export const observations: {
   {
     id: 'door',
     title: '消防门',
+    image: '/art/details/door.webp',
     mark: '03',
     text: '门没有关严。楼道里那盏普通的灯，照着一小块没有被雨打湿的地面。',
     prompt: '留意身后的灯光',
@@ -75,6 +80,7 @@ export const observations: {
   {
     id: 'rain',
     title: '雨声',
+    image: '/art/details/rain.webp',
     mark: '04',
     text: '雨点落在不同的地方，发出不同的声音。远处有一辆夜班车经过，随后又安静下来。',
     prompt: '听一会儿雨声',
@@ -83,9 +89,29 @@ export const observations: {
 
 export const phaseNames: Record<Session['phase'], string> = {
   arrival: '雨还在下',
-  listening: '有人在听',
-  threshold: '门里的光',
-  dawn: '天亮之前',
+  listening: '雨夜中的话',
+  threshold: '接下来的一小步',
+  dawn: '十句话之后',
+}
+
+export const silenceText = '让这一刻安静一会儿。'
+
+export function playerLines(session: Session): Message[] {
+  return session.messages.filter(
+    (message) => message.role === 'player' && message.intent !== 'silence',
+  )
+}
+
+export function memorySource(session: Session, memory: Memory): string {
+  let turn = 0
+  for (const message of session.messages) {
+    if (message.role === 'player') turn++
+    if (turn === memory.sourceTurn && message.text.includes(memory.text)) {
+      if (message.role === 'player') return message.intent === 'silence' ? '你留下的停顿' : '你说'
+      if (message.role === 'character') return '她说'
+    }
+  }
+  return '对话片段'
 }
 
 export const rehearsalLines: [string, string][] = [
@@ -113,14 +139,21 @@ export function makeMemento(session: Session): string {
     '',
     ...(ending?.paragraphs ?? []),
     '',
-    '—— 我在那个雨夜说过 ——',
-    ending?.echo ?? session.messages.find((message) => message.role === 'player')?.text ?? '',
-    '',
+    ...(ending?.echo ? ['—— 这一夜留下的原话 ——', ending.echo, ''] : []),
+    '—— 我看见的现场 ——',
+    ...session.observations.flatMap((id) => {
+      const item = observations.find((observation) => observation.id === id)
+      return item ? [item.title, item.text, ''] : []
+    }),
     '—— 留下的底片 ——',
-    ...session.memories.flatMap((memory) => [memory.title, memory.text, '']),
+    ...session.memories.flatMap((memory) => [
+      memory.title,
+      `${memorySource(session, memory)}：${memory.text}`,
+      '',
+    ]),
     '—— 当晚的完整对话 ——',
     ...session.messages.flatMap((message) => [
-      `${message.role === 'player' ? '我' : message.role === 'character' ? '她' : '雨夜'}：${message.text}`,
+      `${message.role === 'player' ? (message.intent === 'silence' ? '我的停顿' : '我') : message.role === 'character' ? '她' : '雨夜'}：${message.text}`,
       '',
     ]),
     `模式：${session.mode === 'live' ? 'AI 即时对话' : '剧本排演（固定剧本，不解读自由输入）'}`,

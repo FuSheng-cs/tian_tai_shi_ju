@@ -17,12 +17,20 @@ export interface TurnRequest {
   expectedRevision: number
   text: string
   observation?: Observation
+  intent?: 'silence'
+}
+
+export interface ObservationRequest {
+  requestId: string
+  expectedRevision: number
+  observation: Observation
 }
 
 export interface EndingRequest {
   requestId: string
   expectedRevision: number
   choice: EndingChoice
+  echoMessageId?: string
 }
 
 async function request<T>(path: string, body?: unknown, timeout = 65000): Promise<T> {
@@ -71,6 +79,8 @@ export const api = {
   restore: (id: string) => request<Session>(`/sessions/${encodeURIComponent(id)}`),
   turn: (id: string, body: TurnRequest) =>
     request<Session>(`/sessions/${encodeURIComponent(id)}/turns`, body),
+  observe: (id: string, body: ObservationRequest) =>
+    request<Session>(`/sessions/${encodeURIComponent(id)}/observations`, body),
   ending: (id: string, body: EndingRequest) =>
     request<Session>(`/sessions/${encodeURIComponent(id)}/ending`, body),
 }

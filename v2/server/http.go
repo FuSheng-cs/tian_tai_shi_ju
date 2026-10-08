@@ -37,6 +37,7 @@ func NewAPI(game *Game, publicOrigin string, trustedProxies ...*net.IPNet) http.
 	mux.HandleFunc("POST /api/v2/sessions", api.create)
 	mux.HandleFunc("GET /api/v2/sessions/{id}", api.get)
 	mux.HandleFunc("POST /api/v2/sessions/{id}/turns", api.turn)
+	mux.HandleFunc("POST /api/v2/sessions/{id}/observations", api.observe)
 	mux.HandleFunc("POST /api/v2/sessions/{id}/ending", api.ending)
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		writeError(w, failure(404, "not_found", "没有找到这个入口。", false))
@@ -151,9 +152,12 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, target any) error {
 	switch target.(type) {
 	case *TurnCommand:
 		required = []string{"requestId", "expectedRevision", "text"}
-		optional = []string{"observation"}
+		optional = []string{"observation", "intent"}
+	case *ObservationCommand:
+		required = []string{"requestId", "expectedRevision", "observation"}
 	case *EndingCommand:
 		required = []string{"requestId", "expectedRevision", "choice"}
+		optional = []string{"echoMessageId"}
 	default:
 		required = []string{"mode"}
 	}
@@ -209,6 +213,20 @@ func (a *API) ending(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	session, err := a.game.End(r.Context(), r.PathValue("id"), input)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, session)
+}
+
+func (a *API) observe(w http.ResponseWriter, r *http.Request) {
+	var input ObservationCommand
+	if err := decodeJSON(w, r, &input); err != nil {
+		writeError(w, err)
+		return
+	}
+	session, err := a.game.Observe(r.Context(), r.PathValue("id"), input)
 	if err != nil {
 		writeError(w, err)
 		return

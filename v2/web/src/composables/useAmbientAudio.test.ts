@@ -24,13 +24,17 @@ class MockNode {
   detune = new MockParameter()
   pan = new MockParameter()
   Q = new MockParameter()
+  delayTime = new MockParameter()
   onended: (() => void) | null = null
   disconnected = false
   connect() {}
   disconnect() {
     this.disconnected = true
   }
-  start() {}
+  startedAt: number | undefined
+  start(at = 0) {
+    this.startedAt = at
+  }
   stop() {}
 }
 
@@ -53,6 +57,9 @@ class MockAudioContext {
     return node
   }
   createGain() {
+    return this.createNode()
+  }
+  createDelay() {
     return this.createNode()
   }
   createBiquadFilter() {
@@ -108,6 +115,7 @@ beforeEach(() => {
   MockAudioContext.instances = []
   MockAudioContext.rejectResume = false
   vi.stubGlobal('AudioContext', MockAudioContext)
+  vi.spyOn(document, 'hidden', 'get').mockReturnValue(false)
 })
 
 afterEach(() => {
@@ -215,5 +223,89 @@ describe('useAmbientAudio', () => {
     await expect(audio.toggle()).resolves.toBeUndefined()
     expect(audio.soundEnabled.value).toBe(false)
     expect(audio.isPlaying.value).toBe(false)
+  })
+
+  it('keeps the authored rests when enable is called again while already playing', async () => {
+    const { audio } = mountAudio()
+    await audio.enable()
+    const context = MockAudioContext.instances[0]!
+    const initialSources = context.nodes.filter((node) => node.startedAt !== undefined).length
+    context.currentTime = 4
+    await vi.advanceTimersByTimeAsync(4000)
+    await audio.enable()
+    context.currentTime = 4.8
+    await vi.advanceTimersByTimeAsync(800)
+    const newNotes = context.nodes
+      .filter((node) => node.startedAt !== undefined)
+      .slice(initialSources)
+    expect(newNotes).toHaveLength(9)
+    expect(newNotes.map((node) => node.startedAt)).toEqual([
+      4.8, 4.8, 4.8, 7.6, 7.6, 7.6, 11.7, 11.7, 11.7,
+    ])
+    context.currentTime = 24.8
+    await vi.advanceTimersByTimeAsync(20_000)
+    expect(context.nodes.filter((node) => node.startedAt !== undefined)).toHaveLength(
+      initialSources + 9,
+    )
+  })
+
+  it('pauses a hidden page and returns without catching up missed phrases', async () => {
+    const hidden = vi.spyOn(document, 'hidden', 'get')
+    const { audio } = mountAudio()
+    await audio.enable()
+    const context = MockAudioContext.instances[0]!
+    context.currentTime = 2
+    await vi.advanceTimersByTimeAsync(2000)
+    hidden.mockReturnValue(true)
+    document.dispatchEvent(new Event('visibilitychange'))
+    await vi.advanceTimersByTimeAsync(200)
+    expect(context.state).toBe('suspended')
+    expect(audio.soundEnabled.value).toBe(true)
+    expect(audio.isPlaying.value).toBe(false)
+    const sourceCount = context.nodes.filter((node) => node.startedAt !== undefined).length
+    await vi.advanceTimersByTimeAsync(300_000)
+    expect(context.nodes.filter((node) => node.startedAt !== undefined)).toHaveLength(sourceCount)
+    hidden.mockReturnValue(false)
+    document.dispatchEvent(new Event('visibilitychange'))
+    await Promise.resolve()
+    expect(audio.isPlaying.value).toBe(true)
+    await vi.advanceTimersByTimeAsync(2700)
+    expect(context.nodes.filter((node) => node.startedAt !== undefined)).toHaveLength(sourceCount)
+    context.currentTime = 4.8
+    await vi.advanceTimersByTimeAsync(100)
+    expect(context.nodes.filter((node) => node.startedAt !== undefined)).toHaveLength(
+      sourceCount + 9,
+    )
+  })
+
+  it('does not resume a hidden page after the player has disabled sound', async () => {
+    const hidden = vi.spyOn(document, 'hidden', 'get')
+    const { audio } = mountAudio()
+    await audio.enable()
+    hidden.mockReturnValue(true)
+    document.dispatchEvent(new Event('visibilitychange'))
+    audio.disable()
+    await vi.advanceTimersByTimeAsync(750)
+    hidden.mockReturnValue(false)
+    document.dispatchEvent(new Event('visibilitychange'))
+    await Promise.resolve()
+    expect(MockAudioContext.instances[0]!.state).toBe('suspended')
+    expect(audio.soundEnabled.value).toBe(false)
+    expect(audio.isPlaying.value).toBe(false)
+  })
+
+  it('keeps rain usable when music is muted, including phase transitions', async () => {
+    const { audio } = mountAudio()
+    await audio.enable()
+    audio.setMusicVolume(0)
+    audio.setRainVolume(0.5)
+    audio.setPhase('threshold')
+    expect(audio.musicVolume.value).toBe(0)
+    expect(audio.rainVolume.value).toBe(0.5)
+    expect(audio.isPlaying.value).toBe(true)
+    const context = MockAudioContext.instances[0]!
+    expect(context.nodes.some((node) => node.frequency.value === 2600)).toBe(true)
+    expect(context.nodes[1]!.gain.value).toBe(0)
+    expect(context.nodes[2]!.gain.value).toBeCloseTo(0.39)
   })
 })

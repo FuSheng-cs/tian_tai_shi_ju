@@ -12,7 +12,7 @@ try {
 }
 
 const here = dirname(fileURLToPath(import.meta.url))
-for (const name of ['rooftop', 'listening', 'dawn']) {
+for (const name of ['rooftop', 'listening', 'dawn', 'details/camera', 'details/receipt', 'details/door', 'details/rain']) {
   const source = resolve(here, 'originals', `${name}.png`)
   const target = resolve(here, '../web/public/art', `${name}.webp`)
   const metadata = await sharp(source).metadata()

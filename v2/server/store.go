@@ -155,10 +155,5 @@ func (s *Store) Write(record Record) error {
 	if err := os.Rename(name, filepath.Join(s.dir, record.Session.ID+".json")); err != nil {
 		return err
 	}
-	directory, err := os.Open(s.dir)
-	if err != nil {
-		return err
-	}
-	defer directory.Close()
-	return directory.Sync()
+	return syncDirectory(s.dir)
 }
