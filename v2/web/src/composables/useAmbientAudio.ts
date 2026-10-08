@@ -21,6 +21,13 @@ const STORAGE_KEY = 'tiantaishiju:v2:ambient-audio'
 const DEFAULT_MUSIC_VOLUME = 0.4
 const DEFAULT_RAIN_VOLUME = 0.28
 const MASTER_VOLUME = 0.55
+const LOCATION_TRANSITION_SECONDS = 2.8
+const LOCATION_SOUND = {
+  rooftop: { rain: 1, lowpass: 18000 },
+  threshold: { rain: 0.78, lowpass: 1450 },
+} as const
+
+export type AmbientLocation = keyof typeof LOCATION_SOUND
 
 interface AudioPreferences {
   musicVolume: number
@@ -33,6 +40,8 @@ interface AmbientEngine {
   music: GainNode
   rain: GainNode
   rainFilter: BiquadFilterNode
+  rainShelter: GainNode
+  rainShelterFilter: BiquadFilterNode
   nodes: Set<AudioNode>
   sources: Set<AudioScheduledSourceNode>
   drone?: {
@@ -105,6 +114,7 @@ export function useAmbientAudio() {
   let phrasePosition = 0
   let nextPhraseAt = PHRASE_OPENING_SECONDS
   let phase: AmbientPhase = 'arrival'
+  let location: AmbientLocation = 'rooftop'
 
   function persistPreferences(): void {
     try {
@@ -172,7 +182,17 @@ export function useAmbientAudio() {
         level.connect(pan)
         pan.connect(master)
       }
-      rain.connect(master)
+      // Physical shelter is a separate bus from dramatic pacing. Only an
+      // accepted scene location may muffle the rain; a phase cannot move her.
+      const rainShelterFilter = track(context.createBiquadFilter())
+      const rainShelter = track(context.createGain())
+      rainShelterFilter.type = 'lowpass'
+      rainShelterFilter.frequency.value = LOCATION_SOUND[location].lowpass
+      rainShelterFilter.Q.value = 0.35
+      rainShelter.gain.value = LOCATION_SOUND[location].rain
+      rain.connect(rainShelterFilter)
+      rainShelterFilter.connect(rainShelter)
+      rainShelter.connect(master)
       master.connect(context.destination)
 
       // A long stereo noise bed makes a soft, distant rain curtain. The filter
@@ -217,7 +237,17 @@ export function useAmbientAudio() {
         isPlaying.value =
           requestedEnabled && context.state === 'running' && !document.hidden && !disposed
       }
-      const activeEngine = { context, master, music, rain, rainFilter: rainHigh, nodes, sources }
+      const activeEngine = {
+        context,
+        master,
+        music,
+        rain,
+        rainFilter: rainHigh,
+        rainShelter,
+        rainShelterFilter,
+        nodes,
+        sources,
+      }
       startDrone(activeEngine, phase, 1.6)
       return activeEngine
     } catch {
@@ -494,6 +524,21 @@ export function useAmbientAudio() {
     startDrone(engine, phase)
   }
 
+  /** Call only with the server-confirmed scene location, never prose guesses. */
+  function setLocation(nextLocation: AmbientLocation): void {
+    if (nextLocation === location || !Object.hasOwn(LOCATION_SOUND, nextLocation)) return
+    location = nextLocation
+    if (!engine || engine.context.state === 'closed') return
+    const now = engine.context.currentTime
+    fade(engine.rainShelter.gain, LOCATION_SOUND[location].rain, now, LOCATION_TRANSITION_SECONDS)
+    fade(
+      engine.rainShelterFilter.frequency,
+      LOCATION_SOUND[location].lowpass,
+      now,
+      LOCATION_TRANSITION_SECONDS,
+    )
+  }
+
   onUnmounted(() => {
     disposed = true
     transition += 1
@@ -531,5 +576,6 @@ export function useAmbientAudio() {
     setMusicVolume,
     setRainVolume,
     setPhase,
+    setLocation,
   }
 }

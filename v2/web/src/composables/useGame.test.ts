@@ -42,6 +42,33 @@ beforeEach(() => {
 })
 
 describe('recoverable conversation requests', () => {
+  it('closes an active night without requesting another turn and freezes new speech until an uncertain close is retried', async () => {
+    const game = useGame()
+    vi.mocked(api.create).mockResolvedValue(makeSession(2))
+    await game.start('rehearsal')
+    vi.mocked(api.ending)
+      .mockRejectedValueOnce(new ApiError('断线', 'NETWORK_ERROR', true))
+      .mockResolvedValueOnce({ ...makeSession(3), turn: 2, status: 'ended' })
+    expect(await game.end('separate')).toBe(false)
+    expect(api.ending).not.toHaveBeenCalled()
+    expect(await game.end('leave', '1-player')).toBe(false)
+    const original = game.pendingEnding.value
+    expect(await game.send('这句不应送出')).toBe(false)
+    expect(await game.observe('door')).toBe(false)
+    expect(api.turn).not.toHaveBeenCalled()
+    expect(await game.end('leave', '2-player')).toBe(true)
+    expect(vi.mocked(api.ending).mock.calls[1]?.[1]).toEqual(original)
+    expect(game.session.value?.turn).toBe(2)
+  })
+
+  it('does not close while a sentence is unresolved', async () => {
+    const game = useGame()
+    await game.start('rehearsal')
+    vi.mocked(api.turn).mockRejectedValue(new ApiError('断线', 'NETWORK_ERROR', true))
+    await game.send('还在路上的话。')
+    expect(await game.end('leave')).toBe(false)
+    expect(api.ending).not.toHaveBeenCalled()
+  })
   it('retains the exact command and request ID on network retry without storing dialogue in localStorage', async () => {
     const game = useGame()
     await game.start('rehearsal')

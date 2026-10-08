@@ -5,13 +5,15 @@ import { useAmbientAudio } from './useAmbientAudio'
 
 class MockParameter {
   value = 0
+  ramps: { value: number; at: number }[] = []
   cancelAndHoldAtTime() {}
   cancelScheduledValues() {}
   setValueAtTime(value: number) {
     this.value = value
   }
-  linearRampToValueAtTime(value: number) {
+  linearRampToValueAtTime(value: number, at: number) {
     this.value = value
+    this.ramps.push({ value, at })
   }
   exponentialRampToValueAtTime(value: number) {
     this.value = value
@@ -307,5 +309,73 @@ describe('useAmbientAudio', () => {
     expect(context.nodes.some((node) => node.frequency.value === 2600)).toBe(true)
     expect(context.nodes[1]!.gain.value).toBe(0)
     expect(context.nodes[2]!.gain.value).toBeCloseTo(0.39)
+  })
+
+  it('applies confirmed shelter at first enable without autoplay or changing preferences', async () => {
+    const { audio } = mountAudio()
+    audio.setLocation('threshold')
+    audio.setPhase('arrival')
+    expect(MockAudioContext.instances).toHaveLength(0)
+    expect(audio.soundEnabled.value).toBe(false)
+    await audio.enable()
+    const context = MockAudioContext.instances[0]!
+    expect(context.nodes.some((node) => node.frequency.value === 1450)).toBe(true)
+    expect(context.nodes.some((node) => node.gain.value === 0.78)).toBe(true)
+    expect(audio.rainVolume.value).toBe(0.28)
+    expect(audio.musicVolume.value).toBe(0.4)
+    expect(context.nodes[2]!.gain.value).toBeCloseTo(0.28)
+  })
+
+  it('keeps spatial fades separate from phase and volume, and restores an accepted rooftop return', async () => {
+    const { audio } = mountAudio()
+    await audio.enable()
+    const context = MockAudioContext.instances[0]!
+    const shelterFilter = context.nodes.find((node) => node.frequency.value === 18000)!
+    expect(shelterFilter).toBeDefined()
+    context.currentTime = 12
+    audio.setLocation('threshold')
+    const shelterGain = context.nodes.find((node) => node.gain.value === 0.78)!
+    expect(shelterFilter.frequency.ramps.at(-1)).toEqual({ value: 1450, at: 14.8 })
+    expect(shelterGain.gain.ramps.at(-1)).toEqual({ value: 0.78, at: 14.8 })
+    audio.setPhase('threshold')
+    audio.setRainVolume(0.6)
+    expect(shelterFilter.frequency.ramps).toHaveLength(1)
+    expect(shelterGain.gain.ramps).toHaveLength(1)
+    expect(context.nodes[2]!.gain.value).toBeCloseTo(0.6 * 0.78)
+    expect(audio.rainVolume.value).toBe(0.6)
+    audio.setLocation('threshold')
+    expect(shelterFilter.frequency.ramps).toHaveLength(1)
+    context.currentTime = 20
+    audio.setLocation('rooftop')
+    expect(shelterFilter.frequency.ramps.at(-1)).toEqual({ value: 18000, at: 22.8 })
+    expect(shelterGain.gain.ramps.at(-1)).toEqual({ value: 1, at: 22.8 })
+    expect(context.nodes[2]!.gain.value).toBeCloseTo(0.6 * 0.78)
+    expect(MockAudioContext.instances).toHaveLength(1)
+  })
+
+  it('does not override rain mute, manual pause or background suspension when location changes', async () => {
+    const hidden = vi.spyOn(document, 'hidden', 'get')
+    const { audio } = mountAudio()
+    await audio.enable()
+    const context = MockAudioContext.instances[0]!
+    audio.setRainVolume(0)
+    hidden.mockReturnValue(true)
+    document.dispatchEvent(new Event('visibilitychange'))
+    await vi.advanceTimersByTimeAsync(200)
+    audio.setLocation('threshold')
+    audio.setPhase('dawn')
+    expect(context.state).toBe('suspended')
+    expect(context.nodes[0]!.gain.value).toBe(0)
+    expect(context.nodes[2]!.gain.value).toBe(0)
+    expect(audio.isPlaying.value).toBe(false)
+    audio.disable()
+    audio.setLocation('rooftop')
+    hidden.mockReturnValue(false)
+    document.dispatchEvent(new Event('visibilitychange'))
+    await Promise.resolve()
+    expect(context.state).toBe('suspended')
+    expect(audio.soundEnabled.value).toBe(false)
+    expect(audio.rainVolume.value).toBe(0)
+    expect(MockAudioContext.instances).toHaveLength(1)
   })
 })

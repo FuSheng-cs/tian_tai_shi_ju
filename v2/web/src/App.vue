@@ -22,12 +22,14 @@ import { useGame } from './composables/useGame'
 import { usePreferences } from './composables/usePreferences'
 import {
   countCharacters,
+  characterLabel,
   makeMemento,
   memorySource,
   observations,
   phaseNames,
   playerLines,
   rehearsalLines,
+  storyArtwork,
   type EndingChoice,
   type Observation,
   type PlayMode,
@@ -51,7 +53,7 @@ const { preferences, systemReducedMotion } = usePreferences()
 const audio = useAmbientAudio()
 const { soundEnabled, musicVolume, rainVolume, isPlaying } = audio
 const screen = ref<'home' | 'intro' | 'game'>('home')
-const modal = ref<'start' | 'settings' | 'about' | 'journal' | null>(null)
+const modal = ref<'start' | 'settings' | 'about' | 'journal' | 'leave' | null>(null)
 const journalTab = ref<'memories' | 'transcript'>('memories')
 const introStep = ref(0)
 const input = ref('')
@@ -75,11 +77,11 @@ const reducedMotion = computed(
 )
 const sceneArt = computed(() => {
   if (screen.value !== 'game' || !session.value) return '/art/rooftop.webp'
-  if (session.value.status === 'ended' && session.value.mode === 'rehearsal')
-    return '/art/dawn.webp'
-  if (session.value.phase !== 'arrival') return '/art/listening.webp'
-  return '/art/rooftop.webp'
+  return storyArtwork(session.value)
 })
+const indoors = computed(
+  () => screen.value === 'game' && session.value?.scene?.location === 'threshold',
+)
 const sceneTime = computed(() => {
   const turn = session.value?.turn ?? 0
   return turn === 0 ? '23:47' : turn < 10 ? '这一夜' : '十句话之后'
@@ -105,6 +107,7 @@ const canSend = computed(
   () =>
     !busy.value &&
     !pendingObservation.value &&
+    !pendingEnding.value &&
     (Boolean(pendingTurn.value) ||
       (chars.value > 0 && chars.value <= 120 && input.value.trim().length > 0)),
 )
@@ -125,21 +128,30 @@ const introScenes = [
     number: '03',
     kicker: '这一夜 / 十次开口',
     text: '不必找到一句完美的话。',
-    detail: '看看身边的东西，听听她的话。你有十次开口的时间，至于说什么，由你自己决定。',
+    detail: '看看身边的东西，听听她的话。你最多可以回应十次，至于说什么，由你自己决定。',
   },
 ]
-const endingChoices: { id: EndingChoice; number: string; title: string; description: string }[] = [
+const canCloseNight = computed(
+  () =>
+    !busy.value &&
+    !pendingTurn.value &&
+    !pendingObservation.value &&
+    (!pendingEnding.value || pendingEnding.value.choice === 'leave'),
+)
+const endingChoices = computed<
+  { id: EndingChoice; number: string; title: string; description: string }[]
+>(() => [
   {
     id: 'handoff',
     number: '01',
-    title: '陪她走到门里的灯下',
-    description: '把这一夜，交给下一段有人在的路。',
+    title: '问她，愿不愿意等一个认识的人',
+    description: '如果她愿意，一起商量接下来能找谁。',
   },
   {
-    id: 'separate',
+    id: session.value?.mode === 'live' ? 'leave' : 'separate',
     number: '02',
-    title: '道一声晚安，各自离开',
-    description: '有些相遇不必延长，也已经留下了什么。',
+    title: '让这场谈话停在这里',
+    description: '不再追问，也不替她决定之后的路。',
   },
   {
     id: 'correspondence',
@@ -147,7 +159,7 @@ const endingChoices: { id: EndingChoice; number: string; title: string; descript
     title: '问她，愿不愿意寄来一张照片',
     description: '给未来留一个可以回应、也可以拒绝的邀请。',
   },
-]
+])
 
 onMounted(() => {
   void game.checkHealth()
@@ -165,6 +177,11 @@ watch(
 watch(
   () => (screen.value === 'home' ? 'arrival' : (session.value?.phase ?? 'arrival')),
   (phase) => audio.setPhase(phase),
+  { immediate: true },
+)
+watch(
+  () => indoors.value,
+  (inside) => audio.setLocation(inside ? 'threshold' : 'rooftop'),
   { immediate: true },
 )
 
@@ -279,7 +296,22 @@ function useAuthoredLine(line: string) {
 }
 
 async function chooseEnding(choice: EndingChoice) {
+  if (choice === 'leave') {
+    openLeave()
+    return
+  }
   await game.end(choice, selectedEcho.value)
+}
+
+function openLeave() {
+  if (canCloseNight.value) modal.value = 'leave'
+}
+
+async function closeNight() {
+  if (await game.end('leave', selectedEcho.value)) {
+    modal.value = null
+    silenceConfirming.value = false
+  }
 }
 
 function goHome() {
@@ -330,6 +362,7 @@ async function onJournalKeys(event: KeyboardEvent) {
       'large-type': preferences.textSize === 'large',
       'in-game': screen !== 'home',
       'at-ending': session?.status === 'ended' && screen === 'game',
+      'is-indoors': indoors,
     }"
   >
     <a class="skip-link" href="#main-content">跳到主要内容</a>
@@ -346,7 +379,9 @@ async function onJournalKeys(event: KeyboardEvent) {
         <span>天台十句<span class="wordmark-edition">第二卷</span></span>
       </button>
       <div v-if="screen === 'game' && session" class="chapter-indicator">
-        <span class="live-dot" />{{ phaseNames[session.phase] }}
+        <span class="live-dot" />{{
+          session.status === 'ended' ? '这一夜的留存' : phaseNames[session.phase]
+        }}
       </div>
       <div v-else class="header-edition">AN INTERACTIVE SHORT STORY<span>VOL. 02</span></div>
       <nav class="header-actions" aria-label="作品选项">
@@ -493,7 +528,9 @@ async function onJournalKeys(event: KeyboardEvent) {
                 >{{ lastPlayer.text }}
               </p>
               <p v-if="lastNarration" class="narrator-line">{{ lastNarration.text }}</p>
-              <p class="speaker-label"><span class="speaker-rule" />天台上的人</p>
+              <p class="speaker-label">
+                <span class="speaker-rule" />{{ characterLabel(session) }}
+              </p>
               <blockquote class="character-line">
                 {{ lastCharacter?.text ?? '你也睡不着？' }}
               </blockquote>
@@ -502,7 +539,7 @@ async function onJournalKeys(event: KeyboardEvent) {
           </Transition>
           <div class="scene-coordinate" aria-hidden="true">
             <span>35mm</span><span>{{ sceneTime }}</span
-            ><span>雨 / 夜</span>
+            ><span>{{ indoors ? '门内 / 夜' : '雨 / 夜' }}</span>
           </div>
         </div>
 
@@ -520,7 +557,12 @@ async function onJournalKeys(event: KeyboardEvent) {
                 :aria-pressed="selectedObservation === item.id"
                 :aria-expanded="inspecting === item.id"
                 aria-controls="observation-detail"
-                :disabled="busy || Boolean(pendingTurn) || Boolean(pendingObservation)"
+                :disabled="
+                  busy ||
+                  Boolean(pendingTurn) ||
+                  Boolean(pendingObservation) ||
+                  Boolean(pendingEnding)
+                "
                 @click="inspectObservation(item.id)"
               >
                 <span class="object-mark">{{ item.mark }}</span
@@ -565,7 +607,12 @@ async function onJournalKeys(event: KeyboardEvent) {
                 <button
                   v-else
                   class="text-button"
-                  :disabled="busy || Boolean(pendingTurn) || Boolean(pendingObservation)"
+                  :disabled="
+                    busy ||
+                    Boolean(pendingTurn) ||
+                    Boolean(pendingObservation) ||
+                    Boolean(pendingEnding)
+                  "
                   @click="chooseObservation"
                 >
                   {{
@@ -620,7 +667,7 @@ async function onJournalKeys(event: KeyboardEvent) {
                 rows="2"
                 maxlength="480"
                 aria-label="写下这一句"
-                :readonly="busy || Boolean(pendingTurn)"
+                :readonly="busy || Boolean(pendingTurn) || Boolean(pendingEnding)"
                 :aria-describedby="'compose-hint compose-count'"
                 :aria-invalid="chars > 120"
                 :placeholder="
@@ -677,7 +724,7 @@ async function onJournalKeys(event: KeyboardEvent) {
               :aria-valuenow="session.turn"
               :aria-valuemin="0"
               :aria-valuemax="10"
-              :aria-valuetext="`已回应 ${session.turn} 次，共十次`"
+              :aria-valuetext="`已回应 ${session.turn} 次，最多十次`"
             >
               <span
                 v-for="n in 10"
@@ -690,7 +737,12 @@ async function onJournalKeys(event: KeyboardEvent) {
             <button
               v-if="!silenceConfirming"
               class="text-button"
-              :disabled="busy || Boolean(pendingTurn) || Boolean(pendingObservation)"
+              :disabled="
+                busy ||
+                Boolean(pendingTurn) ||
+                Boolean(pendingObservation) ||
+                Boolean(pendingEnding)
+              "
               @click="silenceConfirming = true"
             >
               让这一刻安静一会儿 <span>计入一次回应</span>
@@ -700,7 +752,12 @@ async function onJournalKeys(event: KeyboardEvent) {
               <div>
                 <button
                   class="text-button"
-                  :disabled="busy || Boolean(pendingTurn) || Boolean(pendingObservation)"
+                  :disabled="
+                    busy ||
+                    Boolean(pendingTurn) ||
+                    Boolean(pendingObservation) ||
+                    Boolean(pendingEnding)
+                  "
                   @click="leaveSilence"
                 >
                   留一拍沉默 <ArrowRight :size="14" />
@@ -710,6 +767,13 @@ async function onJournalKeys(event: KeyboardEvent) {
                 </button>
               </div>
             </div>
+          </div>
+          <div class="night-close-action">
+            <button class="text-button" :disabled="!canCloseNight" @click="openLeave">
+              {{ pendingEnding?.choice === 'leave' ? '继续收好这一夜' : '收好这一夜' }}
+              <ArrowRight :size="13" />
+            </button>
+            <span>不必说满十次。</span>
           </div>
           <button
             v-if="pendingObservation && !inspecting"
@@ -729,8 +793,8 @@ async function onJournalKeys(event: KeyboardEvent) {
         <section v-else class="ending-choices" aria-labelledby="choice-heading">
           <div class="choice-heading">
             <p class="eyebrow">十句话之后</p>
-            <h2 id="choice-heading">这段路，想怎么走完？</h2>
-            <p>这是你的提议。她仍然可以答应、拒绝，或暂时不决定。</p>
+            <h2 id="choice-heading">这一夜，停在哪里？</h2>
+            <p>可以就此结束，也可以再留一个提议。她仍然可以拒绝，或暂时不决定。</p>
           </div>
           <details class="echo-picker">
             <summary>
@@ -782,7 +846,7 @@ async function onJournalKeys(event: KeyboardEvent) {
         <div class="ending-kicker">
           <span class="tiny-cross">+</span> 这一夜，留下一张底片 <span class="tiny-cross">+</span>
         </div>
-        <span class="ending-frame-number">这段谈话之后 / 余响</span>
+        <span class="ending-frame-number">{{ session.turn }} 次回应 / 这一夜的余响</span>
         <h1>{{ session.ending.title }}</h1>
         <p class="ending-subtitle">{{ session.ending.subtitle }}</p>
         <div class="ending-prose">
@@ -825,6 +889,50 @@ async function onJournalKeys(event: KeyboardEvent) {
       </article>
     </main>
 
+    <SceneDialog :open="modal === 'leave'" title="收好这一夜" @close="modal = null">
+      <div v-if="session" class="leave-dialog-content">
+        <h2>可以停在这里。</h2>
+        <p class="dialog-body">
+          已经发生的对话和观察会留下。未发送的草稿不算对话，也不会写进留存；她之后的事，不替她补写。
+        </p>
+        <p class="leave-pause-note">如果只是想稍后继续，选择「暂离天台」即可。</p>
+        <details v-if="echoOptions.length" class="echo-picker">
+          <summary>
+            给这一夜留一句原话 <span>{{ selectedEcho ? '已选一句' : '也可以留白' }}</span>
+          </summary>
+          <label class="echo-option">
+            <input
+              v-model="selectedEcho"
+              type="radio"
+              name="leave-echo"
+              value=""
+              :disabled="busy || Boolean(pendingEnding)"
+            />
+            <span>不选一句。让这一页留白。</span>
+          </label>
+          <label v-for="message in echoOptions" :key="message.id" class="echo-option">
+            <input
+              v-model="selectedEcho"
+              type="radio"
+              name="leave-echo"
+              :value="message.id"
+              :disabled="busy || Boolean(pendingEnding)"
+            />
+            <span>{{ message.text }}</span>
+          </label>
+        </details>
+        <p v-else class="leave-pause-note">你还没有说出口的话，不会被写进故事。</p>
+        <div class="leave-dialog-actions">
+          <button class="primary-button" :disabled="!canCloseNight" @click="closeNight">
+            <LoaderCircle v-if="busy" class="spin" :size="14" />
+            {{ pendingEnding?.choice === 'leave' ? '重试收好这一夜' : '就在这里收好' }}
+          </button>
+          <button class="text-button" @click="modal = null">回到这场对话</button>
+        </div>
+        <p v-if="error" class="inline-error" role="alert">{{ error }}</p>
+      </div>
+    </SceneDialog>
+
     <SceneDialog :open="modal === 'start'" title="走进这一夜" @close="modal = null">
       <div class="start-dialog-content">
         <span class="dialog-frame-number">23:47</span>
@@ -833,7 +941,7 @@ async function onJournalKeys(event: KeyboardEvent) {
           这是一个关于孤独、摄影与倾听的虚构短篇，包含心理危机与轻生议题，不直接呈现伤害过程。你可以随时暂停或离开；不需要承担拯救另一个人的责任。
         </p>
         <div class="mode-explanation">
-          <span class="eyebrow">十次开口 / 一次相遇</span>
+          <span class="eyebrow">最多十次回应 / 一次相遇</span>
           <p>观察身边的细节，用自己的话回应。<br />没有好感度，没有标准答案，也不必说得漂亮。</p>
         </div>
         <p v-if="savedId" class="replace-notice">开始新的一夜，会替换此浏览器的继续进度。</p>
@@ -968,7 +1076,7 @@ async function onJournalKeys(event: KeyboardEvent) {
         <h2>有些话，<br />只需要有人听见。</h2>
         <p>
           《天台十句：未寄出的底片》是一部 AI
-          原生的互动短篇。故事发生在一个雨夜；你和一个陌生人，在天亮之前分享十次开口的时间。
+          原生的互动短篇。故事发生在一个雨夜；你和一个陌生人，最多回应十次，也可以提早结束这场相遇。
         </p>
         <p>
           在即时模式中，她会记得你说过的具体内容，身边被你注意到的小事也会进入对话。剧本排演则是一条完整、固定的作者叙事，用来体验作品的节奏与氛围。
@@ -1081,7 +1189,7 @@ async function onJournalKeys(event: KeyboardEvent) {
                   ? '你留下的停顿'
                   : '你'
                 : message.role === 'character'
-                  ? '天台上的人'
+                  ? characterLabel(session, message.id)
                   : '雨夜'
             }}</span>
             <p>{{ message.text }}</p>

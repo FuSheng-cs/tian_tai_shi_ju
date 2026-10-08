@@ -35,6 +35,8 @@ Rehearsal is fixed, authored narrative. A passing rehearsal run verifies the app
 
 ## Verification record
 
+Latest live-model iteration: [2026-10-09 real-model playtests](LIVE_PLAYTEST_2026-10-09.md). Three independent Codex character instances produced 25 accepted live outputs across two complete nights and one three-turn early close. Frontend unit checks are now **32/32**; the final production preview with the normal local Go binary passed **11/11 browser scenarios in 48.0 seconds**. External-provider connectivity and remote deployment were deliberately outside this local iteration.
+
 Latest iteration: [2026-10-08 verification](ITERATION_2026-10-08.md). The final production preview run passed **9/9 scenarios in 37.4 seconds**, with 25 frontend unit tests and 27 Go top-level tests. It adds independent durable observations, explicit silence, chosen/blank echo, response-loss recovery and observation-only revision regression coverage. The historical initial record below is retained as provenance. Public deployment and actual-provider validation remain unverified because SSH is unreachable.
 
 Initial browser runs found two integration defects: Vite's shorthand proxy changed the request host and caused genuine session creation to fail the API's same-origin check; native dialog tab traversal could leave document focus. Both were repaired by preserving the proxy host explicitly and wrapping focus at modal boundaries. The browser suite rechecks these paths.

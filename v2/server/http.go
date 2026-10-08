@@ -180,7 +180,7 @@ func (a *API) create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, session)
+	writeSession(w, http.StatusCreated, session)
 }
 
 func (a *API) get(w http.ResponseWriter, r *http.Request) {
@@ -189,7 +189,7 @@ func (a *API) get(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, session)
+	writeSession(w, http.StatusOK, session)
 }
 
 func (a *API) turn(w http.ResponseWriter, r *http.Request) {
@@ -203,7 +203,7 @@ func (a *API) turn(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, session)
+	writeSession(w, http.StatusOK, session)
 }
 
 func (a *API) ending(w http.ResponseWriter, r *http.Request) {
@@ -217,7 +217,7 @@ func (a *API) ending(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, session)
+	writeSession(w, http.StatusOK, session)
 }
 
 func (a *API) observe(w http.ResponseWriter, r *http.Request) {
@@ -231,7 +231,7 @@ func (a *API) observe(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, session)
+	writeSession(w, http.StatusOK, session)
 }
 
 func writeError(w http.ResponseWriter, err error) {

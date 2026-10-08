@@ -156,6 +156,7 @@ export function useGame() {
       !session.value ||
       busy.value ||
       pendingObservation.value ||
+      pendingEnding.value ||
       session.value.status !== 'active'
     )
       return false
@@ -214,7 +215,15 @@ export function useGame() {
   }
 
   async function end(choice: EndingChoice, echoMessageId = ''): Promise<boolean> {
-    if (!session.value || busy.value || session.value.status !== 'choosing') return false
+    if (
+      !session.value ||
+      busy.value ||
+      pendingTurn.value ||
+      pendingObservation.value ||
+      (session.value.status !== 'choosing' &&
+        !(choice === 'leave' && session.value.status === 'active'))
+    )
+      return false
     const payload = pendingEnding.value ?? {
       requestId: requestId(),
       expectedRevision: session.value.revision,

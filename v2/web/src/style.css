@@ -1228,6 +1228,7 @@ main:focus {
   line-height: 1;
 }
 .player-echo > blockquote {
+  text-wrap: balance;
   font-family: var(--serif);
   font-size: 19px;
   line-height: 2;
@@ -2930,6 +2931,17 @@ main:focus {
   line-height: 1.8;
   margin: -11px 0 17px;
 }
+.is-indoors .rain-veil {
+  display: none;
+}
+.is-indoors .scene-shade {
+  background: linear-gradient(
+    90deg,
+    rgba(14, 14, 20, 0.87),
+    rgba(17, 16, 23, 0.58) 55%,
+    rgba(15, 14, 19, 0.2)
+  );
+}
 .observation-detail.with-image {
   display: grid;
   grid-template-columns: minmax(180px, 0.9fr) minmax(0, 1.1fr);
@@ -2982,6 +2994,52 @@ main:focus {
 }
 .silence-choice {
   margin: 15px 0;
+}
+.night-close-action {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0;
+}
+.night-close-action .text-button {
+  font-size: 11px;
+  min-height: 34px;
+}
+.night-close-action > span {
+  font-size: 10px;
+  color: #b7a9c4;
+}
+.leave-dialog-content h2 {
+  margin-top: 25px;
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.7;
+}
+.leave-dialog-content .dialog-body {
+  margin-top: 20px;
+}
+.leave-pause-note {
+  font-size: 11px;
+  line-height: 1.9;
+  color: #b6a5c2;
+  margin: 18px 0;
+}
+.leave-dialog-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-top: 25px;
+}
+.leave-dialog-actions .primary-button {
+  font-size: 12px;
+  min-height: 46px;
+}
+.leave-dialog-actions .text-button {
+  font-size: 11px;
+  min-height: 36px;
 }
 .silence-choice > .text-button {
   font-size: 11px;
@@ -3115,6 +3173,16 @@ main:focus {
 }
 
 @media (max-width: 520px) {
+  .is-indoors .scene-shade {
+    background:
+      linear-gradient(
+        90deg,
+        rgba(14, 14, 20, 0.92),
+        rgba(17, 16, 23, 0.77) 60%,
+        rgba(15, 14, 19, 0.4)
+      ),
+      linear-gradient(0deg, #111218, transparent 65%);
+  }
   .observation-detail.with-image {
     grid-template-columns: 1fr;
     gap: 17px;

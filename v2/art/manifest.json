@@ -142,6 +142,24 @@
       ],
       "alt": "雨夜城市里的夜班公交，屋檐下水滴落在天台地面。",
       "promptSpec": "DETAILS.md"
+    },
+    {
+      "id": "threshold",
+      "role": "Confirmed indoor shelter during live or authored conversation",
+      "source": "originals/threshold.png",
+      "publicPath": "/art/threshold.webp",
+      "width": 1672,
+      "height": 941,
+      "bytes": 262628,
+      "sourceSha256": "e6a9ea792e7b3950ce01ac275abb2d3586355d8cfb261c19f0f70019775d78db",
+      "webpSha256": "688e95bcf27de1b214cd4d1b5c843e1f7625f259916cc56e7806d35b1e9952f6",
+      "generationId": "exec-a51d7c39-24c3-40a7-b3ea-853bd406d85d",
+      "references": [
+        "rooftop",
+        "listening"
+      ],
+      "alt": "艾抱着闭合纸袋站在干燥楼道里，旧相机垂在身侧，门外仍是雨夜。",
+      "promptSummary": "Reference-conditioned same adult woman, face, short dark hair with muted purple, dark coat and turtleneck, closed kraft envelope and capped old camera. Wide16:9, inside dry modest concrete stairwell landing, character on right with left negative space; ordinary warm wall lamp, charcoal silver lavender shadows. Open door reveals same nighttime rainy city. No indoor rain, no daylight, phone, arriving person, text or promise of healing. Only shown after accepted explicit narration proves entry."
     }
   ],
   "detailPromptSet": "DETAILS.md"

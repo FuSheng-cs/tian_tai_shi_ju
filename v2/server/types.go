@@ -162,8 +162,17 @@ func validateRecord(record Record, id string) error {
 		return fmt.Errorf("invalid turn state")
 	}
 	if s.Status == "ended" {
-		if s.Ending == nil || s.Turn != maxTurns || s.Revision < maxTurns+1 || s.Revision > maxTurns+1+len(s.Observations) || s.Phase != "dawn" {
+		if s.Ending == nil || s.Revision < s.Turn+1 || s.Revision > s.Turn+1+len(s.Observations) {
 			return fmt.Errorf("invalid ending state")
+		}
+		switch s.Ending.ID {
+		case "leave": // Explicit early close adds one revision, never a spoken turn.
+		case "handoff", "separate", "correspondence":
+			if s.Turn != maxTurns {
+				return fmt.Errorf("full ending requires ten turns")
+			}
+		default:
+			return fmt.Errorf("invalid ending choice")
 		}
 	} else if s.Ending != nil || s.Revision > s.Turn+len(s.Observations) || (s.Status != "active" && s.Status != "choosing") || (s.Status == "choosing") != (s.Turn == maxTurns) {
 		return fmt.Errorf("invalid active state")

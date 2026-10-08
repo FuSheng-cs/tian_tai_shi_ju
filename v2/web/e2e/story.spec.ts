@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Page } from '@playwright/test'
 import type { Session } from '../src/domain'
+import { rehearsalLines } from '../src/domain'
 import { capture, currentSession, expectNoHorizontalOverflow, expectWithinViewport, reviewDirectory } from './helpers'
 
 const lines = [
@@ -54,7 +55,7 @@ async function say(page: Page, text: string) {
   if (session.turn < 10) {
     await expect(page.locator('.turn-label')).toHaveText(`${String(session.turn).padStart(2, '0')}/10`)
     await expect(page.locator('#your-words')).toHaveValue('')
-  } else await expect(page.getByRole('heading', { name: '这段路，想怎么走完？' })).toBeVisible()
+  } else await expect(page.getByRole('heading', { name: '这一夜，停在哪里？' })).toBeVisible()
   return session
 }
 
@@ -127,10 +128,10 @@ test('desktop: a full authored night, observations, memories, resume, ending and
   expect(session.ending).toBeNull()
   await expect(page.locator('#your-words')).toHaveCount(0)
   await capture(page, 'desktop-choices', testInfo)
-  await page.locator('.echo-picker summary').click()
+  await page.locator('.ending-choices .echo-picker summary').click()
   await page.getByRole('radio', { name: lines[2]!, exact: true }).check()
   const ended = page.waitForResponse((response) => response.url().endsWith('/ending'))
-  await page.getByRole('button', { name: /陪她走到门里的灯下/ }).click()
+  await page.getByRole('button', { name: /问她，愿不愿意等一个认识的人/ }).click()
   session = await (await ended).json() as Session
   expect(session.status).toBe('ended')
   expect(session.revision).toBe(14)
@@ -181,6 +182,108 @@ test('real validation error preserves the sentence and consumes no turn', async 
   expect(next.turn).toBe(1)
   expect(next.messages.filter((message) => message.role === 'player')).toHaveLength(1)
   await expect(page.getByRole('alert')).toHaveCount(0)
+})
+
+test('an early close preserves only committed words, can be cancelled, and recovers a lost close response', async ({ page }, testInfo) => {
+  await startRehearsal(page)
+  await say(page, '门先留着。')
+  await say(page, '今晚就到这里吧。')
+  const before = await currentSession(page)
+  const draft = '这句还没说，不要写进故事。'
+  await page.locator('#your-words').fill(draft)
+  const openClose = page.getByRole('button', { name: '收好这一夜', exact: true })
+  await openClose.click()
+  const dialog = page.getByRole('dialog', { name: '收好这一夜' })
+  await expect(dialog).toContainText('未发送的草稿不算对话')
+  await dialog.getByRole('button', { name: '回到这场对话', exact: true }).click()
+  await expect(openClose).toBeFocused()
+  await expect(page.locator('#your-words')).toHaveValue(draft)
+  expect((await currentSession(page)).status).toBe('active')
+  await openClose.click()
+  await dialog.locator('.echo-picker summary').click()
+  await dialog.getByRole('radio', { name: '门先留着。', exact: true }).check()
+  let originalRequest: unknown
+  await page.route('**/api/v2/sessions/*/ending', async (route) => {
+    originalRequest = route.request().postDataJSON()
+    const response = await route.fetch()
+    expect(response.ok()).toBeTruthy()
+    await route.abort('failed')
+  }, { times: 1 })
+  await dialog.getByRole('button', { name: '就在这里收好', exact: true }).click()
+  await expect(dialog.getByRole('alert')).toContainText('暂时连接不到雨夜')
+  await dialog.getByRole('button', { name: '回到这场对话', exact: true }).click()
+  await expect(page.getByRole('button', { name: '说出这句话', exact: true })).toBeDisabled()
+  await page.getByRole('button', { name: '继续收好这一夜', exact: true }).click()
+  const recovered = page.waitForResponse((response) => response.url().endsWith('/ending'))
+  await dialog.getByRole('button', { name: '重试收好这一夜', exact: true }).click()
+  const response = await recovered
+  expect(response.request().postDataJSON()).toEqual(originalRequest)
+  const ended = await response.json() as Session
+  expect(ended.turn).toBe(2)
+  expect(ended.revision).toBe(before.revision + 1)
+  expect(ended.messages).toEqual(before.messages)
+  expect(ended.observations).toEqual(before.observations)
+  expect(ended.phase).toBe(before.phase)
+  expect(ended.ending?.id).toBe('leave')
+  expect(ended.ending?.echo).toBe('门先留着。')
+  await expect(page.locator('.ending-frame-number')).toContainText('2 次回应')
+  await expect(page.locator('.rooftop-art')).toHaveAttribute('src', '/art/rooftop.webp')
+  await capture(page, 'desktop-early-ending', testInfo)
+  const downloaded = page.waitForEvent('download')
+  await page.getByRole('button', { name: '保存这一夜', exact: true }).click()
+  const download = await downloaded
+  const path = `${reviewDirectory}/early-night.txt`
+  await download.saveAs(path)
+  const memento = await readFile(path, 'utf8')
+  expect(memento).toContain('本次回应：2 次，最多十次。')
+  expect(memento).not.toContain(draft)
+  await page.reload()
+  await page.getByRole('button', { name: '接着上次的雨夜' }).click()
+  await expect(page.locator('.ending-frame-number')).toContainText('2 次回应')
+  await expect(page.locator('#your-words')).toHaveCount(0)
+  await page.setViewportSize({ width: 375, height: 812 })
+  await expectNoHorizontalOverflow(page)
+  await capture(page, 'mobile-early-ending', testInfo)
+})
+
+test('accepted character identity and doorway entry survive restore without rewriting earlier speakers', async ({ page }, testInfo) => {
+  await startRehearsal(page)
+  await expect(page.locator('.speaker-label')).toHaveText('天台上的人')
+  for (const options of rehearsalLines.slice(0, 5)) await say(page, options[0])
+  const introduced = await currentSession(page)
+  expect(introduced.identity).toEqual({ name: '艾', sourceMessageId: '5-character' })
+  await expect(page.locator('.speaker-label')).toHaveText('艾')
+  await expect(page.locator('.rooftop-art')).not.toHaveAttribute('src', '/art/threshold.webp')
+  for (const options of rehearsalLines.slice(5, 7)) await say(page, options[0])
+  const inside = await currentSession(page)
+  expect(inside.scene?.location).toBe('threshold')
+  await expect(page.locator('.rooftop-art')).toHaveAttribute('src', '/art/threshold.webp')
+  await expect(page.locator('.rain-veil')).toHaveCSS('display', 'none')
+  await capture(page, 'desktop-threshold', testInfo)
+  await page.reload()
+  await page.getByRole('button', { name: '接着上次的雨夜' }).click()
+  await expect(page.locator('.speaker-label')).toHaveText('艾')
+  await expect(page.locator('.rooftop-art')).toHaveAttribute('src', '/art/threshold.webp')
+  await page.getByRole('button', { name: /这一夜的留存/ }).click()
+  const journal = page.getByRole('dialog', { name: '这一夜的留存' })
+  await expect(journal.locator('.memory-turn').filter({ hasText: '艾说' }).first()).toBeVisible()
+  await journal.getByRole('tab', { name: '完整对话' }).click()
+  const speakers = journal.locator('.transcript-entry.character > span')
+  await expect(speakers.nth(0)).toHaveText('天台上的人')
+  await expect(speakers.nth(4)).toHaveText('天台上的人')
+  await expect(speakers.nth(5)).toHaveText('艾')
+  const downloaded = page.waitForEvent('download')
+  await journal.getByRole('button', { name: '把这一夜存成文字' }).click()
+  const download = await downloaded
+  const path = `${reviewDirectory}/named-night.txt`
+  await download.saveAs(path)
+  const memento = await readFile(path, 'utf8')
+  expect(memento).toContain('天台上的人：门别关。')
+  expect(memento).toContain('艾：')
+  await journal.getByRole('button', { name: '关闭', exact: true }).click()
+  await page.setViewportSize({ width: 375, height: 812 })
+  await expectNoHorizontalOverflow(page)
+  await capture(page, 'mobile-threshold', testInfo)
 })
 
 test('free observations survive refresh and deliberate silence spends exactly one response without discarding a draft', async ({ page }, testInfo) => {

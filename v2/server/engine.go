@@ -112,6 +112,9 @@ func (g *Game) Turn(ctx context.Context, id string, command TurnCommand) (Sessio
 	if command.ExpectedRevision != session.Revision {
 		return Session{}, failure(409, "revision_conflict", "这一夜已有新的记录，请重新载入后继续。", true)
 	}
+	if session.Status == "ended" {
+		return Session{}, failure(409, "night_complete", "这一夜已经收好，可以回看记录。", false)
+	}
 	if session.Status != "active" || session.Turn >= maxTurns {
 		return Session{}, failure(409, "night_complete", "十句话已经说完，请为这一夜留一个去处。", false)
 	}
@@ -211,7 +214,7 @@ func (g *Game) End(ctx context.Context, id string, command EndingCommand) (Sessi
 	if err := validateRequestID(command.RequestID, command.ExpectedRevision); err != nil {
 		return Session{}, err
 	}
-	if command.Choice != "handoff" && command.Choice != "separate" && command.Choice != "correspondence" {
+	if command.Choice != "leave" && command.Choice != "handoff" && command.Choice != "separate" && command.Choice != "correspondence" {
 		return Session{}, failure(400, "invalid_choice", "请选择这一夜结束后的去处。", false)
 	}
 	unlock, err := g.store.acquire(id)
@@ -231,8 +234,11 @@ func (g *Game) End(ctx context.Context, id string, command EndingCommand) (Sessi
 	if session.Revision != command.ExpectedRevision {
 		return Session{}, failure(409, "revision_conflict", "这一夜已有新的记录，请重新载入后继续。", true)
 	}
-	if session.Status != "choosing" || session.Turn != maxTurns {
-		return Session{}, failure(409, "ending_not_ready", "这一夜还有话没有说完。", false)
+	if session.Status == "ended" {
+		return Session{}, failure(409, "ending_not_ready", "这一夜已经收好，可以回看记录。", false)
+	}
+	if command.Choice != "leave" && (session.Status != "choosing" || session.Turn != maxTurns) {
+		return Session{}, failure(409, "ending_not_ready", "这类章末提议在第十次回应后可用；也可以现在收好这一夜。", false)
 	}
 	echo, err := selectedEcho(session, command.EchoMessageID)
 	if err != nil {
@@ -241,7 +247,9 @@ func (g *Game) End(ctx context.Context, id string, command EndingCommand) (Sessi
 	if err := ctx.Err(); err != nil {
 		return Session{}, err
 	}
-	if session.Mode == "live" {
+	if command.Choice == "leave" {
+		session.Ending = makeLeaveEnding(session)
+	} else if session.Mode == "live" {
 		finalizer, ok := g.live.(Finalizer)
 		if !ok {
 			return Session{}, failure(503, "ai_unavailable", "对话连接暂时中断。你的提议尚未提交，请稍后重试。", true)

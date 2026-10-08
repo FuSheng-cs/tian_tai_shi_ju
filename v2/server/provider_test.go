@@ -85,11 +85,17 @@ func TestProviderUsesOnlyServerCredentialsAndBoundedContext(t *testing.T) {
 			Model     string `json:"model"`
 			MaxTokens int    `json:"max_tokens"`
 			Messages  []struct {
-				Role string `json:"role"`
+				Role    string `json:"role"`
+				Content string `json:"content"`
 			} `json:"messages"`
 		}
 		if err := json.Unmarshal(data, &body); err != nil || body.Model != "configured-model" || body.MaxTokens != 700 || len(body.Messages) != 2 || body.Messages[0].Role != "system" || body.Messages[1].Role != "user" {
 			t.Error("model payload violated role/budget contract")
+		}
+		for _, guidance := range []string{"我叫艾。", "她走进门内，", "她走回天台，", "不要求按回合介绍姓名或移动", "不替代同意", "输出仍只有 reply、narration、memory"} {
+			if !strings.Contains(body.Messages[0].Content, guidance) {
+				t.Errorf("production envelope omitted optional-event guidance: %s", guidance)
+			}
 		}
 		return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"choices":[{"message":{"content":"{\"reply\":\"嗯，门留着。\",\"narration\":\"她看了看门。\",\"memory\":null}"},"finish_reason":"stop"}]}`))}, nil
 	})

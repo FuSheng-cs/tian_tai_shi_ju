@@ -1,7 +1,91 @@
 import { describe, expect, it } from 'vitest'
-import { countCharacters, makeMemento, memorySource, playerLines, type Session } from './domain'
+import {
+  characterLabel,
+  countCharacters,
+  makeMemento,
+  memorySource,
+  playerLines,
+  storyArtwork,
+  type Session,
+} from './domain'
 
 describe('personal memento', () => {
+  it('reveals a name only from the server projection and keeps earlier transcript labels anonymous', () => {
+    const session: Session = {
+      id: 'night',
+      revision: 2,
+      mode: 'live',
+      turn: 2,
+      status: 'active',
+      phase: 'arrival',
+      identity: { name: '艾', sourceMessageId: '2-character' },
+      messages: [
+        { id: '1-player', role: 'player', text: '你叫艾吗？' },
+        { id: '1-character', role: 'character', text: '我还没说。' },
+        { id: '2-player', role: 'player', text: '我叫阿迟。' },
+        { id: '2-character', role: 'character', text: '我叫艾，艾草的艾。' },
+      ],
+      observations: [],
+      memories: [{ id: 'm', title: '名字', sourceTurn: 2, text: '我叫艾，艾草的艾。' }],
+      ending: null,
+      createdAt: '',
+      updatedAt: '',
+    }
+    expect(characterLabel(session)).toBe('艾')
+    expect(characterLabel(session, '1-character')).toBe('天台上的人')
+    expect(characterLabel(session, '2-character')).toBe('艾')
+    expect(characterLabel({ ...session, identity: undefined })).toBe('天台上的人')
+    expect(memorySource(session, session.memories[0]!)).toBe('艾说')
+    const file = makeMemento(session)
+    expect(file).toContain('天台上的人：我还没说。')
+    expect(file).toContain('艾：我叫艾，艾草的艾。')
+    expect(file).not.toContain('艾：我还没说。')
+  })
+
+  it('uses confirmed space independently from turn pacing and respects an explicit return outside', () => {
+    const session: Session = {
+      id: 'night',
+      revision: 8,
+      mode: 'live',
+      turn: 8,
+      status: 'active',
+      phase: 'threshold',
+      messages: [],
+      observations: [],
+      memories: [],
+      ending: null,
+      createdAt: '',
+      updatedAt: '',
+    }
+    for (const turn of [3, 6, 9]) {
+      expect(storyArtwork({ ...session, turn })).toBe('/art/rooftop.webp')
+    }
+    expect(storyArtwork({ ...session, mode: 'rehearsal' })).toBe('/art/listening.webp')
+    expect(
+      storyArtwork({ ...session, scene: { location: 'threshold', sourceMessageId: '8-narrator' } }),
+    ).toBe('/art/threshold.webp')
+    expect(
+      storyArtwork({ ...session, scene: { location: 'rooftop', sourceMessageId: '9-narrator' } }),
+    ).toBe('/art/rooftop.webp')
+    expect(storyArtwork({ ...session, status: 'ended' })).not.toBe('/art/dawn.webp')
+    expect(
+      storyArtwork({
+        ...session,
+        turn: 1,
+        scene: { location: 'threshold', sourceMessageId: '1-narrator' },
+      }),
+    ).toBe('/art/threshold.webp')
+    const stopped: Session = {
+      ...session,
+      mode: 'rehearsal',
+      turn: 2,
+      phase: 'arrival',
+      status: 'ended',
+      ending: { id: 'leave', title: '这一夜，先到这里', subtitle: '', paragraphs: [], echo: '' },
+    }
+    expect(storyArtwork(stopped)).toBe('/art/rooftop.webp')
+    expect(makeMemento(stopped)).toContain('本次回应：2 次，最多十次。')
+  })
   it('exports the verbatim player echo and transcript as text, including HTML-like input safely', () => {
     const text = '我说的是 <script>这不是旁白</script>。'
     const session: Session = {

@@ -1,5 +1,5 @@
 export type Observation = 'camera' | 'receipt' | 'door' | 'rain'
-export type EndingChoice = 'handoff' | 'separate' | 'correspondence'
+export type EndingChoice = 'handoff' | 'separate' | 'correspondence' | 'leave'
 export type PlayMode = 'live' | 'rehearsal'
 
 export interface Message {
@@ -35,6 +35,8 @@ export interface Session {
   observations: string[]
   memories: Memory[]
   ending: Ending | null
+  identity?: { name: '艾'; sourceMessageId: string }
+  scene?: { location: 'threshold' | 'rooftop'; sourceMessageId: string }
   createdAt: string
   updatedAt: string
 }
@@ -102,13 +104,36 @@ export function playerLines(session: Session): Message[] {
   )
 }
 
+export function characterLabel(session: Session, messageId?: string): string {
+  const identity = session.identity
+  if (!identity) return '天台上的人'
+  const introducedAt = session.messages.findIndex(
+    (message) => message.id === identity.sourceMessageId && message.role === 'character',
+  )
+  const currentAt = messageId
+    ? session.messages.findIndex((message) => message.id === messageId)
+    : session.messages.length - 1
+  return introducedAt >= 0 && currentAt >= introducedAt ? identity.name : '天台上的人'
+}
+
+export function storyArtwork(session: Session): string {
+  if (session.scene?.location === 'threshold') return '/art/threshold.webp'
+  if (session.scene?.location === 'rooftop') return '/art/rooftop.webp'
+  if (session.mode === 'live') return '/art/rooftop.webp'
+  if (session.status === 'ended' && session.ending?.id !== 'leave') return '/art/dawn.webp'
+  return session.phase === 'arrival' ? '/art/rooftop.webp' : '/art/listening.webp'
+}
+
 export function memorySource(session: Session, memory: Memory): string {
   let turn = 0
   for (const message of session.messages) {
     if (message.role === 'player') turn++
     if (turn === memory.sourceTurn && message.text.includes(memory.text)) {
       if (message.role === 'player') return message.intent === 'silence' ? '你留下的停顿' : '你说'
-      if (message.role === 'character') return '她说'
+      if (message.role === 'character') {
+        const speaker = characterLabel(session, message.id)
+        return speaker === '天台上的人' ? '她说' : `${speaker}说`
+      }
     }
   }
   return '对话片段'
@@ -136,6 +161,7 @@ export function makeMemento(session: Session): string {
     '',
     ending?.title ?? '雨夜留存',
     ending?.subtitle ?? '',
+    `本次回应：${session.turn} 次，最多十次。`,
     '',
     ...(ending?.paragraphs ?? []),
     '',
@@ -153,7 +179,7 @@ export function makeMemento(session: Session): string {
     ]),
     '—— 当晚的完整对话 ——',
     ...session.messages.flatMap((message) => [
-      `${message.role === 'player' ? (message.intent === 'silence' ? '我的停顿' : '我') : message.role === 'character' ? '她' : '雨夜'}：${message.text}`,
+      `${message.role === 'player' ? (message.intent === 'silence' ? '我的停顿' : '我') : message.role === 'character' ? characterLabel(session, message.id) : '雨夜'}：${message.text}`,
       '',
     ]),
     `模式：${session.mode === 'live' ? 'AI 即时对话' : '剧本排演（固定剧本，不解读自由输入）'}`,

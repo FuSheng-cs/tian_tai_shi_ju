@@ -9,6 +9,7 @@
 | `/art/rooftop.webp` | 开场、标题和对话前段的广角场景 | 271 KiB |
 | `/art/listening.webp` | 对话建立后，聆听的半身近景 | 299 KiB |
 | `/art/dawn.webp` | 固定排演的雨后收束；即时模式不自动宣布天亮 | 380 KiB |
+| `/art/threshold.webp` | 旁白明确进入门内后才显示的避雨镜头 | 257 KiB |
 | `/art/details/camera.webp` | 旧相机观察 | 254 KiB |
 | `/art/details/receipt.webp` | 湿小票观察 | 331 KiB |
 | `/art/details/door.webp` | 门灯与门槛观察 | 376 KiB |
