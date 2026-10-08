@@ -22,6 +22,7 @@
 - [image2 资源与候选清单](art_review_2026-07-31/unified_image2_manifest.md)
 - [美术资源维护](engineering/art_asset_maintenance.md)
 - [2026-10-08 master 美术清理迁移](art_review_2026-10-01/MASTER_MIGRATION.md)
+- [2026-10-08 master 美术清理上线](engineering/master_art_cleanup_deployment_2026-10-08.md)
 
 ## 历史审查
 
