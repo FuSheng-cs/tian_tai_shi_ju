@@ -31,7 +31,7 @@ Nginx 示例是独立主机配置模板，不是自动安装脚本。证书路�
 
 ## 存储和回滚
 
-Windows 开发机可用 `powershell -File v2/scripts/package-release.ps1` 生成隔离的 Linux 发布候选，默认 amd64，也可指定 `-Architecture arm64`。输出包含二进制、独立前端、Git 版本信息及 SHA-256 清单，位于忽略目录 `v2/.run/releases/`。脚本不连接远端，不带入环境文件、对话数据或密钥；生成发布包不代表完成部署。
+Windows 开发机可用 `powershell -File v2/scripts/package-release.ps1` 生成隔离的 Linux 发布候选，需要 Node、Go、Python 3，默认 amd64，也可指定 `-Architecture arm64`。输出包含二进制、独立前端、Git 版本信息及 SHA-256 清单，位于忽略目录 `v2/.run/releases/`。归档明确设置 Linux 目录和程序为 0755、静态文件为 0644，避免 Windows 文件权限导致程序不可执行。脚本不连接远端，不带入环境文件、对话数据或密钥；生成发布包不代表完成部署。
 
 2026-10-08 的免费观察与沉默动作继续可读旧记录，但旧版服务不能读取包含新动作的记录。切换前备份 v2 自己的数据目录，回滚时匹配二进制与对应数据快照，不让旧进程直接读取新记录。
 

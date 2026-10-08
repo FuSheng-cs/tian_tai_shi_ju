@@ -60,11 +60,9 @@ try {
   }
   [IO.File]::WriteAllText((Join-Path $releaseRoot 'SHA256SUMS'), (($hashLines -join "`n") + "`n"), $utf8)
   $archive = "$releaseRoot.tar.gz"
-  # Git's GNU tar treats a Windows drive colon as a remote host. Use the
-  # native Windows tar explicitly so absolute paths remain local paths.
-  $tarPath = Join-Path $env:WINDIR 'System32/tar.exe'
-  if (-not (Test-Path -LiteralPath $tarPath)) { throw 'Native Windows tar is required.' }
-  & $tarPath -czf $archive -C $releaseRoot .
+  # Windows filesystem modes would lose the Linux executable bit. The helper
+  # also avoids GNU tar interpreting a drive colon as a remote hostname.
+  python (Join-Path $PSScriptRoot 'archive-release.py') $releaseRoot $archive
   if ($LASTEXITCODE -ne 0) { throw 'V2 candidate archive failed.' }
   [pscustomobject]@{
     Candidate = $archive
