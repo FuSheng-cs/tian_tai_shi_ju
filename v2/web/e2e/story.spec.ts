@@ -1,0 +1,329 @@
+import { readFile } from 'node:fs/promises'
+import { expect, test, type Page } from '@playwright/test'
+import type { Session } from '../src/domain'
+import { capture, currentSession, expectNoHorizontalOverflow, expectWithinViewport, reviewDirectory } from './helpers'
+
+const lines = [
+  '相机的肩带是你自己缝好的吗？看得出你很珍惜它。',
+  '不用急着回答，我可以陪你听一会儿雨。',
+  '门边的小票湿透了。不知道这座城里，还有多少人没睡。',
+  '我也有拍糊了却一直舍不得删的照片。',
+  '有些记忆不够清楚，也可以先好好留下来。',
+  '你可以只告诉我今天愿意说的那一小部分。',
+  '身后的楼道灯还亮着，我们可以去不淋雨的地方。',
+  '如果还有一个你信任的人，今晚也可以给他发条消息。',
+  '我不能替你决定明天，但此刻可以认真听你说话。',
+  '雨似乎小了一点。走下楼之后，先为自己找一杯热水吧。',
+]
+
+async function startRehearsal(page: Page, skipIntro = true) {
+  await page.goto('/')
+  await page.getByRole('button', { name: '走上天台', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: '走进这一夜' })
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByText(/不需要承担拯救另一个人的责任/)).toBeVisible()
+  const created = page.waitForResponse((response) => response.url().endsWith('/api/v2/sessions') && response.request().method() === 'POST')
+  await dialog.getByRole('button', { name: /体验剧本排演|先读作者的剧本排演/ }).click()
+  const result = await created
+  expect(result.ok()).toBeTruthy()
+  const session = await result.json() as Session
+  expect(session.mode).toBe('rehearsal')
+  if (skipIntro) await page.getByRole('button', { name: '跳过序章' }).click()
+  else {
+    await expect(page.getByRole('heading', { name: '消防门没有关严。' })).toBeVisible()
+    await page.getByRole('button', { name: '再往前一点' }).click()
+    await expect(page.getByRole('heading', { name: '有人护着一个牛皮纸袋。' })).toBeVisible()
+    await page.getByRole('button', { name: '再往前一点' }).click()
+    await expect(page.getByRole('heading', { name: '不必找到一句完美的话。' })).toBeVisible()
+    await page.getByRole('button', { name: '在这里停一会儿' }).click()
+  }
+  await expect(page.locator('#your-words')).toBeVisible()
+  await expect(page.getByText('剧本排演 · 回应来自固定剧本；你的文字会被留存，但不会被 AI 解读。')).toBeVisible()
+  return session
+}
+
+async function say(page: Page, text: string) {
+  await page.locator('#your-words').fill(text)
+  const replied = page.waitForResponse((response) => response.url().endsWith('/turns') && response.request().method() === 'POST')
+  await page.getByRole('button', { name: '说出这句话', exact: true }).click()
+  const response = await replied
+  expect(response.ok()).toBeTruthy()
+  const session = await response.json() as Session
+  const reply = [...session.messages].reverse().find((message) => message.role === 'character')
+  await expect(page.locator('.character-line')).toHaveText(reply!.text)
+  if (session.turn < 10) {
+    await expect(page.locator('.turn-label')).toHaveText(`${String(session.turn).padStart(2, '0')}/10`)
+    await expect(page.locator('#your-words')).toHaveValue('')
+  } else await expect(page.getByRole('heading', { name: '这段路，想怎么走完？' })).toBeVisible()
+  return session
+}
+
+test('desktop: a full authored night, observations, memories, resume, ending and keepsake', async ({ page }, testInfo) => {
+  const crashes: string[] = []
+  const outsideRequests: string[] = []
+  const allowedOrigin = new URL(testInfo.project.use.baseURL!).origin
+  page.on('pageerror', (error) => crashes.push(error.message))
+  page.on('request', (request) => {
+    const url = new URL(request.url())
+    if (['http:', 'https:'].includes(url.protocol) && url.origin !== allowedOrigin) outsideRequests.push(url.origin)
+  })
+  await page.goto('/')
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('天台')
+  await expectNoHorizontalOverflow(page)
+  await capture(page, 'desktop-cover', testInfo)
+  const opening = await startRehearsal(page, false)
+  await capture(page, 'desktop-opening', testInfo)
+  await page.getByText('看看剧本里的回应', { exact: true }).click()
+  const authoredSuggestion = page.locator('.rehearsal-assist button').first()
+  const suggestedText = (await authoredSuggestion.innerText()).trim()
+  await authoredSuggestion.click()
+  await expect(page.locator('#your-words')).toHaveValue(suggestedText)
+  expect((await currentSession(page)).turn).toBe(0)
+  await page.getByText('看看剧本里的回应', { exact: true }).click()
+
+  await page.getByRole('button', { name: /旧相机/ }).click()
+  await expect(page.getByRole('region', { name: '观察旧相机' })).toBeVisible()
+  expect((await currentSession(page)).turn).toBe(0)
+  await page.getByRole('button', { name: '把这个细节带进下一句话' }).click()
+  await expect(page.locator('#your-words')).toBeFocused()
+  let session = await say(page, lines[0]!)
+  expect(session.observations).toContain('camera')
+  await page.getByRole('button', { name: /雨声/ }).click()
+  await page.getByRole('button', { name: '把这个细节带进下一句话' }).click()
+  session = await say(page, lines[1]!)
+  await page.getByRole('button', { name: /湿掉的小票/ }).click()
+  await page.getByRole('button', { name: '把这个细节带进下一句话' }).click()
+  session = await say(page, lines[2]!)
+  expect(session.memories.length).toBeGreaterThan(0)
+
+  await page.getByRole('button', { name: /这一夜的留存/ }).click()
+  const journal = page.getByRole('dialog', { name: '这一夜的留存' })
+  await expect(journal.getByRole('heading', { name: session.memories[0]!.title })).toBeVisible()
+  await expect(journal.getByText('你留意过：旧相机、雨声、湿掉的小票')).toBeVisible()
+  await capture(page, 'desktop-memory', testInfo)
+  await journal.getByRole('tab', { name: /^底片/ }).focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(journal.getByRole('tab', { name: '完整对话' })).toBeFocused()
+  await expect(journal.getByRole('tab', { name: '完整对话' })).toHaveAttribute('aria-selected', 'true')
+  for (const line of lines.slice(0, 3)) await expect(journal.getByText(line, { exact: true })).toBeVisible()
+  await expect(journal.locator('.transcript-entry.player')).toHaveCount(3)
+  await journal.getByRole('button', { name: '关闭', exact: true }).click()
+
+  await page.reload()
+  await page.getByRole('button', { name: '接着上次的雨夜' }).click()
+  await expect(page.locator('#your-words')).toBeVisible()
+  session = await currentSession(page)
+  expect(session.id).toBe(opening.id)
+  expect(session.turn).toBe(3)
+  expect(session.messages.filter((message) => message.role === 'player').map((message) => message.text)).toEqual(lines.slice(0, 3))
+  await capture(page, 'desktop-conversation', testInfo)
+
+  for (const line of lines.slice(3)) session = await say(page, line)
+  expect(session.status).toBe('choosing')
+  expect(session.turn).toBe(10)
+  expect(session.ending).toBeNull()
+  await expect(page.locator('#your-words')).toHaveCount(0)
+  await capture(page, 'desktop-choices', testInfo)
+  const ended = page.waitForResponse((response) => response.url().endsWith('/ending'))
+  await page.getByRole('button', { name: /陪她走到门里的灯下/ }).click()
+  session = await (await ended).json() as Session
+  expect(session.status).toBe('ended')
+  expect(session.revision).toBe(11)
+  await expect(page.getByRole('heading', { name: session.ending!.title, exact: true })).toBeVisible()
+  await capture(page, 'desktop-ending', testInfo)
+
+  const downloaded = page.waitForEvent('download')
+  await page.getByRole('button', { name: '保存这一夜', exact: true }).click()
+  const download = await downloaded
+  expect(download.suggestedFilename()).toMatch(/^天台十句-.+\.txt$/)
+  const keepsakePath = `${reviewDirectory}/authored-night.txt`
+  await download.saveAs(keepsakePath)
+  const keepsake = await readFile(keepsakePath, 'utf8')
+  for (const line of lines) expect(keepsake).toContain(line)
+  expect(keepsake).toContain(session.ending!.title)
+  expect(keepsake).toContain(session.memories[0]!.text)
+  expect(keepsake).toContain('剧本排演（固定剧本，不解读自由输入）')
+  await page.reload()
+  await page.getByRole('button', { name: '接着上次的雨夜' }).click()
+  await expect(page.getByRole('heading', { name: session.ending!.title, exact: true })).toBeVisible()
+  expect((await currentSession(page)).id).toBe(opening.id)
+  expect(crashes).toEqual([])
+  expect(outsideRequests).toEqual([])
+})
+
+test('real validation error preserves the sentence and consumes no turn', async ({ page }, testInfo) => {
+  await startRehearsal(page)
+  const original = '你不必马上说话，我可以在这里等一会儿。'
+  // Alter only this outgoing body; the real API must reject it. No response is mocked.
+  await page.route('**/api/v2/sessions/*/turns', async (route) => {
+    const body = route.request().postDataJSON() as Record<string, unknown>
+    await route.continue({ postData: JSON.stringify({ ...body, text: '雨'.repeat(121) }) })
+  }, { times: 1 })
+  await page.locator('#your-words').fill(original)
+  const rejected = page.waitForResponse((response) => response.url().endsWith('/turns'))
+  await page.getByRole('button', { name: '说出这句话', exact: true }).click()
+  expect((await rejected).status()).toBe(400)
+  await expect(page.getByRole('alert')).toContainText('1 至 120')
+  await expect(page.locator('#your-words')).toHaveValue(original)
+  const unchanged = await currentSession(page)
+  expect(unchanged.turn).toBe(0)
+  expect(unchanged.messages.filter((message) => message.role === 'player')).toHaveLength(0)
+  await capture(page, 'desktop-validation-error', testInfo)
+  const next = await say(page, original)
+  expect(next.turn).toBe(1)
+  expect(next.messages.filter((message) => message.role === 'player')).toHaveLength(1)
+  await expect(page.getByRole('alert')).toHaveCount(0)
+})
+
+test('lost response after commit retries exactly once without spending another sentence', async ({ page }, testInfo) => {
+  await startRehearsal(page)
+  const original = '你身边的相机，让我想起很久以前的一个朋友。'
+  let committed: Session | undefined
+  let originalRequest: unknown
+  await page.route('**/api/v2/sessions/*/turns', async (route) => {
+    originalRequest = route.request().postDataJSON()
+    const response = await route.fetch()
+    expect(response.ok()).toBeTruthy()
+    committed = await response.json() as Session
+    await route.abort('failed')
+  }, { times: 1 })
+  await page.locator('#your-words').fill(original)
+  await page.getByRole('button', { name: '说出这句话', exact: true }).click()
+  await expect(page.getByRole('alert')).toContainText('暂时连接不到雨夜')
+  await expect(page.locator('#your-words')).toHaveValue(original)
+  await expect(page.locator('#your-words')).toHaveAttribute('readonly', '')
+  await expect(page.locator('.turn-label')).toHaveText('00/10')
+  expect(committed?.turn).toBe(1)
+  expect((await currentSession(page)).turn).toBe(1)
+  await capture(page, 'desktop-connection-retry', testInfo)
+  const replay = page.waitForResponse((response) => response.url().endsWith('/turns'))
+  await page.getByRole('button', { name: '重试这句话', exact: true }).click()
+  const response = await replay
+  expect(response.request().postDataJSON()).toEqual(originalRequest)
+  expect(await response.json()).toEqual(committed)
+  await expect(page.locator('.turn-label')).toHaveText('01/10')
+  await expect(page.locator('#your-words')).toHaveValue('')
+  const recovered = await currentSession(page)
+  expect(recovered.turn).toBe(1)
+  expect(recovered.messages.filter((message) => message.role === 'player')).toHaveLength(1)
+})
+
+test('a stale second tab syncs the newer conversation before a deliberate resend', async ({ page, context }) => {
+  const opening = await startRehearsal(page)
+  const otherPage = await context.newPage()
+  await otherPage.goto('/')
+  await otherPage.getByRole('button', { name: '接着上次的雨夜' }).click()
+  await expect(otherPage.locator('.turn-label')).toHaveText('00/10')
+  await say(page, lines[0]!)
+  await otherPage.locator('#your-words').fill(lines[1]!)
+  const conflict = otherPage.waitForResponse((response) => response.url().endsWith('/turns'))
+  await otherPage.getByRole('button', { name: '说出这句话', exact: true }).click()
+  expect((await conflict).status()).toBe(409)
+  await expect(otherPage.getByRole('alert')).toContainText('已同步到最新一刻')
+  await expect(otherPage.locator('.turn-label')).toHaveText('01/10')
+  await expect(otherPage.locator('#your-words')).toHaveValue(lines[1]!)
+  const synced = await currentSession(otherPage)
+  expect(synced.id).toBe(opening.id)
+  expect(synced.turn).toBe(1)
+  const continued = await say(otherPage, lines[1]!)
+  expect(continued.turn).toBe(2)
+  expect(continued.messages.filter((message) => message.role === 'player').map((message) => message.text)).toEqual(lines.slice(0, 2))
+})
+
+test('settings keyboard focus, reduced motion and saved reading preferences', async ({ page }, testInfo) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/')
+  await expect(page.locator('.app-shell')).toHaveClass(/reduced-motion/)
+  await expect(page.locator('.rooftop-art')).toHaveCSS('animation-name', 'none')
+  await expect(page.locator('.rain-veil')).toHaveCSS('display', 'none')
+  const settings = page.getByRole('button', { name: '阅读与声音设置', exact: true })
+  await settings.focus()
+  await page.keyboard.press('Enter')
+  const dialog = page.getByRole('dialog', { name: '把这一夜调到舒服的位置' })
+  await expect(dialog).toBeVisible()
+  for (let i = 0; i < 16; i++) {
+    await page.keyboard.press('Tab')
+    expect(await page.evaluate(() => Boolean(document.activeElement?.closest('dialog[open]')))).toBe(true)
+  }
+  await dialog.getByRole('button', { name: '大一些', exact: true }).click()
+  await dialog.getByRole('button', { name: '减少动态', exact: true }).click()
+  await expect(dialog.getByRole('button', { name: '大一些', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(dialog.getByRole('button', { name: '减少动态', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.app-shell')).toHaveClass(/large-type/)
+  await capture(page, 'desktop-settings', testInfo)
+  await page.keyboard.press('Escape')
+  await expect(dialog).not.toBeVisible()
+  await expect(settings).toBeFocused()
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.reload()
+  await expect(page.locator('.app-shell')).toHaveClass(/reduced-motion/)
+  await expect(page.locator('.app-shell')).toHaveClass(/large-type/)
+  await expect(page.locator('.rooftop-art')).toHaveCSS('animation-name', 'none')
+})
+
+test('sound requires a gesture; music and rain levels persist without autoplay', async ({ page }) => {
+  const crashes: string[] = []
+  page.on('pageerror', (error) => crashes.push(error.message))
+  await page.goto('/')
+  const toggle = page.locator('.sound-toggle')
+  await expect(toggle).toHaveAttribute('aria-label', '开启声音')
+  await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-label', '关闭声音')
+  await page.getByRole('button', { name: '阅读与声音设置', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: '把这一夜调到舒服的位置' })
+  const music = dialog.getByRole('slider', { name: '音乐音量' })
+  const rain = dialog.getByRole('slider', { name: '雨声音量' })
+  await music.focus()
+  await page.keyboard.press('Home')
+  for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowRight')
+  await rain.focus()
+  await page.keyboard.press('Home')
+  for (let i = 0; i < 7; i++) await page.keyboard.press('ArrowRight')
+  await expect(music).toHaveValue('0.2')
+  await expect(rain).toHaveValue('0.35')
+  await page.keyboard.press('Escape')
+  await page.reload()
+  await expect(toggle).toHaveAttribute('aria-label', '开启声音')
+  await page.getByRole('button', { name: '阅读与声音设置', exact: true }).click()
+  await expect(music).toHaveValue('0.2')
+  await expect(rain).toHaveValue('0.35')
+  expect(crashes).toEqual([])
+})
+
+test('mobile: cover and conversation fit 375 × 812 and compose comfortably', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.goto('/')
+  await expectNoHorizontalOverflow(page)
+  await expectWithinViewport(page, '.home-start')
+  await capture(page, 'mobile-cover', testInfo)
+  await startRehearsal(page)
+  await expectNoHorizontalOverflow(page)
+  await expectWithinViewport(page, '#your-words')
+  await expectWithinViewport(page, '.send-button')
+  await capture(page, 'mobile-opening', testInfo)
+  await page.getByRole('button', { name: /旧相机/ }).click()
+  await expectNoHorizontalOverflow(page)
+  await page.getByRole('button', { name: '把这个细节带进下一句话' }).click()
+  await say(page, lines[0]!)
+  await expectNoHorizontalOverflow(page)
+  await expectWithinViewport(page, '#your-words')
+  await expectWithinViewport(page, '.send-button')
+  await capture(page, 'mobile-conversation', testInfo)
+  await page.getByRole('button', { name: /这一夜的留存/ }).click()
+  await expect(page.getByRole('dialog', { name: '这一夜的留存' })).toBeVisible()
+  await expectNoHorizontalOverflow(page)
+  await capture(page, 'mobile-journal', testInfo)
+  await page.getByRole('dialog', { name: '这一夜的留存' }).getByRole('button', { name: '关闭', exact: true }).click()
+  for (const line of lines.slice(1)) await say(page, line)
+  await expectNoHorizontalOverflow(page)
+  await capture(page, 'mobile-choices', testInfo)
+  await page.getByRole('button', { name: /问她，愿不愿意寄来一张照片/ }).click()
+  await expect(page.locator('.memento h1')).toBeVisible()
+  const ended = await currentSession(page)
+  expect(ended.status).toBe('ended')
+  expect(ended.turn).toBe(10)
+  await expect(page.getByRole('heading', { name: ended.ending!.title, exact: true })).toBeVisible()
+  await expect(page.locator('.skip-link')).not.toBeFocused()
+  await expectNoHorizontalOverflow(page)
+  await capture(page, 'mobile-ending', testInfo)
+})

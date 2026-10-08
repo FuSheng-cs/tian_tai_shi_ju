@@ -1,0 +1,62 @@
+{
+  "title": "没有关严的门",
+  "composition": "Original authored generative score; no sampled songs or music-model service.",
+  "durationSeconds": 84,
+  "sections": [
+    {
+      "phase": "arrival",
+      "start": 0
+    },
+    {
+      "phase": "listening",
+      "start": 21
+    },
+    {
+      "phase": "threshold",
+      "start": 42
+    },
+    {
+      "phase": "dawn",
+      "start": 63
+    }
+  ],
+  "mastering": "EBU R128 -23 LUFS target, -2 dBTP ceiling; runtime retains quieter reading levels.",
+  "files": {
+    "demo.ogg": {
+      "raw": {
+        "samplePeakDbfs": -27.25,
+        "rmsDbfs": -41.67,
+        "clippedSamples": 0,
+        "nonFiniteSamples": 0
+      },
+      "encoded": {
+        "durationSeconds": 84,
+        "codec_name": "vorbis",
+        "sample_rate": "48000",
+        "channels": 2,
+        "integratedLufs": -23.46,
+        "truePeakDbtp": -12.27,
+        "rmsDbfs": -25.59413
+      },
+      "bytes": 1560657
+    },
+    "music-only.ogg": {
+      "raw": {
+        "samplePeakDbfs": -28.32,
+        "rmsDbfs": -41.97,
+        "clippedSamples": 0,
+        "nonFiniteSamples": 0
+      },
+      "encoded": {
+        "durationSeconds": 84,
+        "codec_name": "vorbis",
+        "sample_rate": "48000",
+        "channels": 2,
+        "integratedLufs": -23.27,
+        "truePeakDbtp": -12.33,
+        "rmsDbfs": -25.16194
+      },
+      "bytes": 1275316
+    }
+  }
+}

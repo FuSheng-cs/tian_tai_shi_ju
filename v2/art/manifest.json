@@ -1,0 +1,72 @@
+{
+  "collection": "天台十句 · v2",
+  "origin": "Original images generated for this project through image_gen.imagegen",
+  "requestedModel": "image2.5",
+  "reportedModel": null,
+  "modelNote": "The available image generation interface does not expose a model selector or model identifier. No specific model version is claimed.",
+  "visualDirection": "Cinematic textured pixel illustration; charcoal, silver, mist and muted lavender; adult character sheltering a kraft paper envelope of photographic prints; humane quiet rooftop encounter; strong left negative space.",
+  "postprocessing": "WebP encoding with sharp, quality 90, effort 6; original dimensions and compositions preserved. No non-generative visual edits.",
+  "archivedIterations": [
+    {
+      "id": "rooftop-before-envelope",
+      "source": "archive/rooftop-before-envelope.png",
+      "generationId": "exec-c0da4054-beee-407d-9945-2cf99e67ed14",
+      "sha256": "454386521a411548611eae0754ae338ffad354c1536c78a3f862269ead5027bb",
+      "reason": "Initial frame retained as provenance; final frame adds the story's kraft paper envelope using reference-conditioned image generation."
+    },
+    {
+      "id": "listening-before-envelope",
+      "source": "archive/listening-before-envelope.png",
+      "generationId": "exec-a75df5bf-2011-4de2-ad79-dd63e9622c35",
+      "sha256": "2d2d64d7c4b3eb86f64a1dacbaa840017483d5a383372b24c126bacd9446a9e4",
+      "reason": "Initial close shot referenced the initial rooftop; final frame adds the matching envelope while retaining facial identity, camera and framing."
+    }
+  ],
+  "assets": [
+    {
+      "id": "rooftop",
+      "role": "Opening, cover and early conversation establishing shot",
+      "source": "originals/rooftop.png",
+      "publicPath": "/art/rooftop.webp",
+      "width": 1672,
+      "height": 941,
+      "bytes": 277872,
+      "sourceSha256": "0598b3121028ba76d044641c49d13631d03abbd48f1c1191184d7cfedfee5b19",
+      "webpSha256": "918954ee2f2d557fb3d1e6e04d7b7d91ce12cca2a7f67d897c437c98c2c7e7fb",
+      "generationId": "exec-130fb63f-61a7-440b-9907-82d5afbde866",
+      "references": ["rooftop-before-envelope"],
+      "alt": "雨夜的旧楼天台，短发女子站在屋顶内侧，护着装有底片的牛皮纸袋，旧相机垂在腰侧，远处城市亮着零星灯光。",
+      "promptSummary": "Reference-conditioned continuity edit to original wide literary indie game frame: preserve woman, face, palette, pixel texture, city, clouds, building, camera and composition. Add a discreet muted-brown A4 kraft envelope under her left forearm against the front of her coat, sheltered from rain, natural hand and folded top; no text or other redesign."
+    },
+    {
+      "id": "listening",
+      "role": "Closer listening shot after the conversation opens up",
+      "source": "originals/listening.png",
+      "publicPath": "/art/listening.webp",
+      "width": 1671,
+      "height": 941,
+      "bytes": 306420,
+      "sourceSha256": "13fed75324fec616394bdd9044e226f223149675b583094723a67f4bebcd5984",
+      "webpSha256": "caeff1c67072d055d858f4e87be018fb302f7ff7b67a3e03115917c9cc6a5b51",
+      "generationId": "exec-3111bc9b-06e3-4c78-9f43-add980316ba7",
+      "references": ["listening-before-envelope", "rooftop"],
+      "alt": "女子稍稍转过身，认真听着来人的话，把牛皮纸袋护在身前，旧相机仍挂在腰侧，身后是雨中的城市。",
+      "promptSummary": "Reference-conditioned prop continuity edit to the first listening image, with the final rooftop as envelope reference. Preserve exact close framing, face, expression, hairstyle, light, city and camera. Add same muted-brown kraft envelope beneath forearm at lower chest, natural anatomy, old camera still visible at waist; no lettering or other redesign."
+    },
+    {
+      "id": "dawn",
+      "role": "Quiet conclusion after both people have walked downstairs",
+      "source": "originals/dawn.png",
+      "publicPath": "/art/dawn.webp",
+      "width": 1672,
+      "height": 941,
+      "bytes": 388936,
+      "sourceSha256": "6fcb93bb8daccfcbaef6c9cb705645c5d242f677c8391e9907a1470879bf8b09",
+      "webpSha256": "251fb20ca9b4cc5c2eba6d3a708389de277403773307bfdc14778580605df659",
+      "generationId": "exec-f59e26a3-f171-4e59-802f-261af140523a",
+      "references": ["rooftop-before-envelope"],
+      "alt": "天亮了，雨后的天台空无一人，脚印通向亮着暖光的楼梯门，城市在晨雾中苏醒。",
+      "promptSummary": "Reference-conditioned identical rooftop at first dawn. Both characters have walked downstairs; open gently lit stairwell door and footprints lead inside. No abandoned camera or memorial objects. Rain ended, pale silver-lavender sky, wet concrete reflections, hopeful humane ordinary morning, no lettering."
+    }
+  ]
+}
