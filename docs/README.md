@@ -1,6 +1,6 @@
 # 文档索引
 
-> 更新：2026-09-19。只链接受跟踪的仓库资料；被忽略的本地旧建议、营销稿或归档不作为 GitHub 文档入口。
+> 更新：2026-10-21 · 当前分支 shumei-merge。只链接受跟踪的仓库资料；被忽略的本地旧建议、营销稿或归档不作为 GitHub 文档入口。
 
 ## 当前状态
 
@@ -16,6 +16,9 @@
 - [故事与世界观](product/storyline_and_lore.md)
 - [游戏设定集](product/game_setting_bible.md)：人物与伦理正典；设计要求不等于已经进入代码。
 
+- [创新机制论证](engineering/innovation_mechanism.md)：每项机制如何承载“斟酌每一句话”。
+- [来源与事实边界](submission/source_notes.md)：匿名真实缘起、虚构改编、外部数据及证据标记。
+
 ## 工程与资源
 
 - [技术说明](engineering/technical_overview.md)
@@ -30,6 +33,6 @@
 
 ## 维护边界
 
-master 维护经验证的 v1；v2/roadmap 单独保存 v2 全案、根 README TODO 和后续实现。v2 的芯片、碎片、多 NPC 与循环不自动成为 v1 正典。
+本入口只描述 shumei-merge 数媒版。其他分支、v2 应用或路线图中的芯片、碎片、多 NPC、循环均不自动成为当前功能。历史审查和有日期的测试记录需与本轮结果分开。
 
 更新顺序：代码契约和设定集 → 技术/Prompt → 产品说明 → 验证。历史建议不能冒充当前事实。
