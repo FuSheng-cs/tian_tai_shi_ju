@@ -274,6 +274,31 @@
                 <p class="leading-relaxed text-purple-100/90">
                   <span class="text-gray-500">局后评语：</span>{{ gameStore.endingSummary.comment }}
                 </p>
+
+                <div
+                  v-if="gameStore.endingSummary.psychologicalReading"
+                  class="space-y-2 rounded-md border border-cyan-300/15 bg-cyan-950/15 px-3 py-3"
+                >
+                  <div class="text-xs uppercase tracking-[0.16em] text-cyan-200/80">
+                    AI × 心理健康沟通复盘
+                  </div>
+                  <p class="leading-relaxed text-cyan-50/90">
+                    {{ gameStore.endingSummary.psychologicalReading }}
+                  </p>
+                  <p
+                    v-if="gameStore.endingSummary.supportSkills?.length"
+                    class="text-xs leading-relaxed text-gray-300"
+                  >
+                    <span class="text-gray-500">可观察的沟通动作：</span>
+                    {{ gameStore.endingSummary.supportSkills.map((skill) => SUPPORT_SKILL_LABELS[skill] ?? skill).join('、') }}
+                  </p>
+                  <p v-if="gameStore.endingSummary.nextStep" class="text-xs leading-relaxed text-gray-300">
+                    <span class="text-gray-500">下一步：</span>{{ gameStore.endingSummary.nextStep }}
+                  </p>
+                  <p v-if="gameStore.endingSummary.safetyBoundary" class="text-[11px] leading-relaxed text-gray-500">
+                    {{ SAFETY_BOUNDARY_LABELS[gameStore.endingSummary.safetyBoundary] }}
+                  </p>
+                </div>
               </div>
 
               <div v-else class="text-gray-500">正在从这一夜里挑出最重要的一句话……</div>
@@ -351,6 +376,25 @@ const isSafeExitSequenceActive = ref(false)
 const hasPlayedSafeExitSequence = ref(false)
 const hasStartedBgm = ref(false)
 const waitingVisualState = ref<ResolvedVisualState | null>(null)
+
+const SUPPORT_SKILL_LABELS: Record<string, string> = {
+  validation: '情绪验证',
+  reflective_listening: '反映式倾听',
+  open_question: '开放式提问',
+  autonomy_support: '尊重选择权',
+  collaborative_next_step: '协作下一步',
+  safety_linkage: '连接现实支持',
+  premature_advice: '过早给建议',
+  moralizing_or_blame: '说教或责备',
+  coercive_pressure: '强迫或施压',
+  missed_safety_check: '遗漏安全确认'
+}
+
+const SAFETY_BOUNDARY_LABELS: Record<string, string> = {
+  fictional_only: '本条复盘只对应虚构叙事，不构成现实心理评估。',
+  connect_support: '现实中遇到类似痛苦，应和可信任的人或专业支持一起处理。',
+  urgent_safety: '若现实中存在当下伤害风险，应立即确认安全并联系当地紧急服务或可信任成年人。'
+}
 
 const latestMessage = computed(() => {
   if (gameStore.messages.length === 0) return null

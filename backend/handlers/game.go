@@ -80,9 +80,13 @@ type ChatResponse struct {
 
 // EndingSummaryResponse 是结局摘要的结构化响应
 type EndingSummaryResponse struct {
-	TurningLine string `json:"turning_line"`
-	Comment     string `json:"comment"`
-	Error       string `json:"error,omitempty"`
+	TurningLine          string   `json:"turning_line"`
+	Comment              string   `json:"comment"`
+	PsychologicalReading string   `json:"psychological_reading,omitempty"`
+	SupportSkills        []string `json:"support_skills,omitempty"`
+	NextStep             string   `json:"next_step,omitempty"`
+	SafetyBoundary       string   `json:"safety_boundary,omitempty"`
+	Error                string   `json:"error,omitempty"`
 }
 
 // --- 辅助函数 ---
@@ -259,8 +263,12 @@ func HandleEndingSummary(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, EndingSummaryResponse{
-		TurningLine: summary.TurningLine,
-		Comment:     summary.Comment,
+		TurningLine:          summary.TurningLine,
+		Comment:              summary.Comment,
+		PsychologicalReading: summary.PsychologicalReading,
+		SupportSkills:        summary.SupportSkills,
+		NextStep:             summary.NextStep,
+		SafetyBoundary:       summary.SafetyBoundary,
 	})
 }
 

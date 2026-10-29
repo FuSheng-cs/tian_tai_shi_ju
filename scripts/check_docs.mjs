@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -9,7 +9,10 @@ const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclud
   encoding: 'utf8'
 }).split('\0').filter(Boolean)
 const knownFiles = new Set(files.map((file) => file.replaceAll('\\', '/')))
-const docs = files.filter((file) => file.endsWith('.md'))
+// `git ls-files --cached` still lists a deleted file until the next commit;
+// skip those paths so a deliberate document replacement can be checked before
+// staging or committing the change.
+const docs = files.filter((file) => file.endsWith('.md') && existsSync(path.join(root, file)))
 const failures = []
 let checked = 0
 

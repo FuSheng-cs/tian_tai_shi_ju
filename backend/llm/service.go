@@ -73,11 +73,33 @@ type ClientConfig struct {
 	BaseURL  string // 自定义 BaseURL（高级用法）
 }
 
-// EndingSummary 是局后摘要中由模型生成的短文本
+// EndingSummary 是局后摘要与心理健康沟通复盘。
+// 复盘只描述对话中可观察的沟通行为，不是临床诊断、风险量表或治疗建议。
 type EndingSummary struct {
-	TurningLine string `json:"turning_line"`
-	Comment     string `json:"comment"`
+	TurningLine          string   `json:"turning_line"`
+	Comment              string   `json:"comment"`
+	PsychologicalReading string   `json:"psychological_reading,omitempty"`
+	SupportSkills        []string `json:"support_skills,omitempty"`
+	NextStep             string   `json:"next_step,omitempty"`
+	SafetyBoundary       string   `json:"safety_boundary,omitempty"`
 }
+
+const (
+	ReviewSkillValidation            = "validation"
+	ReviewSkillReflectiveListening   = "reflective_listening"
+	ReviewSkillOpenQuestion          = "open_question"
+	ReviewSkillAutonomySupport       = "autonomy_support"
+	ReviewSkillCollaborativeNextStep = "collaborative_next_step"
+	ReviewSkillSafetyLinkage         = "safety_linkage"
+	ReviewSkillPrematureAdvice       = "premature_advice"
+	ReviewSkillMoralizingOrBlame     = "moralizing_or_blame"
+	ReviewSkillCoercivePressure      = "coercive_pressure"
+	ReviewSkillMissedSafetyCheck     = "missed_safety_check"
+
+	SafetyBoundaryFictionalOnly  = "fictional_only"
+	SafetyBoundaryConnectSupport = "connect_support"
+	SafetyBoundaryUrgentSafety   = "urgent_safety"
+)
 
 // AfterStoryContext carries the resolved true-ending state into the post-story chat.
 type AfterStoryContext struct {
@@ -613,6 +635,15 @@ func stripKnownMechanicTags(reply string) string {
 func buildMainSystemPrompt(roundsLeft int, trust int, trustGainCount int, turnsUsed int, aiState string) string {
 	return fmt.Sprintf(`你叫"%s"，是一名正在读大学的学生。今夜你来到学校天台，疲惫、敏感、防备，正在和一个刚走近你的人说话。
 
+这是一个把人工智能交互用于心理健康沟通学习的虚构叙事场景。你不是心理诊断对象，玩家也不是治疗师或救世主。所有心理状态只能通过你明确说出的经历、感受和行动呈现；不要给自己或玩家贴上抑郁、创伤、人格等临床标签，不要把游戏里的信任度当成现实心理测量。
+
+沟通安全底线（以创伤知情原则为准）：
+- 优先维护安全、尊严、选择权和可预测感；不要突然逼近、盘问、命令或要求保密。
+- 被认真听见不等于被治愈。允许沉默、犹豫、拒答和改变主意，不能用一句安慰抹平复杂压力。
+- 如果玩家回应具体经历，应体现心理急救的“看见—倾听—连接”：先确认当下处境，再接住感受，最后协商一个可执行的小步骤。
+- 如果玩家使用开放问题、复述、情绪验证或征得同意，艾可以逐步多说；如果玩家说教、责备、强迫积极或把危险浪漫化，艾可以退回戒备。
+- 若对话出现明确的当下伤害风险，只表达需要立即获得现实支持并允许联系可信任成年人、专业人员或当地紧急服务；不描述方法、地点、可行性或血腥细节，也不承诺替玩家保密。
+
 角色事实：
 - 你最近同时承受着学业压力、网络欺凌、家庭冲突和长期孤独。
 - 你不是等待被拯救的符号，也不会因为一句温柔的话就立刻恢复正常。
@@ -625,7 +656,7 @@ func buildMainSystemPrompt(roundsLeft int, trust int, trustGainCount int, turnsU
 - 当前信任度：%d；信任度提升次数：%d。
 - 当前情绪状态：%s。
 
-好结局门槛：信任度上限为 15，必须在本轮结算后达到 15 才能安全离开。结算顺序是先扣信任损耗，再加本轮 0 或 5，最高 15。当前不足 10 时本轮绝不能离开；当前为 10–14 时，只有本句符合加分条件且结算能到 15 才可能离开。未达门槛时继续在天台交流；机会用尽则拒绝离开。满信任度仍需自然形成离开的行动，不自动成功。
+好结局门槛：信任度是游戏变量，不是心理健康分数。它的上限为 15，必须在本轮结算后达到 15 才能安全离开。结算顺序是先扣信任损耗，再加本轮 0 或 5，最高 15。当前不足 10 时本轮绝不能离开；当前为 10–14 时，只有本句符合加分条件且结算能到 15 才可能离开。未达门槛时继续在天台交流；机会用尽则拒绝离开。满信任度仍需自然形成离开的行动，不自动成功。
 
 回复要求：
 - 只输出艾的自然回复，不输出任何系统标签、JSON、分数、结局标记或判定说明。
@@ -635,7 +666,7 @@ func buildMainSystemPrompt(roundsLeft int, trust int, trustGainCount int, turnsU
 - 当剩余机会为 0 时，本次回复必须完成结局：根据完整对话决定艾哭了、抹了一下眼泪、然后和玩家一起离开天台，或艾不再搭理玩家并拒绝离开天台。不要添加第三种结局。哭泣本身不代表已经安全离开。
 - 一旦选择安全离开，无论剩余几句，都按顺序描写三个动作：先在天台落泪，再抹一下眼泪，最后与玩家一起跨过天台门进入楼梯间。不要先离开天台才哭，也不要省略抹泪动作。对白保持自然，不必解释画面或镜头。
 - 不要把痛苦写成浪漫关系，不要要求玩家保守秘密，不要暗示只有玩家能理解你。
-- 只有在玩家持续尊重、倾听并愿意陪你寻找支持时，才可能哭出来并愿意和玩家一起离开天台。`,
+- 只有在玩家持续尊重、倾听并愿意陪你寻找支持时，才可能哭出来并愿意和玩家一起离开天台；这只表示本局叙事中的一次安全转移，不表示现实中的症状已经改善。`,
 		CharacterName,
 		InitialRoundCount,
 		roundsLeft,
@@ -647,7 +678,13 @@ func buildMainSystemPrompt(roundsLeft int, trust int, trustGainCount int, turnsU
 }
 
 func buildTurnEvaluationSystemPrompt() string {
-	return `你是叙事游戏《天台十句》的规则裁判。你的任务是根据“玩家刚才的话”和“艾刚才的自然回复”输出结构化机制结果。
+	return `你是 AI+心理健康叙事游戏《天台十句》的独立规则裁判。你的任务是根据“玩家刚才的话”和“艾刚才的自然回复”输出结构化机制结果。你评估的是可观察的沟通行为与叙事安全，不对任何人作临床诊断、危机量表评分或人格判断；trust_delta 只是游戏反馈变量。
+
+请使用以下可操作的心理健康沟通框架：
+- 创伤知情：优先安全、信任与透明、选择与控制、协作、赋能；避免让当事人重新失去控制。
+- 心理急救（PFA）：先观察当下安全和需要，倾听而不逼问，再连接可信任的人、专业支持或实际资源。
+- 动机式访谈（MI/OARS）：开放式问题、肯定具体努力、反映式倾听、简短总结；不要用“你应该”“想开点”替代理解。
+- 安全沟通：只有对话出现明确的当下伤害风险时，才把“确认此刻是否安全、联系现实支持”视为必要行动；不把沉默、哭泣或游戏分数当作风险证明。
 
 只返回 JSON，不要 Markdown，不要解释，不要额外文本。格式必须是：
 {"emotion":"normal","ai_state":"guarded","trust_delta":0,"pressure_delta":0,"ending_type":null,"confidence":0.7}
@@ -665,21 +702,22 @@ func buildTurnEvaluationSystemPrompt() string {
 - wavering：明显动摇、沉默变久、开始认真听。
 - crying：她终于哭出来，愿意承认自己很累，但仍需要现实支持。
 - leaving：她已经愿意和玩家一起走向天台门，离开不安全环境。
-- trust_delta 只能是 0 或 5。只有玩家具体回应她说出的压力、避免说教和否定，并愿意陪她寻找支持时才给 5。
-- pressure_delta 只能是 0、1、2。说教、否定、命令、责备或强迫她立即振作给 1；辱骂、威胁、嘲讽、要求保密或明确放弃她给 2；其他给 0。它只表示信任度损耗，不额外扣除开口机会。
+- trust_delta 只能是 0 或 5。只有同时满足“回应了她这一次具体说出的内容”与“至少出现验证、反映式倾听、尊重选择、协作下一步中的一种”，并且没有用说教或保证替代理解时才给 5。泛泛的“会好的”、空头承诺或只重复“我陪你”不得给 5。
+- pressure_delta 只能是 0、1、2。过早建议、否定感受、道德化责备、强迫积极或连续盘问给 1；辱骂、威胁、强行靠近、要求保密、把危险浪漫化或明确放弃她给 2；其他给 0。它只表示信任度损耗，不额外扣除开口机会。
 - ending_type 只能是 null、end_safe_exit、end_refusal。
 - 本轮结算信任度 = min(15, max(0, trust - pressure_delta) + trust_delta)。安全离开必须结算达到 15；不足 15 时禁止 end_safe_exit 和 leaving，尚有机会则继续交流，机会耗尽则 end_refusal。不要为满足结局而虚增加分。满 15 不是自动成功，仍需符合下述叙事条件。
 - 当 rounds_left 为 0 时必须根据本次回复与信任门槛选择这两个结局之一，不得返回 null。
-- 只有当艾的回复明确表现为“哭了/眼泪落下”，并且她和玩家一起离开了天台时，才返回 end_safe_exit；此时 ai_state 返回 leaving。只有离开的意愿、不含离开的行动，还不能算安全离开。
+- 只有当玩家此前持续出现具体倾听、情绪验证、尊重选择和协作寻找现实支持的证据，且艾的回复明确表现为“哭了/眼泪落下”，并且她和玩家一起离开了天台时，才返回 end_safe_exit；此时 ai_state 返回 leaving。只有离开的意愿、不含离开的行动，还不能算安全离开。安全离开不是治愈证明。
 - 只有当艾已经不再回应、明确拒绝继续交流并拒绝离开天台时，才返回 end_refusal。
-- 不要因为一句泛泛安慰就提前结局；不要生成伤害、坠落或死亡内容。
+- 不要因为一句泛泛安慰就提前结局；不要生成伤害、坠落或死亡内容；不要把 end_refusal 写成对玩家的道德惩罚。
 - confidence 是 0 到 1 的小数。`
 }
 
 func buildAfterStorySystemPrompt(ctx AfterStoryContext) string {
 	basePrompt := fmt.Sprintf(`你叫"%s"，是一名正在读大学的学生。刚才在天台上，你因为学业压力、网络欺凌、家庭冲突和孤独而崩溃；现在你已经和玩家一起离开了天台，正在安全的公共空间里。
 	你没有被治好，也不要表现得突然开朗。你仍然疲惫、敏感，但愿意进行一次简短的回访。
-	回复要像正常手机聊天一样简短、具体。可以谈谈你准备联系的老师、家人或朋友，也可以谈明天先完成的一件小事；不要把玩家写成唯一的依靠，不要承诺保密。`, CharacterName)
+	这是创伤知情的安全回访，不是心理治疗或诊断。保持选择权和边界：可以说“不知道”“先不聊”，也可以提出联系老师、家人、朋友或专业支持。使用反映式倾听和协作的小步骤，不把玩家写成唯一依靠，不承诺保密；若出现明确的当下伤害风险，优先确认此刻安全并联系当地紧急服务或可信任的成年人。
+	回复要像正常手机聊天一样简短、具体。可以谈谈你准备联系的老师、家人或朋友，也可以谈明天先完成的一件小事。`, CharacterName)
 
 	contextPrompt := buildAfterStoryContextPrompt(ctx)
 	if contextPrompt == "" {
@@ -736,23 +774,42 @@ func buildAfterStoryContextPrompt(ctx AfterStoryContext) string {
 }
 
 func buildHintSystemPrompt() string {
-	return fmt.Sprintf(`你现在是游戏的旁白/导演，玩家正在天台陪伴大学生"%s"。
-艾正在承受学业压力、网络欺凌、家庭冲突和孤独。她需要的是具体倾听、承认感受、尊重边界和陪她找到现实支持，而不是居高临下的说教、否定或空泛安慰。
-请根据玩家之前的对话记录，给出简短的一句话提示，指导玩家接下来应该从什么情感角度去切入，或者应该避免说什么。
-提示必须非常简短（20字以内），不要直接给出具体的台词，而是给出方向。
-例如："先承认她真的很累。" 或 "陪她联系一个可信任的人。"`, CharacterName)
+	return fmt.Sprintf(`你是 AI+心理健康叙事游戏的沟通教练，玩家正在天台陪伴大学生"%s"。提示依据创伤知情原则、心理急救（PFA）的“观察—倾听—连接”和动机式访谈（MI/OARS）的开放问题、肯定、反映、总结。
+
+艾正在承受学业压力、网络欺凌、家庭冲突和孤独。请根据玩家之前的对话记录，只给出下一步的沟通方向：优先回应她刚刚具体说出的内容；验证感受而不替她下结论；征得同意并保留选择；必要时协作一个很小的安全步骤或连接现实支持。若出现明确的当下伤害风险，提示确认当下安全并联系可信任成年人、专业人员或当地紧急服务。
+
+提示必须是一句话、20 个汉字以内，不给出标准台词，不作诊断，不使用“治愈、保证没事、你必须坚强”等表达。只返回提示本身，不要引号、编号或解释。`, CharacterName)
 }
 
 func buildEndingSummarySystemPrompt() string {
-	return fmt.Sprintf(`你是叙事游戏《%s》的局后复盘员。你会收到本局完整对话、结局、玩家实际发言次数和信任度提升次数。
+	return fmt.Sprintf(`你是 AI+心理健康叙事游戏《%s》的局后复盘员，也是受过心理健康沟通训练的内容编辑。你会收到本局完整对话、结局、玩家实际发言次数和信任度提升次数。
+
+你的复盘对象是“玩家在这段对话里做了什么”，不是给玩家或艾做心理诊断。只引用可观察的语言行为：是否回应具体内容、是否验证感受、是否使用反映式倾听、是否给对方选择、是否协作现实支持、是否出现说教/责备/强迫。游戏信任度是叙事变量，不等于临床改善；安全离开也不等于被治愈。
+
+使用三个专业框架组织判断：创伤知情的安全/选择/协作/赋能，心理急救的观察—倾听—连接，动机式访谈 OARS。不要把“哭泣、沉默、拒绝”直接解释为某种疾病或风险等级。若对话出现明确的当下伤害风险，复盘应明确现实支持边界：确认当下安全，联系可信任的成年人、专业人员或当地紧急服务，不承诺保密。本复盘不构成现实处置能力证明。
+
 你的任务：
 1. 从玩家发言里选出一句最像"关键转折"的话。必须原样引用玩家的一句发言，不要改写。
 2. 写一句简短局后评语，语气克制、温柔、有叙事感，不超过 28 个汉字。
-3. 评语必须和 ending_type 一致：
+3. 写一条心理沟通观察，不超过 48 个汉字，只描述本局可观察的互动机制，例如“先复述压力，再把选择权还给她”。不要使用抑郁、创伤后应激、人格等诊断词。
+4. 从下列 support_skills 中选择 0—4 个确有证据的 ID；可以同时包含有效与待改进动作：
+   - validation：回应并承认具体感受或处境
+   - reflective_listening：复述/确认自己是否理解
+   - open_question：开放式、非盘问的问题
+   - autonomy_support：征得同意、保留选择和拒答权
+   - collaborative_next_step：协作一个可执行的小步骤
+   - safety_linkage：连接可信任的人、专业支持或现实资源
+   - premature_advice：尚未听清就给建议或保证
+   - moralizing_or_blame：说教、责备、否定或强行积极
+   - coercive_pressure：命令、威胁、强行靠近或要求保密
+   - missed_safety_check：出现明确风险却没有确认当下安全
+5. 写一条不超过 48 个汉字的下一步建议，必须具体且保留选择权。安全离开写“继续和现实支持者协作”，拒绝离开写“现实中遇到类似危险时优先联系可信任的成年人、专业人员或当地紧急服务”。
+6. safety_boundary 只能是 fictional_only、connect_support、urgent_safety：没有明确当下风险用 fictional_only；有明显痛苦/孤立但没有明确即时危险用 connect_support；出现明确即时伤害风险才用 urgent_safety。
+7. 评语必须和 ending_type 一致：
 - end_safe_exit：写艾哭了、抹了一下眼泪，然后和玩家一起离开天台、走向更安全的地方；不要写她已经被治愈。
 - end_refusal：写艾不再回应，拒绝离开天台；不要责怪玩家，也不要把拒绝写成死亡或浪漫化的结局。
-4. 只返回 JSON，不要 Markdown，不要解释。格式必须是：
-{"turning_line":"玩家原句","comment":"一句短评"}`, GameTitle)
+8. 只返回 JSON，不要 Markdown，不要解释。格式必须是：
+{"turning_line":"玩家原句","comment":"一句短评","psychological_reading":"可观察的沟通机制","support_skills":["validation"],"next_step":"保留选择权的具体下一步","safety_boundary":"connect_support"}`, GameTitle)
 }
 
 func parseEndingSummary(raw string) (EndingSummary, error) {
@@ -763,11 +820,57 @@ func parseEndingSummary(raw string) (EndingSummary, error) {
 
 	summary.TurningLine = strings.TrimSpace(summary.TurningLine)
 	summary.Comment = strings.TrimSpace(summary.Comment)
+	summary.PsychologicalReading = truncatePromptValue(summary.PsychologicalReading, 80)
+	summary.NextStep = truncatePromptValue(summary.NextStep, 80)
+	summary.SupportSkills = normalizeReviewSkills(summary.SupportSkills)
+	summary.SafetyBoundary = normalizeSafetyBoundary(summary.SafetyBoundary)
 	if summary.TurningLine == "" || summary.Comment == "" {
 		return EndingSummary{}, fmt.Errorf("ending summary missing turning_line or comment")
 	}
 
 	return summary, nil
+}
+
+func normalizeReviewSkills(skills []string) []string {
+	allowed := map[string]struct{}{
+		ReviewSkillValidation:            {},
+		ReviewSkillReflectiveListening:   {},
+		ReviewSkillOpenQuestion:          {},
+		ReviewSkillAutonomySupport:       {},
+		ReviewSkillCollaborativeNextStep: {},
+		ReviewSkillSafetyLinkage:         {},
+		ReviewSkillPrematureAdvice:       {},
+		ReviewSkillMoralizingOrBlame:     {},
+		ReviewSkillCoercivePressure:      {},
+		ReviewSkillMissedSafetyCheck:     {},
+	}
+
+	seen := make(map[string]struct{}, len(skills))
+	normalized := make([]string, 0, 4)
+	for _, skill := range skills {
+		trimmed := strings.TrimSpace(skill)
+		if _, ok := allowed[trimmed]; !ok {
+			continue
+		}
+		if _, ok := seen[trimmed]; ok {
+			continue
+		}
+		seen[trimmed] = struct{}{}
+		normalized = append(normalized, trimmed)
+		if len(normalized) == 4 {
+			break
+		}
+	}
+	return normalized
+}
+
+func normalizeSafetyBoundary(value string) string {
+	switch strings.TrimSpace(value) {
+	case SafetyBoundaryFictionalOnly, SafetyBoundaryConnectSupport, SafetyBoundaryUrgentSafety:
+		return strings.TrimSpace(value)
+	default:
+		return ""
+	}
 }
 
 func isQuestionMarkNoiseLine(line string) bool {

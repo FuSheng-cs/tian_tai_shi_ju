@@ -1,6 +1,6 @@
 # 人物故事与世界观｜艾尚未说完的话
 
-> 2026-10-21 · shumei-merge 当前叙事。规则正典见[游戏设定集](game_setting_bible.md)。
+> 2026-10-29 · AIC 当前叙事。规则正典见[游戏设定集](game_setting_bible.md)，心理健康沟通 Prompt 见[规范](../engineering/prompts_and_settings.md)。
 
 ## 1. 艾：一个逐渐难以开口的大学生
 

@@ -29,11 +29,29 @@ export interface ChatTurnResult {
   evaluation: TurnEvaluation
 }
 
+export type PsychologicalSupportSkill =
+  | 'validation'
+  | 'reflective_listening'
+  | 'open_question'
+  | 'autonomy_support'
+  | 'collaborative_next_step'
+  | 'safety_linkage'
+  | 'premature_advice'
+  | 'moralizing_or_blame'
+  | 'coercive_pressure'
+  | 'missed_safety_check'
+
+export type SafetyBoundaryType = 'fictional_only' | 'connect_support' | 'urgent_safety'
+
 export interface EndingSummary {
   roundsUsed: number
   trustGainCount: number
   turningLine: string
   comment: string
+  psychologicalReading?: string
+  supportSkills?: PsychologicalSupportSkill[]
+  nextStep?: string
+  safetyBoundary?: SafetyBoundaryType
 }
 
 export interface GameState {

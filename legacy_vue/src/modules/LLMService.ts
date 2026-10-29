@@ -12,6 +12,8 @@ import {
   type EndingSummaryContext,
   type LLMConversationContext,
   type Message,
+  type PsychologicalSupportSkill,
+  type SafetyBoundaryType,
   type TurnEvaluation
 } from '@/domain/gameState'
 
@@ -183,7 +185,27 @@ export interface LLMConfig {
 export interface EndingSummaryReview {
   turningLine: string
   comment: string
+  psychologicalReading?: string
+  supportSkills?: PsychologicalSupportSkill[]
+  nextStep?: string
+  safetyBoundary?: SafetyBoundaryType
 }
+
+const PSYCHOLOGICAL_SUPPORT_SKILLS = new Set<PsychologicalSupportSkill>([
+  'validation',
+  'reflective_listening',
+  'open_question',
+  'autonomy_support',
+  'collaborative_next_step',
+  'safety_linkage',
+  'premature_advice',
+  'moralizing_or_blame',
+  'coercive_pressure',
+  'missed_safety_check'
+])
+
+const isPsychologicalSupportSkill = (value: unknown): value is PsychologicalSupportSkill =>
+  typeof value === 'string' && PSYCHOLOGICAL_SUPPORT_SKILLS.has(value as PsychologicalSupportSkill)
 
 export function loadLLMConfig(): LLMConfig {
   return {
@@ -357,7 +379,14 @@ export class LLMService {
     history: Message[],
     endingContext: EndingSummaryContext
   ): Promise<EndingSummaryReview | null> {
-    type EndingSummaryPayload = { turning_line?: string; comment?: string }
+    type EndingSummaryPayload = {
+      turning_line?: string
+      comment?: string
+      psychological_reading?: string
+      support_skills?: unknown
+      next_step?: string
+      safety_boundary?: string
+    }
     const result = await callBackendJson<EndingSummaryPayload>('ending-summary', {
       history: history,
       ending_type: endingContext.endingType,
@@ -371,9 +400,28 @@ export class LLMService {
       return null
     }
 
-    return {
+    const summary: EndingSummaryReview = {
       turningLine: result.turning_line.trim(),
       comment: result.comment.trim()
     }
+
+    if (typeof result.psychological_reading === 'string') {
+      summary.psychologicalReading = result.psychological_reading.trim()
+    }
+    if (Array.isArray(result.support_skills)) {
+      summary.supportSkills = result.support_skills.filter(isPsychologicalSupportSkill).slice(0, 4)
+    }
+    if (typeof result.next_step === 'string') {
+      summary.nextStep = result.next_step.trim()
+    }
+    if (
+      result.safety_boundary === 'fictional_only' ||
+      result.safety_boundary === 'connect_support' ||
+      result.safety_boundary === 'urgent_safety'
+    ) {
+      summary.safetyBoundary = result.safety_boundary as SafetyBoundaryType
+    }
+
+    return summary
   }
 }

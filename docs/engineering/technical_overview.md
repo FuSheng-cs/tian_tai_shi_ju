@@ -1,6 +1,6 @@
-# 技术文档
+# AIC 竞赛版技术文档
 
-> 更新：2026-10-21（当前契约纠偏；历史验证记录保留日期）。以可执行代码为准；验证见 [整合记录](integration_2026-09-15.md)，待办见 [项目状态](../STATUS.md)。历史审查不等于当前缺陷清单。
+> 更新：2026-10-29（AIC AI × 心理健康沟通特化）。以可执行代码为准；Prompt 与复盘字段见 [AIC Prompt 规范](prompts_and_settings.md)，待办见 [项目状态](../STATUS.md)。历史审查不等于当前缺陷清单。
 
 ## 1. 工程结构
 
@@ -10,23 +10,24 @@
 | --- | --- |
 | `backend/config/` | 环境变量、.env、服务器默认模型 |
 | `backend/handlers/` | HTTP 校验、配置选择、错误/无密钥兜底 |
-| `backend/llm/` | Provider 适配、五类 Prompt、裁判与规则归一化 |
+| `backend/llm/` | Provider 适配、五类 Prompt、心理健康沟通裁判、复盘与规则归一化 |
 | `legacy_vue/src/views/` | 首页、主线、设置、成就、后日谈 |
 | `legacy_vue/src/domain/` | 契约、状态类型、阈值、CG 映射 |
 | `legacy_vue/src/store/` | 主线状态机、运行期音量/显示设置 |
 | `legacy_vue/src/modules/` | API、音频、存档、成就 |
 | `legacy_vue/src/composables/` | 共用存档栏位与开场/结局演出 |
 
-## 2. 主线请求与结算（2026-10-21 按当前数媒契约核对）
+## 2. 主线请求与结算（2026-10-29 AIC 契约）
 
 1. `gameStore.sendMessage()` 记录本句并扣 1 次机会，历史排除重复的本句。
 2. `LLMService.chat()` 向 `POST /api/chat` 发送历史、本句、剩余机会、信任、信任增长次数、发言次数、姿态及模型配置。
 3. 后端角色调用生成自然回复，独立裁判调用分析本句、回复与状态。两次模型调用顺序执行；模型采样参数按服务商适配，不统一承诺固定温度。
-4. 裁判字段为 `emotion`、`ai_state`、`trust_delta`、`pressure_delta`、`ending_type`、`confidence`。前后端归一化字段和枚举。
+4. 裁判字段为 `emotion`、`ai_state`、`trust_delta`、`pressure_delta`、`ending_type`、`confidence`。裁判用创伤知情、心理急救（PFA）和动机式访谈（MI/OARS）定义“具体倾听、验证感受、尊重选择、协作支持”等可观察证据，但不做临床诊断。前后端归一化字段和枚举。
 5. 先扣压力造成的信任损耗（0/1/2），再加信任增量（0/5），上限 15；不返还或额外扣除发言机会。
 6. 安全离开需本轮结算信任达到 15，且 AI 判定叙事条件成立；低信任的离开状态和结局被拦截。满分和哭泣都不自动成功。
 7. 十句耗尽且缺少有效安全结局时，保守收束为拒绝离开。
 8. `resolveVisualState()` 选择状态对应的预制画面；安全离开播放落泪、抹泪、一起进入楼梯间三段 CG。
+9. 结局后调用复盘 Prompt，返回关键转折、叙事短评、心理沟通观察、技能 ID、下一步和安全边界；这些字段描述语言行为，不代表心理诊断或现实处置能力。
 
 初始机会 10，提示 3，存档栏位 1—3。当前两个结局为 `end_safe_exit` / `end_refusal`。固定十句和自由语言共同构成玩家斟酌表达的条件，详见[创新机制](innovation_mechanism.md)。
 
@@ -40,7 +41,7 @@
 | `POST /api/chat-after` | 携带真实结局上下文的后日谈 |
 | `POST /api/ending-summary` | 关键句和短评 |
 
-五类 Prompt（角色、裁判、提示、后日谈、摘要）详见 [Prompt 说明](prompts_and_settings.md)。当前是完整响应后本地打字机播放，未实现 SSE/网络流式协议。
+五类 Prompt（角色、心理健康沟通裁判、PFA/MI 提示、安全回访、心理沟通复盘）详见 [AIC Prompt 规范](prompts_and_settings.md)。当前是完整响应后本地打字机播放，未实现 SSE/网络流式协议。
 
 ## 4. 模型配置与错误边界
 
@@ -57,6 +58,7 @@
 - 成就本地持久化。后日谈路由守卫要求安全离开状态或可读且符合安全结局条件的后日谈存档。
 - Key/Provider/模型/Base URL 已持久化；音量、字号、行高等 settingsStore 设置尚无刷新恢复。
 - 后日谈携带关键句、最后一句、结局回复、短评和统计，避免重置为陌生人聊天。
+- 局后复盘新增 `psychological_reading`、`support_skills`、`next_step`、`safety_boundary`；旧模型或旧存档缺少这些字段时，前端使用保守的本地复盘兜底。
 
 ## 6. 开发与验证
 

@@ -204,6 +204,40 @@ describe('LLMService', () => {
     })
   })
 
+  it('maps the AIC psychological communication review fields conservatively', async () => {
+    mockBackendResponse({
+      turning_line: '我听见你说的压力了',
+      comment: '她愿意先走到安全的地方。',
+      psychological_reading: '先复述压力，再把选择权还给她。',
+      support_skills: [
+        'validation',
+        'autonomy_support',
+        'unknown_skill',
+        'reflective_listening',
+        'open_question',
+        'safety_linkage'
+      ],
+      next_step: '和可信任的人一起确认下一步。',
+      safety_boundary: 'connect_support'
+    })
+
+    const summary = await LLMService.getEndingSummary(history, {
+      endingType: ENDINGS.safeExit.type,
+      roundsUsed: 2,
+      trustGainCount: 1,
+      trust: 10
+    })
+
+    expect(summary).toEqual({
+      turningLine: '我听见你说的压力了',
+      comment: '她愿意先走到安全的地方。',
+      psychologicalReading: '先复述压力，再把选择权还给她。',
+      supportSkills: ['validation', 'autonomy_support', 'reflective_listening', 'open_question'],
+      nextStep: '和可信任的人一起确认下一步。',
+      safetyBoundary: 'connect_support'
+    })
+  })
+
   it('passes true-ending context into the after-story request', async () => {
     mockBackendResponse({ reply: 'I am still thinking about that line.' })
 

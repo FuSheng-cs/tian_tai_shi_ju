@@ -1,16 +1,74 @@
-# 《天台十句》Prompt 与接口
+# AIC 竞赛版《天台十句》Prompt 与 AI × 心理健康沟通规范
 
-> 2026-09-16 · 当前代码契约。角色事实以 [游戏设定集](../product/game_setting_bible.md) 为准。
+> 更新：2026-10-29 · 当前分支 `AIC`。本文替代旧版《Prompt 与接口》说明，是后端 Prompt、API 字段和心理健康沟通复盘的当前事实源。最终行为以 `backend/llm/service.go`、`backend/handlers/game.go` 和前端状态契约为准。
 
-## 回合流程
+## 1. 竞赛定位
 
-玩家最多 10 句话；前端每次发送扣除一句，向 POST /api/chat 发送 history、user_message、rounds_left、trust、trust_gain_count、turns_used、ai_state 与模型配置。
+AIC 版把人工智能放在心理健康沟通的真实交互环节中，而不是把 AI 只当作对白生成器：
 
-后端先调用演员生成艾的自然对白，再调用裁判分析对白。艾是承受学业压力、网络欺凌、家庭冲突与孤独的大学生。对白发生在天台；安全结局允许哭泣并与玩家一起离开。剩余机会为 0 时，演员与裁判都必须完成结局。
+1. **AI 角色层**根据玩家的自然语言生成艾的克制回应，保留沉默、拒答、犹豫和改变主意的空间。
+2. **AI 裁判层**把玩家本句和角色回应转成可审计的情绪、姿态、信任变化、压力变化和结局条件。
+3. **AI 提示层**以心理急救（PFA）、动机式访谈（MI/OARS）和创伤知情原则为依据，给玩家下一步沟通方向，而不是提供通关台词。
+4. **AI 复盘层**只评价可观察的沟通行为，标出验证、反映式倾听、选择权、协作支持等动作及其遗漏，并给出保留选择权的下一步。
 
-主 Prompt、裁判、提示、回访及摘要模板位于 backend/llm/service.go。演员不输出机制标签，模型意外输出的标签会被清洗。
+游戏中的信任度是叙事反馈变量，不是心理健康分数；安全离开是虚构故事中的一次安全转移，不是治疗、康复或现实危机干预效果。
 
-## 裁判 JSON
+## 2. 专业框架与安全边界
+
+Prompt 使用三个互相补充的操作框架：
+
+| 框架 | 在游戏中的可执行判断 |
+| --- | --- |
+| 创伤知情沟通 | 维护安全、信任与透明、选择与控制、协作、赋能；避免突然逼近、盘问、强迫和失去控制的演出。 |
+| 心理急救（PFA） | 先观察当下安全和需要，再倾听而不逼问，最后连接可信任的人、专业人员或现实资源。 |
+| 动机式访谈（MI/OARS） | 开放式问题、肯定具体努力、反映式倾听、简短总结；不以“你应该”“想开点”替代理解。 |
+
+所有模型都必须遵守以下边界：
+
+- 不给艾或玩家下抑郁、创伤后应激、人格等临床诊断，不把哭泣、沉默或信任度直接解释为疾病或风险等级。
+- 不把玩家写成治疗师、救世主或唯一依靠，不承诺保密，不把痛苦、危险或离开天台浪漫化。
+- 只有对话出现明确的当下伤害风险时，才要求确认此刻是否安全并连接现实支持；不生成方法、地点、可行性或血腥细节。
+- 现实中的危险情形应优先联系可信任的成年人、专业人员或当地紧急服务。游戏内提示与复盘不能替代专业评估。
+
+## 3. 回合请求与 Prompt 分工
+
+玩家最多有 10 次有效发送，提示初始 3 次。每次 `/api/chat` 顺序执行两次模型调用：
+
+| 层 | 代码入口 | 输入 | 输出 | 作用 |
+| --- | --- | --- | --- | --- |
+| 角色生成 | `buildMainSystemPrompt()` | 历史、本句、剩余机会、信任、姿态 | 50 字以内自然对白 | 以角色视角呈现一个疲惫、防备但有主体性的大学生，不输出机制标签。 |
+| 规则裁判 | `buildTurnEvaluationSystemPrompt()` | 最近 4 条历史、本句、角色对白、状态与资源 | 结构化 JSON | 依据可观察沟通行为结算情绪、姿态、信任、压力和结局；不做临床判断。 |
+| 游戏提示 | `buildHintSystemPrompt()` | 完整对话历史 | 20 字以内方向 | 从“回应具体内容—验证感受—保留选择—协作支持”中选择下一步，不写标准台词。 |
+| 安全回访 | `buildAfterStorySystemPrompt()` | 真实结局和关键句 | 手机聊天式短回复 | 延续安全、选择和现实支持，不把玩家写成唯一长期依靠。 |
+| 局后复盘 | `buildEndingSummarySystemPrompt()` | 完整对话、结局和统计 | 复盘 JSON | 给出关键转折、叙事短评、沟通机制、技能 ID、下一步和安全边界。 |
+
+模型调用失败时，后端保留自然对白或返回标明“模拟回复”的兜底内容；前端和后端都不能把空响应当作成功结局。
+
+## 4. 角色生成 Prompt：让心理健康原则进入对白
+
+`buildMainSystemPrompt()` 将以下内容直接注入角色模型：
+
+- 艾承受学业压力、网络欺凌、家庭冲突和长期孤独；她不是等待被拯救的符号，也不会因一句温柔话立刻恢复。
+- 角色以明确说出的经历、感受和行动呈现自己，不自行诊断，不把玩家当成治疗师。
+- 被具体听见、被验证、被尊重边界和被邀请协作时，可以逐步多说；被说教、否定、强迫积极或要求保密时，可以沉默、冷淡或退回戒备。
+- 对明确的当下伤害风险，只能表达需要现实支持并允许联系可信任成年人、专业人员或当地紧急服务；不得描写方法、地点或伤害过程。
+- 安全离开必须按“天台落泪 → 抹泪 → 与玩家跨过天台门进入楼梯间”顺序表现；这表示故事中的安全转移，不表示现实中的症状已经改善。
+
+角色 Prompt 只负责自然对白。机制标签、分数、JSON、结局标记和心理诊断词均不得出现在角色输出中；后端仍会清洗模型偶发输出的旧机制标签。
+
+## 5. 游戏提示 Prompt：从泛泛安慰转为可操作的沟通教练
+
+`buildHintSystemPrompt()` 以 PFA 的“观察—倾听—连接”和 MI/OARS 为提示选择器：
+
+1. **观察**：先回应艾此刻明确说出的压力、需要或边界；出现明确当下风险时，先确认安全。
+2. **倾听**：建议使用情绪验证、复述和开放问题，避免替她总结人生或连续盘问。
+3. **连接**：在获得同意后，协作一个很小的下一步，或邀请她联系可信任的人、专业人员和现实资源。
+
+提示必须是一句话、20 个汉字以内，只返回方向，不直接替玩家写台词，不作诊断。可接受的提示形态包括“先复述她刚说的压力”“先问她愿不愿意说”“一起确认眼前安全”，而不是“你必须让她振作”“告诉她一切都会好”。
+
+## 6. 结局判定 Prompt：把心理沟通质量与程序门槛分开
+
+裁判仍返回以下 JSON，程序再进行归一化和门槛校验：
 
 ```json
 {
@@ -23,35 +81,87 @@
 }
 ```
 
-- emotion：normal / sting / surprise / soft / curiosity。
-- ai_state：guarded / watching / wavering / crying / leaving。
-- trust_delta：0 或 5；具体倾听、尊重边界、回应压力和提供陪伴可增加信任。
-- pressure_delta：0、1、2；说教、否定、强迫等损耗信任，不额外消耗句数。
-- ending_type：null / end_safe_exit / end_refusal。安全离开必须满足本轮结算信任度为 15，并由 AI 判定叙事条件成立；满分不自动结局。结算顺序为先扣 pressure_delta 再加 trust_delta，上限 15。前后端拦截低信任的安全离开判定及离开状态，并用仍在天台的回应替换；十句耗尽时收束为拒绝离开。
-- confidence：0 到 1。
+- `emotion`：`normal`、`sting`、`surprise`、`soft`、`curiosity`。
+- `ai_state`：`guarded`、`watching`、`wavering`、`crying`、`leaving`。
+- `trust_delta`：只能为 0 或 5。只有玩家**回应了本次具体内容**，并出现验证、反映式倾听、尊重选择、协作下一步中的一种，同时没有用空泛保证替代理解，才可给 5。
+- `pressure_delta`：0、1、2。过早建议、否定感受、道德化责备、强迫积极或连续盘问为 1；辱骂、威胁、强行靠近、要求保密、危险浪漫化或明确放弃为 2。它只损耗游戏信任，不额外扣除开口机会。
+- `confidence`：0—1 的模型自评置信度，不能当作临床置信度。
 
-安全离开必须包含艾哭了并和玩家一起离开天台；演员按“在天台落泪 → 抹一下眼泪 → 与玩家跨过门进入楼梯间”的顺序描写。前端在 AI 判定安全离开后播放对应三张 CG，不因播放演出而改变裁判规则。拒绝离开必须包含不再回应及拒绝离开。前端优先显示 AI 指定状态，避免分数覆盖状态。最后一句缺失裁判结局时，保守收束为拒绝离开，不推断成功。
+安全离开同时需要：
 
-## 其他接口
+1. 本轮结算信任达到 15；结算顺序为先扣 `pressure_delta`，再加 `trust_delta`，上限 15。
+2. 玩家此前持续表现出具体倾听、情绪验证、尊重选择和协作寻找现实支持的证据。
+3. 艾的回复明确写出落泪，并和玩家一起跨过天台门；只有“愿意走”而没有行动不算安全离开。
 
-- POST /api/hint：简短方向性提示，避免直接提供标准台词。
-- POST /api/ending-summary：传入 ending_type、rounds_used、trust_gain_count、trust 与历史，返回 turning_line、comment。
-- POST /api/chat-after：安全离开后的回访，after_story_context 使用 trust_gain_count 与 trust，延续现实支持而非唯一依赖。
+信任满值、哭泣或一句安慰都不能单独触发结局。机会耗尽且没有有效安全离开时，前端保守收束为 `end_refusal`。拒绝离开表示本局叙事没有形成足够的安全转移，不是对玩家的道德评分。
 
-初始提示 3 次；信任增加不返还句数。后端对白、提示、摘要均不生成抽烟内容。死亡结局、旧好感度接口及坠落演出已退出运行路径。旧存档字段只用于兼容读取，不作为新 API 字段。
+## 7. 局后复盘 Prompt：可观察、可解释、不可诊断
 
-本次主题版使用独立的 tiantaishiju_safety_save_ 存档与 tiantaishiju_safety_achievements 成就空间。旧浏览器存档原样保留，不在新版本加载，避免带回已删除的旧剧情。只有安全离开的回访存档能通过路由校验。
+`buildEndingSummarySystemPrompt()` 返回：
 
-## 调试边界
+```json
+{
+  "turning_line": "玩家原句",
+  "comment": "一句短评",
+  "psychological_reading": "可观察的沟通机制",
+  "support_skills": ["validation", "autonomy_support"],
+  "next_step": "保留选择权的具体下一步",
+  "safety_boundary": "connect_support"
+}
+```
 
-没有配置 API Key 时仅返回标明“模拟回复”的演示内容；这不能用于检验真实 AI 剧情。自动化测试使用本地模拟模型服务，不向真实提供商发送对话。
+`support_skills` 只允许以下 ID，最多 4 个；它们描述语言行为，不代表人格特征：
 
+| ID | 含义 |
+| --- | --- |
+| `validation` | 回应并承认具体感受或处境 |
+| `reflective_listening` | 复述并确认自己是否理解 |
+| `open_question` | 开放式、非盘问的问题 |
+| `autonomy_support` | 征得同意，保留选择和拒答权 |
+| `collaborative_next_step` | 协作一个可执行的小步骤 |
+| `safety_linkage` | 连接可信任的人、专业支持或现实资源 |
+| `premature_advice` | 尚未听清就给建议或保证 |
+| `moralizing_or_blame` | 说教、责备、否定或强行积极 |
+| `coercive_pressure` | 命令、威胁、强行靠近或要求保密 |
+| `missed_safety_check` | 出现明确风险却没有确认当下安全 |
 
-## API 服务预设（2026-10-01 核对）
+`safety_boundary` 只有三个值：
+
+- `fictional_only`：没有明确当下风险，本条只对应虚构叙事。
+- `connect_support`：存在明显痛苦或孤立，但没有明确即时危险，应连接可信任的人或专业支持。
+- `urgent_safety`：出现明确即时伤害风险，应立即确认安全并联系当地紧急服务或可信任成年人。
+
+复盘短评必须与结局一致：安全离开写“落泪—抹泪—一起走向更安全的地方”，拒绝离开写“不再回应并拒绝离开”。心理观察和下一步建议必须基于玩家实际语言，不能写“你治好了她”“她患有某病”或把结局当作现实处置能力证明。
+
+## 8. 前端展示与兼容
+
+局后结算页在原有“关键转折句 / 局后评语”下增加 **AI × 心理健康沟通复盘** 卡片，展示：
+
+- 心理沟通观察；
+- 可观察的沟通动作（中文标签由前端映射）；
+- 保留选择权的下一步；
+- 与虚构场景、现实支持或紧急安全对应的边界说明。
+
+后端只要求 `turning_line` 和 `comment` 非空，旧模型缺少新字段时由前端使用保守的本地复盘兜底；旧存档仍可读取，新增字段为空时自动补齐，不改变存档校验方式。
+
+## 9. 当前接口
+
+- `POST /api/chat`：角色 + 裁判双调用，返回 `reply` 与 `evaluation`。
+- `POST /api/hint`：返回 20 字以内心理健康沟通方向。
+- `POST /api/ending-summary`：返回关键句、叙事短评、心理沟通观察、技能 ID、下一步和安全边界。
+- `POST /api/chat-after`：携带真实结局上下文进行安全回访。
+
+前端字段使用 camelCase，后端 JSON 使用 snake_case；新增复盘字段均为可选，以兼容旧模型响应和旧浏览器存档。
+
+## 10. 验证边界
+
+代码层验证包括 Prompt 关键约束、JSON 解析与技能白名单、结局门槛、旧字段兼容、前端展示和保存恢复。自动化测试使用本地模拟模型服务，不代表任何真实模型在所有语言或危机表达下都能稳定遵守规则。真实模型、线上部署、成本、延迟和现实危机干预能力必须单独验证，不能用游戏结局替代。
+
+## 11. Provider 预设
 
 | 服务商 | 默认模型 | Base URL |
 | --- | --- | --- |
-| DeepSeek | `deepseek-flash`（V4.1 Flash） | `https://api.deepseek.com/v1` |
+| DeepSeek | `deepseek-flash` | `https://api.deepseek.com/v1` |
 | 千问 | `qwen3.7-plus` | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
 | 豆包 | `doubao-seed-2-1-lite-260915` | `https://ark.cn-beijing.volces.com/api/v3` |
 | Kimi | `kimi-k2.6` | `https://api.moonshot.cn/v1` |
@@ -59,12 +169,12 @@
 | OpenAI | `gpt-6-luna` | `https://api.openai.com/v1` |
 | Claude | `claude-sonnet-5-5` | `https://api.anthropic.com/v1` |
 
-DeepSeek、千问、Kimi K2.6 使用非思考模式，适合短对白和独立 JSON 裁判。
-Kimi 固定采样参数不传 temperature；K3/K2.7 要求保留思考历史，当前纯文本历史契约不支持，后端返回明确错误。
-GPT-6 移除 temperature，Luna/Sol 使用 none，其余使用 low 推理强度。
-GLM 5.3 始终思考，使用 low 并省略 temperature。Claude 5 移除 temperature，输出预算 8192 tokens。
+Provider 可用性、账户权限、模型版本和真实质量需要按运行环境单独核对；文档不保存 API Key。
 
-服务商预设是文档核对结果，并不保证每个账户有调用权限。豆包需开通相应 Model ID 或填写 ep- 接入点 ID；百炼 Key 和地址须匹配地域。
-玩家已有的 Key、自定义模型和地址继续保留，更新不会擅自改写浏览器配置。旧模型使用者请清空模型字段以采用新默认值，或选择新模型。
+## 12. 框架参考
 
-官方依据：[DeepSeek](https://api-docs.deepseek.com/quick_start/pricing/)、[千问](https://help.aliyun.com/zh/model-studio/text-generation-model/)、[豆包](https://docs.volcengine.com/docs/ark/model-release-announcement?lang=zh)、[Kimi 参数](https://platform.kimi.com/docs/api/models-overview)、[GLM 5.3](https://docs.bigmodel.cn/cn/guide/models/text/glm-5.3.md)、[GLM Flash](https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash.md)、[GPT-6](https://developers.openai.com/api/docs/guides/latest-model)、[Claude](https://platform.claude.com/docs/en/models/sonnet-5-5/overview)。
+- [WHO：Psychological first aid: Guide for field workers](https://www.who.int/publications/i/item/9789241548205)：PFA 的安全观察、倾听与连接原则。
+- [SAMHSA：Interagency Task Force on Trauma-Informed Care](https://www.samhsa.gov/mental-health/trauma-violence/trauma-informed-care)：创伤知情环境与避免再创伤的原则。
+- [SAMHSA：Finding Quality Treatment](https://www.samhsa.gov/find-support/learn-about-treatment/finding-quality-treatment)：将动机式访谈列为心理健康服务中的沟通/治疗方法之一。
+
+本项目只把这些框架转译为游戏内的可观察沟通行为和安全边界，不声称游戏具备临床评估、治疗或危机干预资质。

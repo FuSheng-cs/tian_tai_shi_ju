@@ -35,6 +35,10 @@ func TestBuildMainSystemPromptContainsSafetyBoundaries(t *testing.T) {
 		"说教",
 		"否定",
 		"不安全的环境",
+		"创伤知情原则",
+		"心理急救",
+		"选择权",
+		"心理健康分数",
 		"JSON",
 	} {
 		if !strings.Contains(prompt, item) {
@@ -78,6 +82,10 @@ func TestTurnEvaluationPromptDefinesTrustAndTwoEndings(t *testing.T) {
 		EvaluationAiStateLeaving,
 		EndingSafeExitType,
 		EndingRefusalType,
+		"PFA",
+		"MI/OARS",
+		"临床诊断",
+		"具体说出的内容",
 		"不额外扣除开口机会",
 	} {
 		if !strings.Contains(prompt, item) {
@@ -86,6 +94,68 @@ func TestTurnEvaluationPromptDefinesTrustAndTwoEndings(t *testing.T) {
 	}
 	if strings.Contains(prompt, `"affection_delta"`) {
 		t.Fatal("evaluation prompt still uses affection_delta")
+	}
+}
+
+func TestHintPromptUsesOperationalMentalHealthCommunicationFrameworks(t *testing.T) {
+	prompt := buildHintSystemPrompt()
+
+	for _, item := range []string{
+		"心理急救",
+		"观察—倾听—连接",
+		"动机式访谈",
+		"验证感受",
+		"保留选择",
+		"不作诊断",
+		"20 个汉字以内",
+	} {
+		if !strings.Contains(prompt, item) {
+			t.Fatalf("hint prompt is missing %q", item)
+		}
+	}
+}
+
+func TestEndingSummaryPromptDefinesPsychologicalReviewContract(t *testing.T) {
+	prompt := buildEndingSummarySystemPrompt()
+
+	for _, item := range []string{
+		"可观察的语言行为",
+		"创伤知情",
+		"心理急救",
+		"动机式访谈 OARS",
+		`"psychological_reading"`,
+		`"support_skills"`,
+		`"next_step"`,
+		`"safety_boundary"`,
+		ReviewSkillReflectiveListening,
+		ReviewSkillMissedSafetyCheck,
+		SafetyBoundaryUrgentSafety,
+		"不构成现实处置能力证明",
+	} {
+		if !strings.Contains(prompt, item) {
+			t.Fatalf("ending summary prompt is missing %q", item)
+		}
+	}
+}
+
+func TestParseEndingSummaryNormalizesPsychologicalReview(t *testing.T) {
+	got, err := parseEndingSummary(`{
+		"turning_line":"我听见你说的压力了",
+		"comment":"她愿意先走到安全的地方。",
+		"psychological_reading":"先复述压力，再把选择权还给她。",
+		"support_skills":["validation","reflective_listening","bad_skill","validation","open_question","autonomy_support","safety_linkage"],
+		"next_step":"和可信任的人一起确认下一步。",
+		"safety_boundary":"urgent_safety"
+	}`)
+	if err != nil {
+		t.Fatalf("parseEndingSummary returned error: %v", err)
+	}
+
+	if got.PsychologicalReading == "" || got.NextStep == "" || got.SafetyBoundary != SafetyBoundaryUrgentSafety {
+		t.Fatalf("unexpected psychological review fields: %#v", got)
+	}
+	if len(got.SupportSkills) != 4 || got.SupportSkills[0] != ReviewSkillValidation || got.SupportSkills[1] != ReviewSkillReflectiveListening {
+		t.Fatalf("skills should be filtered, deduplicated, and capped: %#v", got.SupportSkills)
 	}
 }
 

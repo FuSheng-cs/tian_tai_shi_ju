@@ -20,6 +20,8 @@ import {
   type EndingSummary,
   type GameState,
   type PersistedGameState,
+  type PsychologicalSupportSkill,
+  type SafetyBoundaryType,
   type TurnEvaluation
 } from '@/domain/gameState'
 
@@ -35,6 +37,31 @@ const buildLocalEndingComment = (endingType: EndingType | null) => {
   return '她不再回应，仍然拒绝离开天台。此刻需要联系可信任的成年人或专业支持。'
 }
 
+const buildLocalPsychologicalReview = (
+  endingType: EndingType | null
+): Pick<EndingSummary, 'psychologicalReading' | 'supportSkills' | 'nextStep' | 'safetyBoundary'> => {
+  if (endingType === ENDINGS.safeExit.type) {
+    return {
+      psychologicalReading: '本局出现了倾听、验证与共同寻找支持的互动线索；这不等于现实中的临床改善。',
+      supportSkills: [
+        'validation',
+        'autonomy_support',
+        'collaborative_next_step'
+      ] as PsychologicalSupportSkill[],
+      nextStep: '继续尊重她的选择，并和现实中的可信任支持者协作下一步。',
+      safetyBoundary: 'connect_support' as SafetyBoundaryType
+    }
+  }
+
+  return {
+    psychologicalReading: '本局没有形成足够的安全感与协作行动；拒绝离开不是对玩家的道德评分。',
+    // 本地兜底没有逐句心理沟通证据，不臆测玩家遗漏了哪一项技能。
+    supportSkills: [] as PsychologicalSupportSkill[],
+    nextStep: '现实中遇到类似危险时，优先联系可信任的成年人、专业人员或当地紧急服务。',
+    safetyBoundary: 'connect_support' as SafetyBoundaryType
+  }
+}
+
 const buildLocalEndingSummary = (state: GameState): EndingSummary => {
   const playerMessages = state.messages.filter((message) => message.role === 'user')
   const lastPlayerLine = playerMessages[playerMessages.length - 1]?.content
@@ -48,7 +75,8 @@ const buildLocalEndingSummary = (state: GameState): EndingSummary => {
     roundsUsed: countPlayerMessages(state.messages),
     trustGainCount: state.trustGainCount,
     turningLine: cleanSummaryLine(fallbackLine),
-    comment: buildLocalEndingComment(state.endingType)
+    comment: buildLocalEndingComment(state.endingType),
+    ...buildLocalPsychologicalReview(state.endingType)
   }
 }
 
@@ -237,18 +265,41 @@ export const useGameStore = defineStore('game', {
         | (Partial<EndingSummary> & Record<string, unknown>)
         | null
         | undefined
-      this.endingSummary = savedSummary
-        ? {
-            roundsUsed: savedSummary.roundsUsed ?? countPlayerMessages(this.messages),
-            trustGainCount:
-              savedSummary.trustGainCount ??
-              (typeof savedSummary.affectionBoostCount === 'number'
-                ? savedSummary.affectionBoostCount
-                : this.trustGainCount),
-            turningLine: cleanSummaryLine(savedSummary.turningLine),
-            comment: cleanSummaryLine(savedSummary.comment)
-          }
-        : null
+      if (!savedSummary) {
+        this.endingSummary = null
+      } else {
+        const restoredSummary: EndingSummary = {
+          roundsUsed: savedSummary.roundsUsed ?? countPlayerMessages(this.messages),
+          trustGainCount:
+            savedSummary.trustGainCount ??
+            (typeof savedSummary.affectionBoostCount === 'number'
+              ? savedSummary.affectionBoostCount
+              : this.trustGainCount),
+          turningLine: cleanSummaryLine(savedSummary.turningLine),
+          comment: cleanSummaryLine(savedSummary.comment)
+        }
+
+        const psychologicalReading = cleanSummaryLine(savedSummary.psychologicalReading)
+        const nextStep = cleanSummaryLine(savedSummary.nextStep)
+        const supportSkills = Array.isArray(savedSummary.supportSkills)
+          ? (savedSummary.supportSkills.filter(
+              (skill): skill is PsychologicalSupportSkill => typeof skill === 'string'
+            ) as PsychologicalSupportSkill[])
+          : []
+
+        if (psychologicalReading) restoredSummary.psychologicalReading = psychologicalReading
+        if (supportSkills.length > 0) restoredSummary.supportSkills = supportSkills
+        if (nextStep) restoredSummary.nextStep = nextStep
+        if (
+          savedSummary.safetyBoundary === 'fictional_only' ||
+          savedSummary.safetyBoundary === 'connect_support' ||
+          savedSummary.safetyBoundary === 'urgent_safety'
+        ) {
+          restoredSummary.safetyBoundary = savedSummary.safetyBoundary
+        }
+
+        this.endingSummary = restoredSummary
+      }
     },
     async generateEndingSummary() {
       if (!this.isEnding) return null
@@ -269,7 +320,15 @@ export const useGameStore = defineStore('game', {
         summary = {
           ...fallbackSummary,
           turningLine: cleanSummaryLine(aiSummary?.turningLine) || fallbackSummary.turningLine,
-          comment: cleanSummaryLine(aiSummary?.comment) || fallbackSummary.comment
+          comment: cleanSummaryLine(aiSummary?.comment) || fallbackSummary.comment,
+          psychologicalReading:
+            cleanSummaryLine(aiSummary?.psychologicalReading) || fallbackSummary.psychologicalReading,
+          supportSkills:
+            aiSummary?.supportSkills?.length
+              ? aiSummary.supportSkills
+              : fallbackSummary.supportSkills,
+          nextStep: cleanSummaryLine(aiSummary?.nextStep) || fallbackSummary.nextStep,
+          safetyBoundary: aiSummary?.safetyBoundary || fallbackSummary.safetyBoundary
         }
       } catch (e) {
         console.error('Failed to generate ending summary:', e)
