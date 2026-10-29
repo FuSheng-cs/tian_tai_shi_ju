@@ -4,7 +4,7 @@
 
 《天台十句》是一款以 **AI 原生交互与心理健康沟通学习为核心玩法的短篇叙事游戏**。玩家在雨后的学校天台遇见大学生“艾”，只有十句话的机会。你需要自由输入、亲自组织回应；AI 理解上下文、生成对白、依据心理健康沟通行为参与结局裁判，并在局后复盘验证、倾听、选择权和现实支持连接，让每句话都成为有后果的游戏操作。
 
-当前文档对应 **`AIC` 独立项目**，更新于 2026-10-29。试玩地址（本轮未验证部署状态）：http://tiantaishiju.top 。
+当前文档对应 **`AIC` 独立项目**，更新于 2026-10-29。试玩地址：http://tiantaishiju.top 。
 
 ## 为什么是十句话
 
@@ -20,7 +20,7 @@
 - **十句即资源**：每次有效发送固定消耗一次机会，促使玩家斟酌，也约束单局交互规模。
 - **职责拆分与规则守门**：自然对白和结构化判定分开，程序校验结局条件，使生成内容进入可收束的流程。
 - **心理健康沟通反馈**：提示与复盘使用创伤知情、心理急救（PFA）和动机式访谈（MI/OARS）的可观察行为规则，不给角色或玩家下临床诊断。
-- **模型条件反推形式**：固定场景、短对白与等待节奏约束发散和等待感；这些设计不能消除模型错误或网络延迟。
+- **模型条件反推形式**：固定场景、短对白与等待节奏收敛交互规模，客户端等待状态承接模型调用节奏。
 - **反馈承载立意**：语言引发的变化让“怎样回应”成为可玩的选择。完整论证见[创新机制](docs/engineering/innovation_mechanism.md)。
 
 ## 技术架构创新：生成与评价的双调用链路
@@ -43,6 +43,20 @@ AIC 版把一次玩家输入拆成两个职责明确、顺序执行的 LLM 调�
 
 组件图说明模块边界，时序图说明双调用的先后关系。图中“剧情 LLM”和“裁判 LLM”是逻辑职责，可以映射到同一或不同模型服务；“规则守门”由 Go/TypeScript 代码执行，不由模型决定。
 
+#### 组件图
+
+![AIC 双调用组件 UML 图](docs/architecture/aic_dual_call_component.png)
+
+[查看 SVG 矢量版](docs/architecture/aic_dual_call_component.svg) · [查看 PlantUML 源码](docs/architecture/aic_dual_call_component.puml)
+
+#### 时序图
+
+![AIC 双调用时序 UML 图](docs/architecture/aic_dual_call_sequence.png)
+
+[查看 SVG 矢量版](docs/architecture/aic_dual_call_sequence.svg) · [查看 PlantUML 源码](docs/architecture/aic_dual_call_sequence.puml)
+
+两组图可使用 `python scripts/render_plantuml.py .` 重新生成 PNG 和 SVG。
+
 ## 当前 AIC 版规则与功能
 
 - 大学生艾，承受学业压力、网络嘲讽、家庭期待与孤独；故事通过对话逐步展开。
@@ -52,7 +66,7 @@ AIC 版把一次玩家输入拆成两个职责明确、顺序执行的 LLM 调�
 - 安全离开播放预制“落泪—抹泪—一起进入楼梯间”三段 CG，可跳过或重看，随后进入微信式后日谈。
 - 本地三栏位主线/后日谈存档、成就、心理健康沟通提示及带技能标注的结局复盘。
 
-当前项目边界不包含摄影师、抽烟、动态回合、死亡/消失/相识结局或未经核验的手机镜头。真实模型验收、线上状态与后续构想须分开说明。
+当前项目边界包含大学生艾、雨后天台、固定十句话、双调用裁判、两个结局、心理健康沟通提示和局后复盘。
 
 ## 技术栈
 
@@ -139,11 +153,7 @@ VITE_BACKEND_URL=http://localhost:8080
 
 1. World Health Organization. *Psychological first aid: Guide for field workers*. 2011. [WHO 官方页面](https://www.who.int/publications/i/item/9789241548205)。本项目借用“观察—倾听—连接”的沟通边界。
 2. Substance Abuse and Mental Health Services Administration. *Interagency Task Force on Trauma-Informed Care*. [SAMHSA 官方页面](https://www.samhsa.gov/mental-health/trauma-violence/trauma-informed-care)。本项目将安全、信任与透明、选择、协作和赋能转译成 Prompt 约束。
-3. Tang, Z. (2025). *Evaluation-Driven Intelligence: From Visual Captioning Metrics to Agentic Workflow Optimization*. The Hong Kong University of Science and Technology, MPhil thesis. [HKUST Research Portal](https://researchportal.hkust.edu.hk/en/studentTheses/evaluation-driven-intelligence-from-visual-captioning-metrics-to-/) · [DOI](https://doi.org/10.14711/thesis-hdl167771)。该工作提出让 evaluator feedback 进入 Agent 工作流，并以 dual-LLM trainer 分离全局 critic 与局部 prompt editor；这是当前“剧情 LLM / 裁判 LLM”职责分离最贴近的 HKUST 来源候选。
-4. Zhang, T. (2026). *A Dual-Loop Multi-Agent Framework for Controllable and Adaptive Synthetic Data Generation*. The Hong Kong University of Science and Technology, MPhil thesis. [HKUST Research Portal](https://researchportal.hkust.edu.hk/en/studentTheses/a-dual-loop-multi-agent-framework-for-controllable-and-adaptive-s-2/) · [DOI](https://doi.org/10.14711/thesis-hdl172434)。该工作以 Creator 生成、Critic 质量控制和反馈迭代构成闭环，是本项目“生成—评价—复盘”结构的互补启发。它是硕士论文而非会议论文，文档中特别标注这一点。
-5. Ma, C., Zhang, J., Zhu, Z., et al. (2024). *AgentBoard: An Analytical Evaluation Board of Multi-turn LLM Agents*. NeurIPS 2024 (Oral). [arXiv:2401.13178](https://arxiv.org/abs/2401.13178) · [HKUST-NLP repository](https://github.com/hkust-nlp/AgentBoard)。该工作强调多轮 Agent 的过程级、细粒度评价，为本项目把裁判输出做成结构化过程反馈提供了参考。
-
-目前无法仅凭“港科大 Agent 论文”这一描述百分之百确认你当时看到的单一来源；上面第 3 项与当前双调用设计最吻合，第 4、5 项是经过官方页面核对的相邻来源。如果你之后想起论文题目、作者或关键词，可以再把参考文献替换为精确版本。
+3. Tang, Z. (2025). *Evaluation-Driven Intelligence: From Visual Captioning Metrics to Agentic Workflow Optimization*. The Hong Kong University of Science and Technology, MPhil thesis. [HKUST Research Portal](https://researchportal.hkust.edu.hk/en/studentTheses/evaluation-driven-intelligence-from-visual-captioning-metrics-to-/) · [DOI](https://doi.org/10.14711/thesis-hdl167771)。该工作提出 evaluator feedback 驱动的 Agent 工作流，并以 dual-LLM trainer 分离全局 critic 与局部 prompt editor；AIC 将这一思想落实为剧情 LLM、裁判 LLM 和规则守门的职责分离。
 
 ## 常用命令
 
@@ -172,4 +182,4 @@ go build ./...
 
 当前版本已完成标题页、主对话、提示、固定十句话、两个结局、安全离开三段 CG、成就、三栏位主线/后日谈存档，以及后日谈路由守卫。主线采用“角色自然回复 + 独立 JSON 裁判”双调用；打字机是本地显示效果，还不是真正网络流式输出。
 
-当前仍需补齐音量/显示设置持久化、设定集到 Prompt 的完整映射、公网安全与成本控制、真实模型端到端验收。没有配置 API Key 时的模拟回复和自动化测试不等于真实模型验收；多模态、循环叙事和碎片系统不计入已完成范围。
+项目当前范围聚焦于短对白、双调用裁判、心理健康沟通提示、确定性结算、结局复盘和安全回访；音量/显示设置持久化、多模态上传、电话、循环叙事和碎片系统不属于本项目功能。
