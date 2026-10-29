@@ -4,7 +4,7 @@
 
 《天台十句》是一款以 **AI 原生交互与心理健康沟通学习为核心玩法的短篇叙事游戏**。玩家在雨后的学校天台遇见大学生“艾”，只有十句话的机会。你需要自由输入、亲自组织回应；AI 理解上下文、生成对白、依据心理健康沟通行为参与结局裁判，并在局后复盘验证、倾听、选择权和现实支持连接，让每句话都成为有后果的游戏操作。
 
-当前文档对应 **`AIC` 竞赛分支**，更新于 2026-10-29。试玩地址（本轮未验证部署状态）：http://tiantaishiju.top 。
+当前文档对应 **`AIC` 独立项目**，更新于 2026-10-29。试玩地址（本轮未验证部署状态）：http://tiantaishiju.top 。
 
 ## 为什么是十句话
 
@@ -52,7 +52,7 @@ AIC 版把一次玩家输入拆成两个职责明确、顺序执行的 LLM 调�
 - 安全离开播放预制“落泪—抹泪—一起进入楼梯间”三段 CG，可跳过或重看，随后进入微信式后日谈。
 - 本地三栏位主线/后日谈存档、成就、心理健康沟通提示及带技能标注的结局复盘。
 
-摄影师、抽烟、返还回合、死亡/消失/相识三个结局属于历史版本。手机“输入求助又删除”是答辩镜头设想，未经核验不能当作已实现游戏开场。真实模型验收、线上状态与后续构想须分开说明。
+当前项目边界不包含摄影师、抽烟、动态回合、死亡/消失/相识结局或未经核验的手机镜头。真实模型验收、线上状态与后续构想须分开说明。
 
 ## 技术栈
 
@@ -129,11 +129,9 @@ VITE_BACKEND_URL=http://localhost:8080
 - [游戏设定集](docs/product/game_setting_bible.md)
 - [技术文档](docs/engineering/technical_overview.md)
 - [AIC Prompt 与 AI × 心理健康沟通规范](docs/engineering/prompts_and_settings.md)
-- [文档与 Prompt 一致性审查](docs/engineering/document_prompt_audit_2026-06-29.md)
 - [项目状态与待办](docs/STATUS.md)
-- [分支整合与验证记录](docs/engineering/integration_2026-09-15.md)
-- [AIC 竞赛分支说明](docs/submission/branch-aic.md)
-- [AIC 竞赛版更改说明](docs/submission/change-log-aic.md)
+- [AIC 独立项目说明](docs/submission/project-aic.md)
+- [AIC 独立项目变更记录](docs/submission/change-log-aic.md)
 
 ## 参考文献与架构启发
 

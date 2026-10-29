@@ -1,6 +1,6 @@
 # 天台十句 · Vue 客户端
 
-`legacy_vue` 是当前实际使用的主前端，不是待废弃的旧实现。
+`legacy_vue` 是 AIC 独立项目的主前端。
 
 ## 运行与验证
 
@@ -22,7 +22,7 @@ Web 首页及移动布局、主线自由对话、独立裁判、固定十句话�
 
 玩家可自带模型 Key；无 Key 时使用服务器配置；两侧均无 Key 时只提供标注的模拟演示。Key 会从浏览器经后端传给服务商。模型配置已持久化，音量/显示设置刷新恢复仍待实现。
 
-当前没有网络流式、多模态上传或 v2 碎片/循环系统。虚构结局不是现实危机处置指导，暂时离开栏杆不代表治愈。
+当前没有网络流式、多模态上传、电话或循环系统。虚构结局不是现实危机处置指导，暂时离开栏杆不代表治愈。
 
 ## 文档入口
 
@@ -30,4 +30,5 @@ Web 首页及移动布局、主线自由对话、独立裁判、固定十句话�
 - [当前状态与待办](../docs/STATUS.md)
 - [技术说明](../docs/engineering/technical_overview.md)
 - [人物与叙事正典](../docs/product/game_setting_bible.md)
-- [整合与验证](../docs/engineering/integration_2026-09-15.md)
+- [项目状态](../docs/STATUS.md)
+- [AIC UML 架构图](../docs/architecture/aic_dual_call_component.puml)

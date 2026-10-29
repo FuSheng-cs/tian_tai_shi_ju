@@ -1,6 +1,6 @@
 # AIC 竞赛版技术文档
 
-> 更新：2026-10-29（AIC AI × 心理健康沟通特化）。以可执行代码为准；Prompt 与复盘字段见 [AIC Prompt 规范](prompts_and_settings.md)，待办见 [项目状态](../STATUS.md)。历史审查不等于当前缺陷清单。
+> 更新：2026-10-29（AIC 独立项目，AI × 心理健康沟通特化）。以可执行代码为准；Prompt 与复盘字段见 [AIC Prompt 规范](prompts_and_settings.md)，状态见 [项目状态](../STATUS.md)。
 
 ## 1. 工程结构
 
@@ -77,7 +77,7 @@
 
 ESLint 使用 eslint.config.mjs 的 flat config，保留 Vue essential、TypeScript recommended 和禁止显式 any；格式检查与逻辑 lint 分离，不做全仓库格式重写。迁移依据：[ESLint 官方指南](https://eslint.org/docs/latest/use/configure/migration-guide)。
 
-测试涵盖状态结算、存档校验、API 转换、路由、成就、机会显示、开场/安全离开演出、后日谈和首页整合回归。数量、截图及限制见本次整合记录；旧文档“2 文件/4 用例”已过时。
+测试涵盖状态结算、存档校验、API 转换、路由、成就、机会显示、开场/安全离开演出、后日谈、心理沟通复盘和首页回归。
 
 ## 7. 部署边界
 

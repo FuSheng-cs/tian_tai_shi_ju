@@ -1,6 +1,6 @@
 # AIC 竞赛版《天台十句》Prompt 与 AI × 心理健康沟通规范
 
-> 更新：2026-10-29 · 当前分支 `AIC`。本文替代旧版《Prompt 与接口》说明，是后端 Prompt、API 字段和心理健康沟通复盘的当前事实源。最终行为以 `backend/llm/service.go`、`backend/handlers/game.go` 和前端状态契约为准。
+> 更新：2026-10-29 · AIC 独立项目 Prompt 规范。本文是后端 Prompt、API 字段和心理健康沟通复盘的当前事实源。最终行为以 `backend/llm/service.go`、`backend/handlers/game.go` 和前端状态契约为准。
 
 ## 1. 竞赛定位
 
