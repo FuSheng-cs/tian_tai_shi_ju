@@ -1,82 +1,58 @@
 @startuml AIC_Dual_Call_Sequence
-title 《天台十句》AIC 一轮交互时序图
+title 《天台十句》AIC · 主回合双调用\n<size:14>UML 时序图 · 剧情生成 → 结构化评价 → 程序结算</size>
 
-autonumber "<b>[000]"
-
-skinparam shadowing false
+hide footbox
+autonumber "<b>00</b>"
 skinparam backgroundColor #FFFFFF
-skinparam sequence {
-  ArrowColor #334155
-  LifeLineBorderColor #64748B
-  LifeLineBackgroundColor #F8FAFC
-  ParticipantBorderColor #334155
-  ParticipantBackgroundColor #F1F5F9
-  ParticipantFontColor #0F172A
-  ActorBorderColor #334155
-  ActorBackgroundColor #E0F2FE
-  BoxBorderColor #64748B
-  BoxBackgroundColor #F8FAFC
-}
+skinparam shadowing false
 skinparam defaultFontName "Microsoft YaHei"
+skinparam defaultFontSize 16
+skinparam titleFontSize 22
+skinparam CaptionFontSize 14
+skinparam sequenceArrowColor #475569
+skinparam sequenceArrowThickness 1.2
+skinparam sequenceArrowFontSize 16
+skinparam sequenceLifeLineBorderColor #CBD5E1
+skinparam sequenceParticipantBorderColor #64748B
+skinparam sequenceParticipantFontColor #172B4D
+skinparam sequenceGroupBorderColor #CBD5E1
+skinparam sequenceGroupBackgroundColor #FFFFFF
+skinparam sequenceGroupHeaderFontSize 16
+skinparam sequenceMessageAlign left
+skinparam BoxPadding 12
+skinparam Padding 12
 
-actor "玩家" as Player
-participant "GameView" as View
-participant "gameStore" as Store
-participant "LLMService" as Client
-participant "Gin Chat Handler" as Handler
-participant "角色生成 LLM" as Role
-participant "独立裁判 LLM" as Judge
-participant "规则守门" as Gate
-participant "前端状态机" as State
+participant "主线客户端\nVue / Pinia" as Client #F0F5FB
+participant "回合编排\nGo / Gin" as Chat #EAF1FB
+participant "剧情 LLM\n自然对白" as Story #EBF5F3
+participant "裁判 LLM\n结构化评价" as Judge #F1EFF9
 
-Player -> View : 输入自由语言
-View -> Store : sendMessage(userMessage)
-Store -> Store : 记录本句\nroundCount -= 1
-Store -> Client : POST /api/chat\n历史 + 状态 + 本句
-Client -> Handler : HTTP 请求
+Client -> Client : 记录本句，消耗 1 次机会
+Client -> Chat : POST /api/chat\n本句 + 历史 + 状态
+activate Chat
 
-activate Handler
-Handler -> Role : system Prompt\n角色事实 + 安全边界
-Role --> Handler : 自然对白 assistant_reply
-Handler -> Judge : system Prompt + payload\n历史、本句、assistant_reply、状态
-Judge --> Handler : JSON evaluation\nemotion / ai_state / trust / pressure / ending
-Handler -> Gate : normalizeEvaluation()
-activate Gate
-Gate -> Gate : 先扣 pressure_delta\n再加 trust_delta
-Gate -> Gate : 校验 trust=15、离开动作、机会耗尽
-Gate --> Handler : 确定性 ChatResponse
-deactivate Gate
-Handler --> Client : reply + evaluation
-deactivate Handler
-
-Client -> State : normalize response
-State -> State : 更新信任、姿态、情绪\n必要时拦截低信任结局
-State --> View : 对白、状态、结局演出
-
-opt 请求方向提示
-  Player -> View : 点击“寻找线索”
-  View -> Client : POST /api/hint
-  Client -> Handler : history
-  Handler -> Judge : PFA + MI/OARS hint Prompt
-  Judge --> Handler : 20 字以内方向
-  Handler --> Client : hint
-  Client --> View : 显示提示
+group ① 剧情生成
+  Chat -> Story : 角色 Prompt + 完整历史 + 本句
+  activate Story
+  Story --> Chat : 自然对白 reply
+  deactivate Story
+  Chat -> Chat : 清洗对白中的机制标签
 end
 
-opt 结局后的心理沟通复盘
-  State -> Client : POST /api/ending-summary
-  Client -> Handler : 完整对话 + ending_type + 统计
-  Handler -> Judge : 复盘 Prompt\n可观察行为 rubric
-  Judge --> Handler : turning_line +\npsychological_reading + skills + boundary
-  Handler --> Client : EndingSummaryResponse
-  Client --> View : AI × 心理健康沟通复盘卡片
+group ② 独立评价
+  Chat -> Judge : 裁判 Prompt + 本句 + reply\n最近 4 条历史 + 状态
+  activate Judge
+  Judge --> Chat : evaluation JSON\n情绪 · 姿态 · 信任 · 压力 · 结局
+  deactivate Judge
 end
 
-note over Role,Judge
-两次调用是“生成 / 评价”的职责拆分。
-它提升可审计性与程序可控性，
-但不构成两个模型独立验证真相。
-end note
+group ③ 程序校验与结算
+  Chat -> Chat : 解析 JSON、归一化字段\n按结算信任拦截低信任离开
+  Chat --> Client : reply + evaluation
+  deactivate Chat
+  Client -> Client : 先扣信任损耗，再加信任\n更新姿态、情绪与结局\n十句耗尽时执行结局兜底
+end
 
+caption 离开行动由裁判按叙事判断；信任门槛由程序校验。\n提示与复盘分别通过 /api/hint 和 /api/ending-summary 调用。
 @enduml
 

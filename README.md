@@ -38,10 +38,10 @@ AIC 版把一次玩家输入拆成两个职责明确、顺序执行的 LLM 调�
 
 仓库提供两张可编辑的 UML 源图，使用 PlantUML 渲染：
 
-- [组件图：前端、后端、剧情 LLM、裁判 LLM 与规则守门](docs/architecture/aic_dual_call_component.puml)
-- [时序图：一轮对话、提示和结局复盘](docs/architecture/aic_dual_call_sequence.puml)
+- [组件图：客户端、回合编排、剧情 LLM、裁判 LLM 与程序守门](docs/architecture/aic_dual_call_component.puml)
+- [时序图：主回合的剧情生成、独立评价与程序结算](docs/architecture/aic_dual_call_sequence.puml)
 
-组件图说明模块边界，时序图说明双调用的先后关系。图中“剧情 LLM”和“裁判 LLM”是逻辑职责，可以映射到同一或不同模型服务；“规则守门”由 Go/TypeScript 代码执行，不由模型决定。
+组件图展示主回合的组件依赖，时序图展示两次模型调用与前后端结算的先后关系。剧情与裁判使用同一份模型配置，通过各自的 Prompt 和响应契约区分职责；离开行动由裁判按叙事判断，信任门槛由程序校验。提示、复盘与安全回访通过独立 API 入口调用。
 
 #### 组件图
 
@@ -55,7 +55,7 @@ AIC 版把一次玩家输入拆成两个职责明确、顺序执行的 LLM 调�
 
 [查看 SVG 矢量版](docs/architecture/aic_dual_call_sequence.svg) · [查看 PlantUML 源码](docs/architecture/aic_dual_call_sequence.puml)
 
-两组图可使用 `python scripts/render_plantuml.py .` 重新生成 PNG 和 SVG。
+两组图可使用 `python scripts/render_plantuml.py .` 重新生成 PNG 和 SVG；使用 `python scripts/render_plantuml.py . --check` 检查两种格式的画布一致性与渲染诊断。修改源图后，需打开 PNG 和 SVG，以正文宽度检查文字、连线、边界和裁剪。
 
 ## 当前 AIC 版规则与功能
 

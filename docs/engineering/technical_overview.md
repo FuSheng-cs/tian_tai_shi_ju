@@ -40,7 +40,7 @@
 - [AIC 双调用组件图](../architecture/aic_dual_call_component.puml)
 - [AIC 双调用时序图](../architecture/aic_dual_call_sequence.puml)
 
-这套结构参考了评估驱动 Agent 工作流中的 evaluator feedback、Creator–Critic 反馈闭环和多轮 Agent 过程评价思想；本项目只采用架构原则，不复现论文中的训练、优化或实验结论。具体书目见根目录 README 的[参考文献与架构启发](../../README.md#参考文献与架构启发)。
+这套结构参考《Evaluation-Driven Intelligence》的 evaluator feedback 与模块职责分离思想，将其映射到剧情生成、独立评价和程序规则校验。具体书目见根目录 README 的[参考文献与架构启发](../../README.md#参考文献与架构启发)。
 
 ## 3. API 与 Prompt
 
@@ -83,6 +83,6 @@ ESLint 使用 eslint.config.mjs 的 flat config，保留 Vue essential、TypeScr
 
 默认后端 8080、Vite 开发 5173；开发配置 VITE_BACKEND_URL，生产可同源代理 /api/*。刷新子路由需要 SPA history fallback。
 
-部署配置包含限流、认证、服务端会话、调用预算和自定义 Base URL 安全策略；玩家 Key 会经过后端及模型服务，应使用 HTTPS，不提交环境文件、真实密钥或敏感原始日志。
+部署建设项为限流、认证、服务端会话、调用预算和自定义 Base URL 安全策略，见[项目状态的下一阶段](../STATUS.md#下一阶段)。玩家 Key 会经过后端及模型服务，部署使用 HTTPS，环境文件、真实密钥和敏感原始日志留在本地配置环境。
 
 本地单测和构建覆盖代码契约与程序行为；线上运行由部署环境与真实模型配置共同决定。

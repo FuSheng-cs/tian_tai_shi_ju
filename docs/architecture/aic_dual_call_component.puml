@@ -1,89 +1,52 @@
 @startuml AIC_Dual_Call_Component
-title 《天台十句》AIC 双调用链路组件图
+title 《天台十句》AIC · 双调用架构\n<size:14>UML 组件图 · 主回合的逻辑职责与依赖</size>
 
-left to right direction
-skinparam shadowing false
+top to bottom direction
 skinparam backgroundColor #FFFFFF
-skinparam componentStyle rectangle
-skinparam packageStyle rectangle
-skinparam linetype ortho
+skinparam shadowing false
 skinparam defaultFontName "Microsoft YaHei"
-skinparam component {
-  BackgroundColor #F7FAFC
-  BorderColor #334155
-  FontColor #0F172A
-}
-skinparam package {
-  BackgroundColor #F8FAFC
-  BorderColor #64748B
-  FontColor #0F172A
-}
-skinparam database {
-  BackgroundColor #ECFDF5
-  BorderColor #047857
-}
-skinparam cloud {
-  BackgroundColor #EFF6FF
-  BorderColor #2563EB
-}
+skinparam defaultFontSize 17
+skinparam titleFontSize 22
+skinparam CaptionFontSize 14
+skinparam ArrowColor #64748B
+skinparam ArrowThickness 1.3
+skinparam ArrowFontSize 15
+skinparam componentStyle uml2
+skinparam componentBorderColor #64748B
+skinparam componentFontColor #172B4D
+skinparam componentBackgroundColor #F8FAFC
+skinparam componentFontSize 17
+skinparam packageStyle frame
+skinparam packageBorderColor #CBD5E1
+skinparam packageFontColor #334155
+skinparam packageFontSize 16
+skinparam packageBackgroundColor #FFFFFF
+skinparam padding 14
+skinparam nodesep 36
+skinparam ranksep 36
 
-actor "玩家" as Player
-
-package "legacy_vue 前端" as Frontend {
-  component "GameView\n自由输入 / 状态反馈" as GameView
-  component "gameStore\n机会、信任、姿态、结局状态机" as Store
-  component "LLMService\nAPI 序列化与响应归一化" as Client
-  component "SaveSystem\nCRC32 本地存档" as Save
+package "浏览器 · Vue 3 / Pinia" {
+  component "主线客户端\n<size:14>GameView / gameStore / LLMService</size>\n\n自由输入 · 机会计数\n响应归一化 · 信任结算\n状态 / CG / 结局反馈" as Client #F0F5FB
 }
 
-package "backend Go / Gin" as Backend {
-  component "Chat Handler\n请求校验与配置选择" as Handler
-  component "LLM Service\n调用编排器" as Orchestrator
-  component "角色生成 LLM\nbuildMainSystemPrompt()\n自然对白" as RoleLLM
-  component "独立裁判 LLM\nbuildTurnEvaluationSystemPrompt()\n结构化评价 JSON" as JudgeLLM
-  component "提示 / 复盘 LLM\nPFA + MI/OARS Prompt" as SupportLLM
-  component "规则守门\n字段归一化 · 信任结算 · 结局门槛" as Gate
+package "后端 · Go / Gin" {
+  component "回合编排\n<size:14>HandleChat → llm.Chat()</size>\n\n组织两次顺序调用\n清洗对白 · 组装响应" as Chat #EAF1FB
+
+  together {
+    component "剧情 LLM\n<size:14>buildMainSystemPrompt()</size>\n\n角色事实 + 完整历史\n生成自然对白" as Story #EBF5F3
+    component "裁判 LLM\n<size:14>EvaluateTurn()</size>\n\n本句 + 对白 + 最近历史\n生成 evaluation JSON" as Judge #F1EFF9
+    component "程序守门\n<size:14>parseTurnEvaluation()</size>\n<size:14>enforceSafeExitTrust()</size>\n\n字段归一化\n信任门槛校验" as Gate #FFF4E6
+  }
+
+  Story -[hidden]right-> Judge
+  Judge -[hidden]right-> Gate
 }
 
-cloud "模型服务商\nOpenAI-compatible / Anthropic" as Providers
-database "浏览器 LocalStorage\n主线 / 后日谈 / 成就" as Storage
+Client -down-> Chat : POST /api/chat
+Chat ..> Story : ① 剧情生成
+Chat ..> Judge : ② 沟通评价
+Chat ..> Gate : ③ 规则校验
 
-Player --> GameView : 输入一句话 / 请求提示
-GameView --> Store : action
-Store --> Client : chat / hint / ending-summary
-Store --> Save : 保存与读取
-Save --> Storage
-
-Client --> Handler : HTTP /api/*
-Handler --> Orchestrator : 结构化请求
-Orchestrator --> RoleLLM : ① 生成自然对白
-RoleLLM --> Orchestrator : assistant_reply
-Orchestrator --> JudgeLLM : ② 评价本句 + 角色回复
-JudgeLLM --> Orchestrator : evaluation JSON
-Orchestrator --> Gate : 归一化与确定性守门
-Gate --> Handler : ChatResponse
-Handler --> Client : reply + evaluation
-Client --> Store : 归一化状态
-Store --> GameView : 对白 / 情绪 / 状态 / 结局
-
-Handler --> SupportLLM : /api/hint\n/api/ending-summary\n/api/chat-after
-SupportLLM --> Handler : hint / review / follow-up
-Orchestrator --> Providers
-SupportLLM --> Providers
-
-note right of JudgeLLM
-逻辑职责独立于角色生成：
-不直接改写对白，只输出
-可审计的结构化评价。
-可与角色调用使用同一或不同
-模型服务商；不等于双模型真相验证。
-end note
-
-note bottom of Gate
-程序不把模型输出当作最终事实：
-先归一化字段，再执行信任结算、
-低信任拦截和机会耗尽兜底结局。
-end note
-
+caption 实线：HTTP 调用；虚线：组件依赖。调用次序见时序图。\n剧情与裁判使用同一 ClientConfig；提示、复盘与安全回访使用独立入口。
 @enduml
 
