@@ -1,0 +1,82 @@
+@startuml AIC_Dual_Call_Sequence
+title 《天台十句》AIC 一轮交互时序图
+
+autonumber "<b>[000]"
+
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam sequence {
+  ArrowColor #334155
+  LifeLineBorderColor #64748B
+  LifeLineBackgroundColor #F8FAFC
+  ParticipantBorderColor #334155
+  ParticipantBackgroundColor #F1F5F9
+  ParticipantFontColor #0F172A
+  ActorBorderColor #334155
+  ActorBackgroundColor #E0F2FE
+  BoxBorderColor #64748B
+  BoxBackgroundColor #F8FAFC
+}
+skinparam defaultFontName "Microsoft YaHei"
+
+actor "玩家" as Player
+participant "GameView" as View
+participant "gameStore" as Store
+participant "LLMService" as Client
+participant "Gin Chat Handler" as Handler
+participant "角色生成 LLM" as Role
+participant "独立裁判 LLM" as Judge
+participant "规则守门" as Gate
+participant "前端状态机" as State
+
+Player -> View : 输入自由语言
+View -> Store : sendMessage(userMessage)
+Store -> Store : 记录本句\nroundCount -= 1
+Store -> Client : POST /api/chat\n历史 + 状态 + 本句
+Client -> Handler : HTTP 请求
+
+activate Handler
+Handler -> Role : system Prompt\n角色事实 + 安全边界
+Role --> Handler : 自然对白 assistant_reply
+Handler -> Judge : system Prompt + payload\n历史、本句、assistant_reply、状态
+Judge --> Handler : JSON evaluation\nemotion / ai_state / trust / pressure / ending
+Handler -> Gate : normalizeEvaluation()
+activate Gate
+Gate -> Gate : 先扣 pressure_delta\n再加 trust_delta
+Gate -> Gate : 校验 trust=15、离开动作、机会耗尽
+Gate --> Handler : 确定性 ChatResponse
+deactivate Gate
+Handler --> Client : reply + evaluation
+deactivate Handler
+
+Client -> State : normalize response
+State -> State : 更新信任、姿态、情绪\n必要时拦截低信任结局
+State --> View : 对白、状态、结局演出
+
+opt 请求方向提示
+  Player -> View : 点击“寻找线索”
+  View -> Client : POST /api/hint
+  Client -> Handler : history
+  Handler -> Judge : PFA + MI/OARS hint Prompt
+  Judge --> Handler : 20 字以内方向
+  Handler --> Client : hint
+  Client --> View : 显示提示
+end
+
+opt 结局后的心理沟通复盘
+  State -> Client : POST /api/ending-summary
+  Client -> Handler : 完整对话 + ending_type + 统计
+  Handler -> Judge : 复盘 Prompt\n可观察行为 rubric
+  Judge --> Handler : turning_line +\npsychological_reading + skills + boundary
+  Handler --> Client : EndingSummaryResponse
+  Client --> View : AI × 心理健康沟通复盘卡片
+end
+
+note over Role,Judge
+两次调用是“生成 / 评价”的职责拆分。
+它提升可审计性与程序可控性，
+但不构成两个模型独立验证真相。
+end note
+
+@enduml
+

@@ -17,12 +17,14 @@
 - [游戏设定集](product/game_setting_bible.md)：人物与伦理正典；设计要求不等于已经进入代码。
 
 - [创新机制论证](engineering/innovation_mechanism.md)：每项机制如何承载“斟酌每一句话”。
-- [来源与事实边界](submission/source_notes.md)：匿名真实缘起、虚构改编、外部数据及证据标记。
+- [外部来源与事实边界](submission/source_notes.md)：外部数据、证据标记与虚构内容边界。
 
 ## 工程与资源
 
 - [技术说明](engineering/technical_overview.md)
 - [AIC Prompt 与 AI × 心理健康沟通规范](engineering/prompts_and_settings.md)
+- [AIC UML 组件图](architecture/aic_dual_call_component.puml)
+- [AIC UML 时序图](architecture/aic_dual_call_sequence.puml)
 - [统一游戏 CG 清单](art_review_2026-07-31/unified_game_cg_manifest.md)
 - [image2 资源与候选清单](art_review_2026-07-31/unified_image2_manifest.md)
 

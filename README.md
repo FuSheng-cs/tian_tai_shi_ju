@@ -12,12 +12,6 @@
 
 作品希望观众关注困境中的人，思考怎样认真听、怎样具体回应。紧张、犹豫和表达构成游戏体验；它没有一套保证通关的安慰台词，也不把十句规则当作现实支持的期限。
 
-## 创作缘起
-
-创作缘起基于创作者身边同学转述的真实经历：一位实习老师曾流露自己承受的压力，后来去世。这段经历留下一个问题：当一个人试着开口时，我们可以怎样认真回应？
-
-公开材料匿名处理，不补写学校考核等未经证实的细节，不把一句安慰归因为死亡原因，不责怪当时的听者。大学生艾、天台、具体压力与对白属于虚构创作。[来源与事实边界](docs/submission/source_notes.md)说明了真实缘起与改编的关系。
-
 ## AI 原生机制：让自由语言进入游戏规则
 
 **自由输入 → 角色模型回应 → 独立 JSON 裁判 → 前后端程序守门 → 对白 / 状态 / CG / 结局反馈。**
@@ -28,6 +22,26 @@
 - **心理健康沟通反馈**：提示与复盘使用创伤知情、心理急救（PFA）和动机式访谈（MI/OARS）的可观察行为规则，不给角色或玩家下临床诊断。
 - **模型条件反推形式**：固定场景、短对白与等待节奏约束发散和等待感；这些设计不能消除模型错误或网络延迟。
 - **反馈承载立意**：语言引发的变化让“怎样回应”成为可玩的选择。完整论证见[创新机制](docs/engineering/innovation_mechanism.md)。
+
+## 技术架构创新：生成与评价的双调用链路
+
+AIC 版把一次玩家输入拆成两个职责明确、顺序执行的 LLM 调用，再交给确定性程序结算：
+
+1. **剧情 LLM（Role / Actor）**只负责依据角色事实、对话历史和玩家本句生成艾的自然对白。它不输出信任度、情绪标签、JSON 或结局标记，避免把叙事文本和机制判定混在同一响应里。
+2. **裁判 LLM（Judge / Evaluator）**接收玩家本句、剧情 LLM 的对白、最近历史和当前状态，依据心理健康沟通 rubric 输出结构化 `evaluation` JSON，判断情绪、姿态、信任变化、压力变化和结局候选。
+3. **程序规则守门（Deterministic Gate）**对 JSON 做字段归一化、信任结算、低信任离开拦截和机会耗尽兜底。模型可以提出候选结局，但不能绕过程序门槛。
+4. **复盘 LLM**在结局后独立生成关键转折、心理沟通观察、支持技能、下一步和安全边界；它只描述可观察的语言行为，不给玩家或角色下临床诊断。
+
+这种“生成—评价—守门—复盘”架构带来三个工程收益：剧情输出可以保持自然，裁判输出可以被 JSON 契约和单元测试审计，结局规则可以在模型不稳定时 fail closed。它不是两个模型互相证明真相；角色和裁判也可以使用同一服务商，职责隔离才是核心。
+
+### UML 架构图（PlantUML）
+
+仓库提供两张可编辑的 UML 源图，使用 PlantUML 渲染：
+
+- [组件图：前端、后端、剧情 LLM、裁判 LLM 与规则守门](docs/architecture/aic_dual_call_component.puml)
+- [时序图：一轮对话、提示和结局复盘](docs/architecture/aic_dual_call_sequence.puml)
+
+组件图说明模块边界，时序图说明双调用的先后关系。图中“剧情 LLM”和“裁判 LLM”是逻辑职责，可以映射到同一或不同模型服务；“规则守门”由 Go/TypeScript 代码执行，不由模型决定。
 
 ## 当前 AIC 版规则与功能
 
@@ -100,6 +114,7 @@ VITE_BACKEND_URL=http://localhost:8080
 │       ├── store/            # Pinia 状态
 │       └── views/            # 页面视图
 ├── docs/                     # 项目文档
+│   └── architecture/         # PlantUML UML 组件图与时序图
 └── README.md
 ```
 
@@ -108,7 +123,6 @@ VITE_BACKEND_URL=http://localhost:8080
 文档入口：[docs/README.md](docs/README.md)
 
 - [AI 原生机制创新论证](docs/engineering/innovation_mechanism.md)
-- [来源与事实边界](docs/submission/source_notes.md)
 - [项目简介与 AI 原生说明](docs/product/project_overview.md)
 - [玩家阅读文档](docs/product/player_guide.md)
 - [故事线与世界观](docs/product/storyline_and_lore.md)
@@ -120,6 +134,18 @@ VITE_BACKEND_URL=http://localhost:8080
 - [分支整合与验证记录](docs/engineering/integration_2026-09-15.md)
 - [AIC 竞赛分支说明](docs/submission/branch-aic.md)
 - [AIC 竞赛版更改说明](docs/submission/change-log-aic.md)
+
+## 参考文献与架构启发
+
+心理健康沟通部分参考 WHO 的心理急救（PFA）和 SAMHSA 的创伤知情原则；Agent 架构部分参考多智能体系统中的职责分离、过程评价和反馈闭环。以下文献用于说明设计来源，不表示本项目复现了论文中的训练算法或实验结论。
+
+1. World Health Organization. *Psychological first aid: Guide for field workers*. 2011. [WHO 官方页面](https://www.who.int/publications/i/item/9789241548205)。本项目借用“观察—倾听—连接”的沟通边界。
+2. Substance Abuse and Mental Health Services Administration. *Interagency Task Force on Trauma-Informed Care*. [SAMHSA 官方页面](https://www.samhsa.gov/mental-health/trauma-violence/trauma-informed-care)。本项目将安全、信任与透明、选择、协作和赋能转译成 Prompt 约束。
+3. Tang, Z. (2025). *Evaluation-Driven Intelligence: From Visual Captioning Metrics to Agentic Workflow Optimization*. The Hong Kong University of Science and Technology, MPhil thesis. [HKUST Research Portal](https://researchportal.hkust.edu.hk/en/studentTheses/evaluation-driven-intelligence-from-visual-captioning-metrics-to-/) · [DOI](https://doi.org/10.14711/thesis-hdl167771)。该工作提出让 evaluator feedback 进入 Agent 工作流，并以 dual-LLM trainer 分离全局 critic 与局部 prompt editor；这是当前“剧情 LLM / 裁判 LLM”职责分离最贴近的 HKUST 来源候选。
+4. Zhang, T. (2026). *A Dual-Loop Multi-Agent Framework for Controllable and Adaptive Synthetic Data Generation*. The Hong Kong University of Science and Technology, MPhil thesis. [HKUST Research Portal](https://researchportal.hkust.edu.hk/en/studentTheses/a-dual-loop-multi-agent-framework-for-controllable-and-adaptive-s-2/) · [DOI](https://doi.org/10.14711/thesis-hdl172434)。该工作以 Creator 生成、Critic 质量控制和反馈迭代构成闭环，是本项目“生成—评价—复盘”结构的互补启发。它是硕士论文而非会议论文，文档中特别标注这一点。
+5. Ma, C., Zhang, J., Zhu, Z., et al. (2024). *AgentBoard: An Analytical Evaluation Board of Multi-turn LLM Agents*. NeurIPS 2024 (Oral). [arXiv:2401.13178](https://arxiv.org/abs/2401.13178) · [HKUST-NLP repository](https://github.com/hkust-nlp/AgentBoard)。该工作强调多轮 Agent 的过程级、细粒度评价，为本项目把裁判输出做成结构化过程反馈提供了参考。
+
+目前无法仅凭“港科大 Agent 论文”这一描述百分之百确认你当时看到的单一来源；上面第 3 项与当前双调用设计最吻合，第 4、5 项是经过官方页面核对的相邻来源。如果你之后想起论文题目、作者或关键词，可以再把参考文献替换为精确版本。
 
 ## 常用命令
 

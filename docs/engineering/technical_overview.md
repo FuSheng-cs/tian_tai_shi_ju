@@ -31,6 +31,17 @@
 
 初始机会 10，提示 3，存档栏位 1—3。当前两个结局为 `end_safe_exit` / `end_refusal`。固定十句和自由语言共同构成玩家斟酌表达的条件，详见[创新机制](innovation_mechanism.md)。
 
+### 2.1 双调用架构的工程边界
+
+角色生成与裁判评价是两个逻辑职责：角色 LLM 只生成自然对白，裁判 LLM 只输出结构化评价，规则守门由 Go/TypeScript 确定性执行。两次调用可以使用同一或不同服务商，因此这里的“分离”指职责、Prompt 和响应契约分离，不声称两个模型独立验证真相。
+
+可编辑 UML 图：
+
+- [AIC 双调用组件图](../architecture/aic_dual_call_component.puml)
+- [AIC 双调用时序图](../architecture/aic_dual_call_sequence.puml)
+
+这套结构参考了评估驱动 Agent 工作流中的 evaluator feedback、Creator–Critic 反馈闭环和多轮 Agent 过程评价思想；本项目只采用架构原则，不复现论文中的训练、优化或实验结论。具体书目见根目录 README 的[参考文献与架构启发](../../README.md#参考文献与架构启发)。
+
 ## 3. API 与 Prompt
 
 | API | 用途 |
