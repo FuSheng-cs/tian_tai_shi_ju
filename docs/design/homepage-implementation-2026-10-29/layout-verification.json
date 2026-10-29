@@ -1,0 +1,122 @@
+[
+  {
+    "background": "http://127.0.0.1:5173/assets/images/homepage_20261029/rooftop-1672.webp",
+    "fontsReady": true,
+    "horizontalOverflow": false,
+    "imagesLoaded": true,
+    "pageHeight": 1080,
+    "pageScrollHeight": 1080,
+    "primaryFullyVisible": true,
+    "touchTargets": true,
+    "viewport": [
+      1920,
+      1080
+    ],
+    "case": "desktop"
+  },
+  {
+    "background": "http://127.0.0.1:5173/assets/images/homepage_20261029/rooftop-1672.webp",
+    "fontsReady": true,
+    "horizontalOverflow": false,
+    "imagesLoaded": true,
+    "pageHeight": 768,
+    "pageScrollHeight": 768,
+    "primaryFullyVisible": true,
+    "touchTargets": true,
+    "viewport": [
+      1366,
+      768
+    ],
+    "case": "laptop"
+  },
+  {
+    "background": "http://127.0.0.1:5173/assets/images/homepage_20261029/rooftop-1672.webp",
+    "fontsReady": true,
+    "horizontalOverflow": false,
+    "imagesLoaded": true,
+    "pageHeight": 1024,
+    "pageScrollHeight": 1024,
+    "primaryFullyVisible": true,
+    "touchTargets": true,
+    "viewport": [
+      768,
+      1024
+    ],
+    "case": "tablet"
+  },
+  {
+    "background": "http://127.0.0.1:5173/assets/images/homepage_20261029/rooftop-960.webp",
+    "fontsReady": true,
+    "horizontalOverflow": false,
+    "imagesLoaded": true,
+    "pageHeight": 844,
+    "pageScrollHeight": 844,
+    "primaryFullyVisible": true,
+    "touchTargets": true,
+    "viewport": [
+      390,
+      844
+    ],
+    "case": "mobile"
+  },
+  {
+    "background": "http://127.0.0.1:5173/assets/images/homepage_20261029/rooftop-960.webp",
+    "fontsReady": true,
+    "horizontalOverflow": false,
+    "imagesLoaded": true,
+    "pageHeight": 568,
+    "pageScrollHeight": 675,
+    "primaryFullyVisible": true,
+    "touchTargets": true,
+    "viewport": [
+      320,
+      568
+    ],
+    "case": "small-phone"
+  },
+  {
+    "background": "http://127.0.0.1:5173/assets/images/homepage_20261029/rooftop-1672.webp",
+    "fontsReady": true,
+    "horizontalOverflow": false,
+    "imagesLoaded": true,
+    "pageHeight": 390,
+    "pageScrollHeight": 459,
+    "primaryFullyVisible": true,
+    "touchTargets": true,
+    "viewport": [
+      844,
+      390
+    ],
+    "case": "short-landscape"
+  },
+  {
+    "background": "http://127.0.0.1:5173/assets/images/homepage_20261029/rooftop-960.webp",
+    "fontsReady": true,
+    "horizontalOverflow": false,
+    "imagesLoaded": true,
+    "pageHeight": 375,
+    "pageScrollHeight": 430,
+    "primaryFullyVisible": true,
+    "touchTargets": true,
+    "viewport": [
+      667,
+      375
+    ],
+    "case": "narrow-landscape"
+  },
+  {
+    "background": "http://127.0.0.1:5173/assets/images/homepage_20261029/rooftop-1672.webp",
+    "fontsReady": true,
+    "horizontalOverflow": false,
+    "imagesLoaded": true,
+    "pageHeight": 1080,
+    "pageScrollHeight": 1080,
+    "primaryFullyVisible": true,
+    "touchTargets": true,
+    "viewport": [
+      2560,
+      1080
+    ],
+    "case": "ultrawide"
+  }
+]

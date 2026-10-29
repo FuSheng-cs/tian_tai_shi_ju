@@ -30,7 +30,7 @@ export class AudioManager {
     document.removeEventListener('touchend', this.resumeOnGesture)
   }
 
-  init() {
+  init({ autoplay = true }: { autoplay?: boolean } = {}) {
     if (this.initialized) return
     this.initialized = true
 
@@ -61,7 +61,7 @@ export class AudioManager {
       return key
     })
 
-    this.playBgm(ROOFTOP_BGM_SRCS)
+    if (autoplay) this.playBgm(ROOFTOP_BGM_SRCS)
   }
 
   preloadBgm(src: AudioSource) {

@@ -17,7 +17,7 @@ const settings = useSettingsStore()
 
 onMounted(() => {
   settings.applyTheme()
-  audioManager.init()
+  audioManager.init({ autoplay: false })
 })
 </script>
 

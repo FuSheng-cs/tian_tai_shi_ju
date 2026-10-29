@@ -1,0 +1,41 @@
+{
+  "axeVersion": "4.12.1",
+  "url": "http://127.0.0.1:5173/",
+  "counts": {
+    "inapplicable": 45,
+    "incomplete": 1,
+    "passes": 15,
+    "violations": 0
+  },
+  "incomplete": [
+    {
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+      "id": "color-contrast",
+      "impact": "serious",
+      "nodeCount": 1,
+      "nodes": [
+        {
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element",
+          "html": "<p data-v-a980f8fd=\"\" class=\"tagline\">你有十句话。先听她说完。</p>",
+          "target": [
+            ".tagline"
+          ]
+        }
+      ],
+      "tags": [
+        "cat.color",
+        "wcag2aa",
+        "wcag143",
+        "TTv5",
+        "TT13.c",
+        "EN-301-549",
+        "EN-9.1.4.3",
+        "ACT",
+        "RGAAv4",
+        "RGAA-3.2.1"
+      ]
+    }
+  ],
+  "violations": []
+}

@@ -18,6 +18,9 @@ import EndingSequenceOverlay from '../src/components/EndingSequenceOverlay.vue'
 import OpeningSequenceOverlay from '../src/components/OpeningSequenceOverlay.vue'
 import GameView from '../src/views/GameView.vue'
 import StartView from '../src/views/StartView.vue'
+import { mockDialog } from './helpers/mockDialog'
+
+mockDialog()
 
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
@@ -29,6 +32,7 @@ const mocks = vi.hoisted(() => ({
   playStairStep: vi.fn(),
   chat: vi.fn(),
   getSlots: vi.fn(() => [{ id: 1, timestamp: 1710000000000, data: 'slot' }]),
+  isSlotValid: vi.fn(() => true),
   load: vi.fn(() => true),
   loadChatAfter: vi.fn(() => null),
   save: vi.fn(() => true),
@@ -61,6 +65,7 @@ vi.mock('../src/modules/SaveSystem', () => ({
   },
   SaveSystem: {
     getSlots: mocks.getSlots,
+    isSlotValid: mocks.isSlotValid,
     load: mocks.load,
     loadChatAfter: mocks.loadChatAfter,
     save: mocks.save
@@ -147,21 +152,21 @@ describe('opening guide flow', () => {
     vi.useRealTimers()
   })
 
-  it('keeps the Web menu navigation and reviewed save controls together', async () => {
+  it('keeps the homepage entry controls and secondary navigation available', async () => {
     const wrapper = mount(StartView)
-    expect(wrapper.find('[aria-label="关于游戏"]').exists()).toBe(true)
+    await nextTick()
     expect(wrapper.findAll('.menu-button').map((button) => button.text())).toEqual([
-      '开始游戏', '读取存档', '成就图鉴', '游戏设置'
+      '开始游戏', '继续游戏', '读取存档', '设置'
     ])
-    await wrapper.findAll('.menu-button')[2].trigger('click')
+    await wrapper.find('.footer-link-end').trigger('click')
     expect(mocks.push).toHaveBeenLastCalledWith('/achievements')
     await wrapper.findAll('.menu-button')[3].trigger('click')
     expect(mocks.push).toHaveBeenLastCalledWith('/settings')
-    await wrapper.findAll('.menu-button')[1].trigger('click')
+    await wrapper.findAll('.menu-button')[2].trigger('click')
     expect(wrapper.findAll('.save-slot-button')).toHaveLength(3)
     expect(wrapper.findAll('.save-slot-button')[2].attributes('disabled')).toBeDefined()
-    await wrapper.find('.save-slot-header button').trigger('click')
-    expect(wrapper.find('.save-slot-overlay').exists()).toBe(false)
+    await wrapper.find('.dialog-close').trigger('click')
+    expect(wrapper.get('dialog').element.open).toBe(false)
     wrapper.unmount()
   })
 
@@ -174,6 +179,7 @@ describe('opening guide flow', () => {
       path: '/game',
       query: { [GAME_ENTRY_QUERY_KEY]: GAME_ENTRY_TYPES.newGame }
     })
+    wrapper.unmount()
   })
 
   it('shows a readable title and usable menu while the title artwork is downloading', async () => {
@@ -188,13 +194,14 @@ describe('opening guide flow', () => {
   it('marks the next game entry as a loaded save when loading a slot', async () => {
     const wrapper = mount(StartView)
 
-    await wrapper.findAll('.menu-button')[1].trigger('click')
+    await wrapper.findAll('.menu-button')[2].trigger('click')
     await wrapper.find('.save-slot-button').trigger('click')
 
     expect(mocks.push).toHaveBeenCalledWith({
       path: '/game',
       query: { [GAME_ENTRY_QUERY_KEY]: GAME_ENTRY_TYPES.load }
     })
+    wrapper.unmount()
   })
 
   it('loads after-story save slots from the start screen', async () => {
@@ -214,7 +221,7 @@ describe('opening guide flow', () => {
     })
     const wrapper = mount(StartView)
 
-    await wrapper.findAll('.menu-button')[1].trigger('click')
+    await wrapper.findAll('.menu-button')[2].trigger('click')
     const slotButton = wrapper.findAll('.save-slot-button')[1]
     expect(slotButton.text()).toContain('栏位 2（日后谈）')
     await slotButton.trigger('click')
@@ -225,6 +232,7 @@ describe('opening guide flow', () => {
       path: '/chat-after',
       query: { [CHAT_AFTER_SLOT_QUERY_KEY]: 2 }
     })
+    wrapper.unmount()
   })
 
   it('shows the full opening sequence on every new game entry', async () => {

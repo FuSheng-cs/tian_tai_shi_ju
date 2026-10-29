@@ -19,6 +19,26 @@ describe('homepage music', () => {
     sounds.length = 0
   })
 
+  it('can initialize silently until the player explicitly enables music', async () => {
+    const play = vi.fn().mockResolvedValue(undefined)
+    const NativeAudio = vi.fn(function () {
+      return Object.assign(new EventTarget(), { play, pause: vi.fn(), volume: 1 })
+    })
+    vi.stubGlobal('Audio', NativeAudio)
+    const manager = new AudioManager()
+    manager.init({ autoplay: false })
+    document.dispatchEvent(new Event('pointerup'))
+    await flushPromises()
+    expect(NativeAudio).not.toHaveBeenCalled()
+    expect(manager.bgmState.value).toBe('idle')
+
+    manager.toggleBgm()
+    await flushPromises()
+    expect(play).toHaveBeenCalledOnce()
+    expect(manager.bgmState.value).toBe('playing')
+    manager.stopBgm()
+  })
+
   it('attempts music immediately without fetching unused sound effects', () => {
     const play = vi.fn().mockResolvedValue(undefined)
     const NativeAudio = vi.fn(function () {

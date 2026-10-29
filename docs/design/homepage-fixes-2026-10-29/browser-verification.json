@@ -1,0 +1,268 @@
+[
+  {
+    "buttonTransition": "0.16s, 0.16s, 0.16s, 0.16s",
+    "disabledSelected": false,
+    "focused": "settings",
+    "horizontalOverflow": false,
+    "imagesReady": true,
+    "modalOpen": false,
+    "primaryShadow": "none",
+    "selected": [
+      "settings"
+    ],
+    "titleBloom": "drop-shadow(rgba(234, 220, 255, 0.52) 0px 0px 4px) drop-shadow(rgba(190, 155, 229, 0.48) 0px 0px 15px) drop-shadow(rgba(168, 120, 210, 0.32) 0px 0px 34px)",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      1920,
+      1080
+    ],
+    "case": "keyboard-settings"
+  },
+  {
+    "buttonTransition": "0.16s, 0.16s, 0.16s, 0.16s",
+    "disabledSelected": false,
+    "focused": "start",
+    "horizontalOverflow": false,
+    "imagesReady": true,
+    "modalOpen": false,
+    "primaryShadow": "rgba(201, 190, 215, 0.753) 1.50321px 0px 0px 0px inset, rgba(179, 166, 199, 0.12) 0px 0px 13.5289px 0px",
+    "selected": [
+      "start"
+    ],
+    "titleBloom": "drop-shadow(rgba(234, 220, 255, 0.52) 0px 0px 4px) drop-shadow(rgba(190, 155, 229, 0.48) 0px 0px 15px) drop-shadow(rgba(168, 120, 210, 0.32) 0px 0px 34px)",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      1920,
+      1080
+    ],
+    "case": "keyboard-home"
+  },
+  {
+    "buttonTransition": "0.16s, 0.16s, 0.16s, 0.16s",
+    "disabledSelected": false,
+    "focused": "load",
+    "horizontalOverflow": false,
+    "imagesReady": true,
+    "modalOpen": false,
+    "primaryShadow": "rgba(201, 190, 215, 0.17) 0.338603px 0px 0px 0px inset, rgba(179, 166, 199, 0.027) 0px 0px 3.04743px 0px",
+    "selected": [
+      "load"
+    ],
+    "titleBloom": "drop-shadow(rgba(234, 220, 255, 0.52) 0px 0px 4px) drop-shadow(rgba(190, 155, 229, 0.48) 0px 0px 15px) drop-shadow(rgba(168, 120, 210, 0.32) 0px 0px 34px)",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      1920,
+      1080
+    ],
+    "case": "keyboard-skips-disabled-continue"
+  },
+  {
+    "buttonTransition": "0.16s, 0.16s, 0.16s, 0.16s",
+    "disabledSelected": false,
+    "focused": "settings",
+    "horizontalOverflow": false,
+    "imagesReady": true,
+    "modalOpen": false,
+    "primaryShadow": "none",
+    "selected": [
+      "settings"
+    ],
+    "titleBloom": "drop-shadow(rgba(234, 220, 255, 0.52) 0px 0px 4px) drop-shadow(rgba(190, 155, 229, 0.48) 0px 0px 15px) drop-shadow(rgba(168, 120, 210, 0.32) 0px 0px 34px)",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      1920,
+      1080
+    ],
+    "case": "keyboard-end"
+  },
+  {
+    "buttonTransition": "0.16s, 0.16s, 0.16s, 0.16s",
+    "disabledSelected": false,
+    "focused": "start",
+    "horizontalOverflow": false,
+    "imagesReady": true,
+    "modalOpen": false,
+    "primaryShadow": "rgba(201, 190, 215, 0.89) 1.77945px 0px 0px 0px inset, rgba(179, 166, 199, 0.14) 0px 0px 16.015px 0px",
+    "selected": [
+      "start"
+    ],
+    "titleBloom": "drop-shadow(rgba(234, 220, 255, 0.52) 0px 0px 4px) drop-shadow(rgba(190, 155, 229, 0.48) 0px 0px 15px) drop-shadow(rgba(168, 120, 210, 0.32) 0px 0px 34px)",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      1920,
+      1080
+    ],
+    "case": "keyboard-wraps-to-start"
+  },
+  {
+    "buttonTransition": "0.16s, 0.16s, 0.16s, 0.16s",
+    "disabledSelected": false,
+    "focused": "start",
+    "horizontalOverflow": false,
+    "imagesReady": true,
+    "modalOpen": false,
+    "primaryShadow": "none",
+    "selected": [
+      "load"
+    ],
+    "titleBloom": "drop-shadow(rgba(234, 220, 255, 0.52) 0px 0px 4px) drop-shadow(rgba(190, 155, 229, 0.48) 0px 0px 15px) drop-shadow(rgba(168, 120, 210, 0.32) 0px 0px 34px)",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      1920,
+      1080
+    ],
+    "case": "pointer-load-clears-primary-glow"
+  },
+  {
+    "buttonTransition": "0.16s, 0.16s, 0.16s, 0.16s",
+    "disabledSelected": false,
+    "focused": "start",
+    "horizontalOverflow": false,
+    "imagesReady": true,
+    "modalOpen": false,
+    "primaryShadow": "none",
+    "selected": [
+      "load"
+    ],
+    "titleBloom": "drop-shadow(rgba(234, 220, 255, 0.52) 0px 0px 4px) drop-shadow(rgba(190, 155, 229, 0.48) 0px 0px 15px) drop-shadow(rgba(168, 120, 210, 0.32) 0px 0px 34px)",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      1920,
+      1080
+    ],
+    "case": "disabled-continue-keeps-selection"
+  },
+  {
+    "buttonTransition": "0.16s, 0.16s, 0.16s, 0.16s",
+    "disabledSelected": false,
+    "focused": "start",
+    "horizontalOverflow": false,
+    "imagesReady": true,
+    "modalOpen": false,
+    "primaryShadow": "none",
+    "selected": [
+      "settings"
+    ],
+    "titleBloom": "drop-shadow(rgba(234, 220, 255, 0.52) 0px 0px 4px) drop-shadow(rgba(190, 155, 229, 0.48) 0px 0px 15px) drop-shadow(rgba(168, 120, 210, 0.32) 0px 0px 34px)",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      1920,
+      1080
+    ],
+    "case": "pointer-settings"
+  },
+  {
+    "buttonTransition": "0.16s, 0.16s, 0.16s, 0.16s",
+    "disabledSelected": false,
+    "focused": "load",
+    "horizontalOverflow": false,
+    "imagesReady": true,
+    "modalOpen": false,
+    "primaryShadow": "none",
+    "selected": [
+      "load"
+    ],
+    "titleBloom": "drop-shadow(rgba(234, 220, 255, 0.52) 0px 0px 4px) drop-shadow(rgba(190, 155, 229, 0.48) 0px 0px 15px) drop-shadow(rgba(168, 120, 210, 0.32) 0px 0px 34px)",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      1920,
+      1080
+    ],
+    "case": "keyboard-resumes-after-pointer"
+  },
+  {
+    "buttonTransition": "0.16s, 0.16s, 0.16s, 0.16s",
+    "disabledSelected": false,
+    "focused": "load",
+    "horizontalOverflow": false,
+    "imagesReady": true,
+    "modalOpen": false,
+    "primaryShadow": "none",
+    "selected": [
+      "load"
+    ],
+    "titleBloom": "drop-shadow(rgba(234, 220, 255, 0.52) 0px 0px 4px) drop-shadow(rgba(190, 155, 229, 0.48) 0px 0px 15px) drop-shadow(rgba(168, 120, 210, 0.32) 0px 0px 34px)",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      1920,
+      1080
+    ],
+    "case": "dialog-escape-restores-focused-selection"
+  },
+  {
+    "buttonTransition": "0.16s, 0.16s, 0.16s, 0.16s",
+    "disabledSelected": false,
+    "focused": "load",
+    "horizontalOverflow": false,
+    "imagesReady": true,
+    "modalOpen": false,
+    "primaryShadow": "none",
+    "selected": [
+      "load"
+    ],
+    "titleBloom": "drop-shadow(rgba(234, 220, 255, 0.52) 0px 0px 4px) drop-shadow(rgba(190, 155, 229, 0.48) 0px 0px 15px) drop-shadow(rgba(168, 120, 210, 0.32) 0px 0px 34px)",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      390,
+      844
+    ],
+    "case": "mobile"
+  },
+  {
+    "buttonTransition": "0.16s, 0.16s, 0.16s, 0.16s",
+    "disabledSelected": false,
+    "focused": "load",
+    "horizontalOverflow": false,
+    "imagesReady": true,
+    "modalOpen": false,
+    "primaryShadow": "none",
+    "selected": [
+      "load"
+    ],
+    "titleBloom": "drop-shadow(rgba(234, 220, 255, 0.52) 0px 0px 4px) drop-shadow(rgba(190, 155, 229, 0.48) 0px 0px 15px) drop-shadow(rgba(168, 120, 210, 0.32) 0px 0px 34px)",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      320,
+      568
+    ],
+    "case": "small-phone"
+  },
+  {
+    "buttonTransition": "0.16s, 0.16s, 0.16s, 0.16s",
+    "disabledSelected": false,
+    "focused": "load",
+    "horizontalOverflow": false,
+    "imagesReady": true,
+    "modalOpen": false,
+    "primaryShadow": "none",
+    "selected": [
+      "load"
+    ],
+    "titleBloom": "drop-shadow(rgba(234, 220, 255, 0.52) 0px 0px 4px) drop-shadow(rgba(190, 155, 229, 0.48) 0px 0px 15px) drop-shadow(rgba(168, 120, 210, 0.32) 0px 0px 34px)",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      667,
+      375
+    ],
+    "case": "narrow-landscape"
+  },
+  {
+    "buttonTransition": "0s",
+    "disabledSelected": false,
+    "focused": "load",
+    "horizontalOverflow": false,
+    "imagesReady": true,
+    "modalOpen": false,
+    "primaryShadow": "none",
+    "selected": [
+      "load"
+    ],
+    "titleBloom": "drop-shadow(rgba(234, 220, 255, 0.52) 0px 0px 4px) drop-shadow(rgba(190, 155, 229, 0.48) 0px 0px 15px) drop-shadow(rgba(168, 120, 210, 0.32) 0px 0px 34px)",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      667,
+      375
+    ],
+    "case": "reduced-motion"
+  }
+]

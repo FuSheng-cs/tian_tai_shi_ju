@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "lint": "eslint .",
-    "assets:generate": "node scripts/generate_assets.mjs"
+    "assets:generate": "node scripts/generate_assets.mjs",
+    "assets:homepage": "node scripts/generate_homepage_assets.mjs"
   },
   "dependencies": {
     "crc-32": "^1.2.2",

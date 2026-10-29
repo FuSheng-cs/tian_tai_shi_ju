@@ -1,135 +1,172 @@
 <template>
   <main class="start-view" aria-labelledby="start-title">
-    <div class="menu-bg" aria-hidden="true"></div>
-    <div class="character-layer" aria-hidden="true"></div>
-    <div class="rain-layer" aria-hidden="true"></div>
+    <picture class="menu-scene" aria-hidden="true">
+      <source media="(max-width: 760px)" :srcset="`${SCENE_ROOT}/rooftop-960.webp`" />
+      <img
+        :src="`${SCENE_ROOT}/rooftop-1672.webp`"
+        width="1672"
+        height="941"
+        alt=""
+        decoding="async"
+        fetchpriority="high"
+        draggable="false"
+      />
+    </picture>
     <div class="menu-shade" aria-hidden="true"></div>
-    <div class="purple-haze" aria-hidden="true"></div>
 
     <BgmControl />
-    <section class="menu-shell">
-      <div class="brand-panel">
-        <h1 id="start-title" class="sr-only">天台十句</h1>
-        <picture class="title-picture">
-          <span v-if="!titleReady" class="title-fallback" aria-hidden="true">天台十句</span>
-          <source :srcset="MENU_TITLE_WEBP_IMAGE" type="image/webp" />
-          <img
-            class="title-art"
-            :src="MENU_TITLE_IMAGE"
-            width="1660"
-            height="496"
-            alt=""
-            aria-hidden="true"
-            decoding="async"
-            fetchpriority="high"
-            draggable="false"
-            @load="titleReady = true"
-          />
-        </picture>
-        <p class="tagline">
-          <span class="quote-mark quote-mark-open" aria-hidden="true">“</span>
-          <span class="quote-copy">{{ GAME_ROLE.tagline }}</span>
-          <span class="quote-mark quote-mark-close" aria-hidden="true">”</span>
-        </p>
-      </div>
 
-      <article class="intro-card" aria-label="关于游戏">
-        <header class="intro-heading">
-          <Info :size="20" :stroke-width="1.9" aria-hidden="true" />
-          <span>关于游戏</span>
-        </header>
-        <p>
-          在这个下过雨的深夜，你来到了天台。坐在远离门口地面的大学生名叫{{ GAME_ROLE.characterName }}。
-          她正在承受学业压力、网络欺凌、家庭冲突和长期孤独。
-        </p>
-        <p>
-          你的目标：用有限的 {{ GAME_RULES.initialRoundCount }} 句话陪她离开不安全环境。
-          对话过程中，避免说教和否定，先让她知道自己被听见。
-        </p>
-        <ul class="intro-list">
-          <li>每一句话都可能改变她的信任度与选择。</li>
-          <li>AI 会根据你的回应决定剧情走向。</li>
-        </ul>
-        <p class="safety-note">
-          如果现实中有人正处于危险，请及时联系可信任的成年人、学校心理中心或当地紧急援助服务。
-        </p>
-      </article>
+    <section class="menu-shell" aria-label="游戏首页">
+      <header class="brand-panel">
+        <h1 id="start-title" class="game-title">
+          <span class="sr-only">{{ GAME_ROLE.gameTitle }}</span>
+          <span class="title-window" aria-hidden="true">
+            <span v-if="!titleReady" class="title-fallback">天台十句</span>
+            <img
+              class="title-art"
+              :class="{ 'is-ready': titleReady }"
+              :src="titleImage"
+              width="2172"
+              height="724"
+              alt=""
+              decoding="async"
+              fetchpriority="high"
+              draggable="false"
+              @load="titleReady = true"
+              @error="onTitleError"
+            />
+          </span>
+        </h1>
+        <p class="tagline">你有十句话。先听她说完。</p>
+      </header>
 
-      <nav class="action-menu" aria-label="主菜单">
+      <nav
+        class="action-menu"
+        aria-label="主菜单"
+        @pointerover="selectMenuFromEvent"
+        @pointermove="selectMenuFromEvent"
+        @focusin="selectMenuFromEvent"
+        @keydown="onMenuKeydown"
+      >
         <button
           type="button"
           class="menu-button menu-button-primary"
+          :class="{ 'is-selected': selectedMenuItem === 'start' }"
+          data-menu-item="start"
           @click="startGame"
         >
-          <Sparkles :size="24" :stroke-width="1.8" aria-hidden="true" />
           <span>开始游戏</span>
-          <ArrowRight class="arrow-icon" :size="24" :stroke-width="1.8" aria-hidden="true" />
         </button>
-
         <button
           type="button"
           class="menu-button"
-          @click="loadGame"
+          :class="{ 'is-selected': selectedMenuItem === 'continue' }"
+          data-menu-item="continue"
+          aria-label="继续游戏"
+          :disabled="!latestSave"
+          :aria-describedby="!latestSave ? 'continue-status' : undefined"
+          @click="continueGame"
         >
-          <FolderOpen :size="23" :stroke-width="1.8" aria-hidden="true" />
+          <span>继续游戏</span>
+          <span v-if="!latestSave" class="empty-save-note" aria-hidden="true">暂无存档</span>
+        </button>
+        <span v-if="!latestSave" id="continue-status" class="sr-only">
+          暂无可读取的存档，开始游戏后可保存进度。
+        </span>
+        <button
+          type="button"
+          class="menu-button"
+          :class="{ 'is-selected': selectedMenuItem === 'load' }"
+          data-menu-item="load"
+          @click="openSaveSlots"
+        >
           <span>读取存档</span>
         </button>
-
         <button
           type="button"
           class="menu-button"
-          @click="goToAchievements"
-        >
-          <Trophy :size="23" :stroke-width="1.8" aria-hidden="true" />
-          <span>成就图鉴</span>
-        </button>
-
-        <button
-          type="button"
-          class="menu-button"
+          :class="{ 'is-selected': selectedMenuItem === 'settings' }"
+          data-menu-item="settings"
           @click="goToSettings"
         >
-          <Settings :size="23" :stroke-width="1.8" aria-hidden="true" />
-          <span>游戏设置</span>
+          <span>设置</span>
         </button>
       </nav>
     </section>
 
-    <footer class="menu-footer" aria-label="版本信息">
-      <span class="footer-dot"></span>
-      <span>v1.7.0</span>
-      <span class="footer-line"></span>
-      <span>AI-DRIVEN NARRATIVE EXPERIENCE</span>
+    <footer class="menu-footer">
+      <button type="button" class="footer-link" @click="openDialog('about')">关于作品</button>
+      <p class="footer-message">别急，我在听。</p>
+      <button type="button" class="footer-link footer-link-end" @click="goToAchievements">
+        成就图鉴
+      </button>
     </footer>
 
-    <div v-if="showLoadSlots" class="save-slot-overlay" @click.self="closeLoadSlots">
-      <section class="save-slot-panel" aria-label="读取存档">
-        <header class="save-slot-header">
-          <h2>选择读取栏位</h2>
-          <button type="button" aria-label="关闭" @click="closeLoadSlots">×</button>
+    <dialog
+      ref="menuDialog"
+      class="menu-dialog"
+      aria-labelledby="menu-dialog-title"
+      @cancel.prevent="closeDialog"
+      @click.self="closeDialog"
+    >
+      <section class="dialog-panel">
+        <header class="dialog-header">
+          <h2 id="menu-dialog-title">{{ activeDialog === 'saves' ? '读取存档' : '关于作品' }}</h2>
+          <button
+            type="button"
+            class="dialog-close"
+            :aria-label="activeDialog === 'saves' ? '关闭读取存档' : '关闭关于作品'"
+            autofocus
+            @click="closeDialog"
+          >
+            <X :size="20" :stroke-width="1.5" aria-hidden="true" />
+          </button>
         </header>
 
-        <div class="save-slot-list">
-          <button
-            v-for="slotId in SAVE_SLOT_IDS"
-            :key="slotId"
-            type="button"
-            class="save-slot-button"
-            :disabled="!hasSlot(slotId)"
-            @click="loadFromSlot(slotId)"
-          >
-            <span class="save-slot-title">{{ getSlotTitle(slotId) }}</span>
-            <span class="save-slot-status">{{ getSlotStatus(slotId) }}</span>
-          </button>
+        <template v-if="activeDialog === 'saves'">
+          <p class="dialog-intro">从上次停下的地方，继续听她说。</p>
+          <p v-if="saveError" class="save-error" role="status">{{ saveError }}</p>
+          <div class="save-slot-list">
+            <button
+              v-for="slotId in SAVE_SLOT_IDS"
+              :key="slotId"
+              type="button"
+              class="save-slot-button"
+              :disabled="!isUsableSlot(slotId)"
+              @click="loadFromSlot(slotId)"
+            >
+              <span class="save-slot-title">{{ getSlotTitle(slotId) }}</span>
+              <span class="save-slot-status">{{ slotStatus(slotId) }}</span>
+            </button>
+          </div>
+          <p v-if="!latestSave" class="dialog-footnote">开始一段新的对话后，可在游戏中保存进度。</p>
+        </template>
+
+        <div v-else-if="activeDialog === 'about'" class="about-copy">
+          <p class="about-lead">一部关于倾听、理解与共情的互动叙事作品。</p>
+          <p>
+            雨刚停，你来到了学校天台。大学生{{ GAME_ROLE.characterName }}坐在离你几步远的地方。
+            从一句回应开始，试着听见她还没说出口的话。
+          </p>
+          <p>
+            你有 {{ GAME_RULES.initialRoundCount }} 次开口的机会。每次有效发送消耗一次机会，
+            认真倾听、尊重选择，一起寻找下一个安全的地方。
+          </p>
+          <blockquote>{{ GAME_ROLE.tagline }}</blockquote>
+          <p class="about-safety">
+            故事与角色均为虚构。现实中的支持没有十句期限，也没有万能台词。
+            遇到危险时，请联系可信任的人、学校心理中心或当地紧急服务。
+          </p>
         </div>
       </section>
-    </div>
+    </dialog>
   </main>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { X } from 'lucide-vue-next'
 import {
   CHAT_AFTER_SLOT_QUERY_KEY,
   GAME_ENTRY_QUERY_KEY,
@@ -142,24 +179,65 @@ import { audioManager } from '@/modules/AudioManager'
 import BgmControl from '@/components/BgmControl.vue'
 import { SAVE_SLOT_KINDS, SaveSystem } from '@/modules/SaveSystem'
 import { useSaveSlots } from '@/composables/useSaveSlots'
-import {
-  ArrowRight,
-  FolderOpen,
-  Info,
-  Settings,
-  Sparkles,
-  Trophy
-} from 'lucide-vue-next'
 
+const SCENE_ROOT = '/assets/images/homepage_20261029'
+const SAVE_SLOT_IDS = GAME_RULES.saveSlotIds
 const router = useRouter()
 const gameStore = useGameStore()
-const SAVE_SLOT_IDS = GAME_RULES.saveSlotIds
-const MENU_TITLE_WEBP_IMAGE = '/assets/images/menu_title.webp'
-const MENU_TITLE_IMAGE = '/assets/images/menu_title.png'
+const titleImage = ref(`${SCENE_ROOT}/title-expanded-v1.webp`)
 const titleReady = ref(false)
+const selectedMenuItem = ref('start')
+const menuDialog = ref<HTMLDialogElement | null>(null)
+const activeDialog = ref<'saves' | 'about' | null>(null)
+const saveError = ref('')
+let dialogTrigger: HTMLElement | null = null
 
-const showLoadSlots = ref(false)
-const { refreshSaveSlots, getSlot, hasSlot, getSlotTitle, getSlotStatus } = useSaveSlots()
+const { saveSlots, refreshSaveSlots, getSlot, getSlotTitle, getSlotStatus } = useSaveSlots()
+const usableSlots = computed(() => saveSlots.value.filter((slot) => SaveSystem.isSlotValid(slot.id)))
+const latestSave = computed(() =>
+  [...usableSlots.value].sort((a, b) => b.timestamp - a.timestamp || a.id - b.id)[0] ?? null
+)
+
+watch(latestSave, (slot) => {
+  if (!slot && selectedMenuItem.value === 'continue') selectedMenuItem.value = 'start'
+})
+
+const selectMenuFromEvent = (event: Event) => {
+  if (!(event.target instanceof Element)) return
+  const button = event.target.closest<HTMLButtonElement>('.menu-button')
+  if (button && !button.disabled && button.dataset.menuItem) {
+    selectedMenuItem.value = button.dataset.menuItem
+  }
+}
+
+const onMenuKeydown = (event: KeyboardEvent) => {
+  selectMenuFromEvent(event)
+  if (event.altKey || event.ctrlKey || event.metaKey) return
+  if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
+  if (!(event.currentTarget instanceof HTMLElement)) return
+
+  const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>(
+    '.menu-button:not(:disabled)'
+  )]
+  const currentIndex = buttons.findIndex((button) => button === document.activeElement)
+  if (currentIndex === -1) return
+
+  event.preventDefault()
+  const offset = event.key === 'ArrowUp' ? -1 : 1
+  const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1
+    : (currentIndex + offset + buttons.length) % buttons.length
+  buttons[nextIndex]?.focus()
+}
+
+const isUsableSlot = (slotId: number) => usableSlots.value.some((slot) => slot.id === slotId)
+const slotStatus = (slotId: number) => {
+  if (isUsableSlot(slotId)) return getSlotStatus(slotId)
+  return getSlot(slotId) ? '存档无法读取' : '空栏位'
+}
+
+const onTitleError = () => {
+  if (titleImage.value.endsWith('.webp')) titleImage.value = `${SCENE_ROOT}/title-expanded-v1.png`
+}
 
 const startGame = () => {
   audioManager.playSfx('click')
@@ -167,38 +245,59 @@ const startGame = () => {
   router.push({ path: '/game', query: { [GAME_ENTRY_QUERY_KEY]: GAME_ENTRY_TYPES.newGame } })
 }
 
-const loadGame = () => {
+const openDialog = async (kind: 'saves' | 'about') => {
   audioManager.playSfx('click')
-  refreshSaveSlots()
-  showLoadSlots.value = true
+  if (kind === 'saves') refreshSaveSlots()
+  dialogTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null
+  activeDialog.value = kind
+  await nextTick()
+  if (!menuDialog.value?.open) menuDialog.value?.showModal()
 }
 
-const closeLoadSlots = () => {
-  showLoadSlots.value = false
+const closeDialog = () => {
+  menuDialog.value?.close()
+  activeDialog.value = null
+  dialogTrigger?.focus()
+}
+
+const openSaveSlots = () => {
+  saveError.value = ''
+  void openDialog('saves')
+}
+
+const reportLoadError = () => {
+  refreshSaveSlots()
+  saveError.value = '这份存档暂时无法读取，请选择其他栏位或开始新的游戏。'
+  if (activeDialog.value !== 'saves') void openDialog('saves')
 }
 
 const loadFromSlot = (slotId: number) => {
-  audioManager.playSfx('click')
+  refreshSaveSlots()
   const slot = getSlot(slotId)
-  if (!slot) return
-
-  if (slot.kind === SAVE_SLOT_KINDS.chatAfter) {
-    if (SaveSystem.loadChatAfter(slotId)) {
-      router.push({ path: '/chat-after', query: { [CHAT_AFTER_SLOT_QUERY_KEY]: slotId } })
-      return
-    }
-
-    alert('未找到有效存档。')
-    refreshSaveSlots()
+  if (!slot || !isUsableSlot(slotId)) {
+    reportLoadError()
     return
   }
 
-  if (SaveSystem.load(slotId)) {
+  audioManager.playSfx('click')
+  if (slot.kind === SAVE_SLOT_KINDS.chatAfter) {
+    if (SaveSystem.loadChatAfter(slotId)) {
+      closeDialog()
+      router.push({ path: '/chat-after', query: { [CHAT_AFTER_SLOT_QUERY_KEY]: slotId } })
+      return
+    }
+  } else if (SaveSystem.load(slotId)) {
+    closeDialog()
     router.push({ path: '/game', query: { [GAME_ENTRY_QUERY_KEY]: GAME_ENTRY_TYPES.load } })
-  } else {
-    alert('未找到有效存档。')
-    refreshSaveSlots()
+    return
   }
+  reportLoadError()
+}
+
+const continueGame = () => {
+  refreshSaveSlots()
+  if (latestSave.value) loadFromSlot(latestSave.value.id)
+  else reportLoadError()
 }
 
 const goToSettings = () => {
@@ -210,805 +309,385 @@ const goToAchievements = () => {
   audioManager.playSfx('click')
   router.push('/achievements')
 }
+
+onMounted(() => {
+  refreshSaveSlots()
+  window.addEventListener('focus', refreshSaveSlots)
+  window.addEventListener('storage', refreshSaveSlots)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('focus', refreshSaveSlots)
+  window.removeEventListener('storage', refreshSaveSlots)
+})
 </script>
 
 <style scoped>
 .start-view {
-  --menu-violet: #b66cff;
-  --menu-violet-soft: #d8b6ff;
-  --menu-line: rgba(216, 182, 255, 0.42);
-  --menu-panel: rgba(8, 8, 16, 0.58);
-  --menu-panel-strong: rgba(8, 8, 16, 0.72);
-  --menu-text: rgba(245, 241, 255, 0.92);
-  --menu-muted: rgba(224, 219, 235, 0.74);
+  --menu-night: #090b0e;
+  --menu-paper: #e2e1de;
+  --menu-muted: #a3a9b2;
+  --menu-violet: #b3a6c7;
+  --menu-gutter: clamp(40px, 8.4vw, 180px);
 
   position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100svh;
-  min-height: 660px;
-  overflow: hidden;
-  color: var(--menu-text);
-  background: #050508;
-  font-family: "Microsoft YaHei", "Noto Sans SC", "Source Han Sans", sans-serif;
-  isolation: isolate;
+  overflow: hidden auto;
+  color: var(--menu-paper);
+  background: var(--menu-night);
+  scrollbar-width: thin;
+  scrollbar-color: #49434f var(--menu-night);
 }
 
-/* The homepage should be readable on its first frame, including slow devices. */
+/* Text and controls are available immediately, including during the route entrance. */
 .start-view.fade-enter-active { transition: none; }
 .start-view.fade-enter-from { opacity: 1; }
 
-.menu-bg,
-.character-layer,
-.rain-layer,
-.menu-shade,
-.purple-haze {
+.menu-scene,
+.menu-shade {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
-.menu-bg {
-  z-index: 0;
-  background-image: url('/assets/images/menu_bg_rooftop_1600.webp');
-  background-image: image-set(
-    url('/assets/images/menu_bg_rooftop_1600.webp') type('image/webp'),
-    url('/assets/images/menu_bg_rooftop.png') type('image/png')
-  );
-  background-position: center;
-  background-size: cover;
-  filter: saturate(0.9) contrast(1.08) brightness(0.78);
-  transform: scale(1.035);
-  animation: menu-bg-drift 38s ease-in-out infinite;
-}
-
-.character-layer {
-  z-index: 4;
-  display: none;
-}
-
-.rain-layer {
-  z-index: 2;
-  background-image: url('/assets/images/vfx_rain_sprite.webp');
-  background-repeat: repeat;
-  background-size: 360px 360px;
-  opacity: 0.22;
-  mix-blend-mode: screen;
-  animation: rain-fall 1.8s linear infinite;
+.menu-scene { z-index: -2; }
+.menu-scene img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 72% center;
+  user-select: none;
 }
 
 .menu-shade {
-  z-index: 3;
+  z-index: -1;
   background:
-    linear-gradient(90deg, rgba(3, 3, 8, 0.88) 0%, rgba(7, 7, 14, 0.58) 34%, rgba(3, 3, 8, 0.72) 100%),
-    linear-gradient(180deg, rgba(4, 4, 9, 0.18) 0%, rgba(4, 4, 9, 0.2) 48%, rgba(4, 4, 9, 0.9) 100%);
-}
-
-.purple-haze {
-  z-index: 3;
-  opacity: 0.78;
-  background:
-    radial-gradient(ellipse at 22% 24%, rgba(162, 83, 255, 0.34), transparent 30%),
-    radial-gradient(ellipse at 82% 44%, rgba(157, 85, 255, 0.22), transparent 28%),
-    linear-gradient(180deg, transparent 64%, rgba(22, 10, 32, 0.54) 100%);
+    linear-gradient(90deg, rgb(5 7 10 / 38%), rgb(5 7 10 / 12%) 38%, transparent 62%),
+    linear-gradient(0deg, rgb(5 7 10 / 52%), transparent 24%);
 }
 
 .menu-shell {
-  position: absolute;
-  z-index: 6;
-  left: 50%;
-  top: 50%;
-  width: min(100vw, calc(100svh * 16 / 9));
-  max-width: 1920px;
-  aspect-ratio: 16 / 9;
-  transform: translate(-50%, -50%);
-  container-type: inline-size;
+  position: relative;
+  flex: 1 0 auto;
+  width: min(100%, 1920px);
+  margin-inline: auto;
+  padding: clamp(76px, 17svh, 220px) var(--menu-gutter) 40px;
 }
 
-.brand-panel {
-  position: absolute;
-  left: 10.4%;
-  top: 13.2%;
-  width: 38.8%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.title-art {
+.brand-panel { width: clamp(380px, 34vw, 660px); }
+.game-title { margin: 0; font-weight: 400; }
+.title-window {
+  position: relative;
   display: block;
-  width: 37.4cqw;
+  width: 100%;
+  aspect-ratio: 1130 / 280;
+  overflow: visible;
+}
+
+/* Preserve the approved artwork's transparent margins and complete particle field. */
+.title-art {
+  position: absolute;
+  top: -48%;
+  left: -23%;
+  display: block;
+  width: 138%;
   max-width: none;
   height: auto;
-  margin: 0;
+  opacity: 0;
+  pointer-events: none;
   user-select: none;
-  filter:
-    drop-shadow(0 0 16px rgba(187, 115, 255, 0.74))
-    drop-shadow(0 0 36px rgba(133, 67, 198, 0.48));
 }
-
-.title-picture { position: relative; display: block; }
+.title-art.is-ready { opacity: 1; }
 .title-fallback {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: #d8b6ff;
-  font-size: clamp(32px, 5cqw, 64px);
-  letter-spacing: 0.12em;
-  text-shadow: 0 0 20px rgba(187, 115, 255, 0.5);
+  color: #d3cbdc;
+  font-size: clamp(64px, 7vw, 128px);
+  line-height: 1;
+  letter-spacing: 0.1em;
 }
 
 .tagline {
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-  gap: 0.58cqw;
-  width: 32.4cqw;
-  max-width: none;
-  margin: 0.78cqw 0 0 3.2cqw;
-  padding: 0.42cqw 0;
-  color: rgba(247, 243, 255, 0.88);
-  font-size: clamp(0.92rem, 1.04cqw, 1.12rem);
-  line-height: 1.45;
-  font-style: italic;
-  letter-spacing: 0.03em;
-  text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.9),
-    0 0 12px rgba(216, 182, 255, 0.18);
-}
-
-.tagline::after {
-  content: "";
-  position: absolute;
-  left: 2.2cqw;
-  right: 2.2cqw;
-  bottom: 0;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(182, 108, 255, 0.32) 18%,
-    rgba(245, 241, 255, 0.34) 50%,
-    rgba(182, 108, 255, 0.28) 82%,
-    transparent
-  );
-  box-shadow: 0 0 12px rgba(182, 108, 255, 0.18);
-  opacity: 0.72;
-}
-
-.tagline strong {
-  color: var(--menu-violet-soft);
-  font-weight: 800;
-  text-shadow: 0 0 16px rgba(182, 108, 255, 0.62);
-}
-
-.quote-mark {
-  flex: 0 0 auto;
-  color: var(--menu-violet);
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(1.26rem, 1.62cqw, 1.72rem);
-  font-style: normal;
-  font-weight: 700;
-  line-height: 1;
-  text-shadow: 0 0 14px rgba(182, 108, 255, 0.82);
-}
-
-.quote-mark-open {
-  margin-top: 0.18em;
-}
-
-.quote-mark-close {
-  align-self: flex-end;
-  margin-bottom: -0.08em;
-}
-
-.quote-copy {
-  min-width: 0;
-  display: block;
-  align-items: baseline;
-  justify-content: center;
-  gap: 0.26em;
-  flex: 1;
-  white-space: normal;
-  color: rgba(238, 233, 248, 0.82);
-  text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.88),
-    0 0 10px rgba(188, 144, 255, 0.22);
-}
-
-.quote-copy strong {
-  color: var(--menu-violet);
-  font-size: 1.14em;
-  font-style: normal;
-  letter-spacing: 0.08em;
-  filter: drop-shadow(0 0 10px rgba(182, 108, 255, 0.74));
-}
-
-.quote-copy-prefix,
-.quote-copy-suffix {
-  display: inline-block;
-}
-
-.intro-card {
-  position: absolute;
-  left: 13.9%;
-  top: 44%;
-  width: 34cqw;
-  max-width: none;
-  padding: 1.5cqw 1.9cqw 1.65cqw;
-  color: var(--menu-muted);
-  background:
-    linear-gradient(180deg, rgba(22, 15, 34, 0.64), rgba(4, 4, 10, 0.64)),
-    rgba(0, 0, 0, 0.28);
-  border: 1px solid var(--menu-line);
-  border-radius: 8px;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
-    0 18px 60px rgba(0, 0, 0, 0.42),
-    0 0 36px rgba(151, 78, 230, 0.18);
-  backdrop-filter: blur(9px);
-}
-
-.intro-heading {
-  display: flex;
-  align-items: center;
-  gap: 0.62cqw;
-  margin-bottom: 0.86cqw;
-  color: var(--menu-violet-soft);
-  font-size: clamp(0.9rem, 1.06cqw, 1.05rem);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-}
-
-.intro-card p {
-  margin: 0 0 0.76cqw;
-  font-size: clamp(0.84rem, 0.92cqw, 0.96rem);
-  line-height: 1.76;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
-}
-
-.intro-list {
-  display: grid;
-  gap: 0.5cqw;
-  margin: 1cqw 0 0;
-  padding: 0.96cqw 0 0;
-  border-top: 1px dashed rgba(216, 182, 255, 0.24);
-  list-style: none;
-}
-
-.intro-card .safety-note {
-  margin-top: 12px;
-  margin-bottom: 0;
-  font-size: 0.75rem;
-  line-height: 1.6;
-  color: rgba(231, 226, 240, 0.6);
-}
-
-.intro-list li {
-  position: relative;
-  padding-left: 1.45cqw;
-  font-size: clamp(0.78rem, 0.84cqw, 0.88rem);
-  line-height: 1.62;
-  color: rgba(231, 226, 240, 0.74);
-}
-
-.intro-list li::before {
-  content: "";
-  position: absolute;
-  left: 0.12cqw;
-  top: 0.68em;
-  width: 0.42cqw;
-  height: 0.42cqw;
-  border: 1px solid var(--menu-violet);
-  transform: rotate(45deg);
-  box-shadow: 0 0 10px rgba(182, 108, 255, 0.76);
+  margin: clamp(18px, 2.4svh, 28px) 0 0;
+  color: #c4c5cb;
+  font-size: clamp(16px, 1.2vw, 22px);
+  font-weight: 400;
+  line-height: 1.7;
+  letter-spacing: 0.18em;
+  text-shadow: 0 2px 8px #000;
 }
 
 .action-menu {
-  position: absolute;
-  left: 65.2%;
-  top: 38.2%;
-  width: 22.9cqw;
   display: grid;
-  gap: 1.05cqw;
+  gap: 10px;
+  width: clamp(270px, 22vw, 340px);
+  margin-top: clamp(36px, 7svh, 86px);
 }
 
 .menu-button {
   position: relative;
-  display: grid;
-  grid-template-columns: 2cqw 1fr 2cqw;
-  align-items: center;
-  min-height: 4.8cqw;
-  padding: 0 1.5cqw;
-  overflow: hidden;
-  color: rgba(247, 243, 255, 0.88);
-  background:
-    linear-gradient(180deg, rgba(16, 15, 22, 0.74), rgba(5, 5, 10, 0.74)),
-    rgba(0, 0, 0, 0.36);
-  border: 1px solid rgba(220, 207, 242, 0.32);
-  border-radius: 8px;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.08) inset,
-    0 14px 32px rgba(0, 0, 0, 0.38);
-  backdrop-filter: blur(8px);
-  cursor: pointer;
-  transition:
-    border-color 180ms ease,
-    box-shadow 180ms ease,
-    color 180ms ease,
-    transform 180ms ease,
-    background-color 180ms ease;
-}
-
-.menu-button::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  background: linear-gradient(90deg, rgba(182, 108, 255, 0.28), rgba(255, 255, 255, 0.04));
-  transition: opacity 180ms ease;
-}
-
-.menu-button svg,
-.menu-button span {
-  position: relative;
-  z-index: 1;
-}
-
-.menu-button svg {
-  color: var(--menu-violet-soft);
-}
-
-.menu-button span {
-  justify-self: center;
-  font-size: clamp(1rem, 1.36cqw, 1.35rem);
-  font-weight: 700;
-  letter-spacing: 0.12em;
-}
-
-.menu-button:hover,
-.menu-button:focus-visible {
-  color: #fff;
-  border-color: rgba(229, 205, 255, 0.78);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.1) inset,
-    0 0 0 1px rgba(182, 108, 255, 0.28),
-    0 0 34px rgba(182, 108, 255, 0.28),
-    0 18px 42px rgba(0, 0, 0, 0.46);
-  transform: translateY(-2px);
-}
-
-.menu-button:hover::before,
-.menu-button:focus-visible::before {
-  opacity: 1;
-}
-
-.menu-button:focus-visible {
-  outline: 2px solid rgba(229, 205, 255, 0.82);
-  outline-offset: 3px;
-}
-
-.menu-button-primary {
-  min-height: 5.2cqw;
-  color: #fff;
-  background:
-    linear-gradient(90deg, rgba(115, 45, 177, 0.52), rgba(25, 19, 38, 0.7)),
-    var(--menu-panel-strong);
-  border-color: rgba(198, 126, 255, 0.86);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.14) inset,
-    0 0 0 1px rgba(182, 108, 255, 0.2),
-    0 0 26px rgba(182, 108, 255, 0.44),
-    0 18px 48px rgba(0, 0, 0, 0.5);
-}
-
-.menu-button-primary span {
-  font-size: clamp(1.08rem, 1.52cqw, 1.48rem);
-}
-
-.arrow-icon {
-  justify-self: end;
-  transition: transform 180ms ease;
-}
-
-.menu-button-primary:hover .arrow-icon,
-.menu-button-primary:focus-visible .arrow-icon {
-  transform: translateX(5px);
-}
-
-.menu-footer {
-  position: absolute;
-  z-index: 7;
-  left: 50%;
-  bottom: 24px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: min(540px, calc(100% - 48px));
-  transform: translateX(-50%);
-  color: rgba(222, 214, 234, 0.44);
-  font-family: "Consolas", "Cascadia Mono", monospace;
-  font-size: 0.75rem;
-  letter-spacing: 0.18em;
-  white-space: nowrap;
-}
-
-.footer-dot {
-  width: 8px;
-  height: 8px;
-  background: var(--menu-violet);
-  transform: rotate(45deg);
-  box-shadow: 0 0 12px rgba(182, 108, 255, 0.84);
-}
-
-.footer-line {
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, rgba(216, 182, 255, 0.34), transparent);
-}
-
-.save-slot-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: rgba(0, 0, 0, 0.58);
-  backdrop-filter: blur(8px);
-}
-
-.save-slot-panel {
-  width: min(380px, 100%);
-  padding: 20px;
-  color: var(--menu-text);
-  background:
-    linear-gradient(180deg, rgba(22, 15, 34, 0.92), rgba(4, 4, 10, 0.94)),
-    rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(216, 182, 255, 0.42);
-  border-radius: 8px;
-  box-shadow:
-    0 18px 60px rgba(0, 0, 0, 0.54),
-    0 0 34px rgba(182, 108, 255, 0.22);
-}
-
-.save-slot-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.save-slot-header h2 {
-  margin: 0;
-  color: var(--menu-violet-soft);
-  font-size: 1rem;
-  font-weight: 800;
-  letter-spacing: 0;
-}
-
-.save-slot-header button {
-  color: rgba(224, 219, 235, 0.62);
-  font-size: 1.5rem;
-  line-height: 1;
-  transition: color 180ms ease;
-}
-
-.save-slot-header button:hover,
-.save-slot-header button:focus-visible {
-  color: #fff;
-}
-
-.save-slot-list {
-  display: grid;
-  gap: 12px;
-}
-
-.save-slot-button {
-  display: block;
+  gap: 16px;
   width: 100%;
-  padding: 13px 16px;
+  min-height: clamp(50px, 5.7svh, 62px);
+  padding: 8px 24px;
+  border: 1px solid transparent;
+  border-radius: 1px;
+  color: #c3c4cc;
+  background: transparent;
   text-align: left;
-  background: rgba(0, 0, 0, 0.36);
-  border: 1px solid rgba(220, 207, 242, 0.26);
-  border-radius: 8px;
+  font-size: clamp(20px, 1.5vw, 26px);
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: 0.22em;
+  text-shadow: 0 2px 8px #000;
+  cursor: pointer;
   transition:
-    border-color 180ms ease,
-    background-color 180ms ease,
-    color 180ms ease;
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.save-slot-button:not(:disabled):hover,
-.save-slot-button:not(:disabled):focus-visible {
-  background: rgba(92, 39, 140, 0.36);
-  border-color: rgba(216, 182, 255, 0.78);
+.menu-button-primary {
+  min-height: clamp(54px, 6.1svh, 66px);
+  margin-bottom: 4px;
 }
 
-.save-slot-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.46;
+.menu-button.is-selected:not(:disabled) {
+  border-color: rgb(179 166 199 / 62%);
+  color: #eeebf1;
+  background: rgb(179 166 199 / 5%);
+  box-shadow: inset 2px 0 0 #c9bed7, 0 0 18px rgb(179 166 199 / 16%);
 }
 
-.save-slot-title,
-.save-slot-status {
-  display: block;
+.menu-button.is-selected:not(:disabled):hover,
+.menu-button.is-selected:focus-visible {
+  border-color: rgb(179 166 199 / 65%);
+  color: #f2eff4;
+  background: rgb(226 225 222 / 8%);
 }
-
-.save-slot-title {
-  color: rgba(247, 243, 255, 0.92);
-  font-size: 0.95rem;
-  font-weight: 800;
+.menu-button:not(:disabled):active { background: rgb(226 225 222 / 4%); }
+.menu-button.is-selected:focus-visible,
+.footer-link:focus-visible,
+.dialog-close:focus-visible,
+.save-slot-button:focus-visible {
+  outline: 2px solid var(--menu-violet);
+  outline-offset: 5px;
 }
-
-.save-slot-status {
-  margin-top: 4px;
-  color: rgba(224, 219, 235, 0.62);
-  font-size: 0.78rem;
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+.menu-button:disabled { color: #92949d; cursor: default; }
+.empty-save-note {
+  color: #8e929e;
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 0.05em;
   white-space: nowrap;
+}
+
+.menu-footer {
+  position: relative;
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 20px;
+  width: min(100%, 1920px);
+  margin-inline: auto;
+  padding: 12px var(--menu-gutter) max(32px, env(safe-area-inset-bottom));
+}
+.footer-link {
+  justify-self: start;
+  min-height: 44px;
+  padding: 8px 0;
   border: 0;
+  color: #9da1af;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+.footer-link-end { justify-self: end; }
+.footer-link:hover { color: var(--menu-paper); }
+.footer-message {
+  margin: 0;
+  color: #b7b8c1;
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: 0.22em;
 }
 
-@keyframes menu-bg-drift {
-  0% {
-    transform: scale(1.035) translate(0, 0);
-  }
-  50% {
-    transform: scale(1.07) translate(-0.8%, -0.5%);
-  }
-  100% {
-    transform: scale(1.035) translate(0, 0);
-  }
+.start-view :deep(.bgm-control) {
+  top: max(24px, env(safe-area-inset-top));
+  right: max(28px, env(safe-area-inset-right));
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 1px;
+  color: #b6b4c0;
+  background: rgb(9 11 14 / 42%);
+  letter-spacing: 0.06em;
+  transition: color 160ms ease, border-color 160ms ease;
+}
+.start-view :deep(.bgm-control:hover) { border-color: #6b6379; color: #e2e1de; }
+.start-view :deep(.bgm-control:focus-visible) { outline-color: var(--menu-violet); }
+
+.menu-dialog {
+  width: min(480px, calc(100vw - 40px));
+  max-height: calc(100svh - 48px);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  border: 1px solid #625b6b;
+  border-radius: 2px;
+  color: var(--menu-paper);
+  background: #111318;
+  box-shadow: 0 24px 100px rgb(0 0 0 / 60%);
+  scrollbar-width: thin;
+  scrollbar-color: #625b6b #111318;
+}
+.menu-dialog::backdrop { background: rgb(3 5 8 / 78%); backdrop-filter: blur(5px); }
+.dialog-panel { padding: 28px; }
+.dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.dialog-header h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.14em;
+}
+.dialog-close {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  margin: -8px -10px -8px 0;
+  border: 0;
+  color: #b6b0c0;
+  background: transparent;
+  cursor: pointer;
+}
+.dialog-close:hover { color: #fff; }
+.dialog-intro,
+.dialog-footnote {
+  color: var(--menu-muted);
+  font-size: 14px;
+  line-height: 1.8;
+}
+.dialog-intro { margin: 14px 0 24px; }
+.dialog-footnote { margin: 20px 0 0; }
+.save-slot-list { display: grid; gap: 12px; }
+.save-slot-button {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  min-height: 88px;
+  padding: 18px 20px;
+  border: 1px solid #51505b;
+  border-radius: 1px;
+  color: #e2e1de;
+  background: rgb(226 225 222 / 3%);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+.save-slot-button:not(:disabled):hover { border-color: #b3a6c7; background: rgb(179 166 199 / 8%); }
+.save-slot-button:disabled { border-color: #2d3039; color: #8b8e98; cursor: default; }
+.save-slot-title { font-size: 17px; line-height: 1.5; }
+.save-slot-status { color: #a3a9b2; font-size: 13px; line-height: 1.6; }
+.save-error { margin: 0 0 20px; color: #d8c5bd; font-size: 14px; line-height: 1.8; }
+.about-copy { color: #bfc1c9; font-size: 15px; line-height: 1.9; }
+.about-copy p { margin: 18px 0; }
+.about-copy .about-lead { color: #e2e1de; }
+.about-copy blockquote {
+  margin: 24px 0;
+  padding-left: 16px;
+  border-left: 1px solid #8a7d9a;
+  color: #cfc5da;
+}
+.about-copy .about-safety {
+  margin-bottom: 0;
+  padding-top: 18px;
+  border-top: 1px solid #30313a;
+  color: #a3a9b2;
+  font-size: 13px;
 }
 
-@keyframes rain-fall {
-  0% {
-    background-position: 0 0;
-  }
-  100% {
-    background-position: 90px 360px;
-  }
+@media (min-aspect-ratio: 21/9) {
+  .menu-scene img { object-fit: contain; object-position: right center; }
 }
 
-@media (max-width: 980px) {
-  .start-view {
-    min-height: 100svh;
-    overflow-y: auto;
-  }
-
-  .menu-bg {
-    background-image: url('/assets/images/menu_bg_rooftop_900.webp');
-    background-image: image-set(
-      url('/assets/images/menu_bg_rooftop_900.webp') type('image/webp'),
-      url('/assets/images/menu_bg_rooftop.png') type('image/png')
-    );
-    background-position: 58% center;
-    filter: saturate(0.86) contrast(1.08) brightness(0.68);
-  }
-
-  .character-layer {
-    display: none;
-  }
-
+@media (max-width: 760px), (max-width: 1024px) and (orientation: portrait) {
+  .start-view { --menu-gutter: clamp(24px, 6.6vw, 52px); }
+  .menu-scene { height: clamp(560px, 74svh, 760px); }
+  .menu-scene img { object-position: 78% center; }
   .menu-shade {
     background:
-      linear-gradient(180deg, rgba(3, 3, 8, 0.86) 0%, rgba(3, 3, 8, 0.52) 36%, rgba(3, 3, 8, 0.96) 100%),
-      linear-gradient(90deg, rgba(3, 3, 8, 0.78), rgba(3, 3, 8, 0.54));
+      linear-gradient(180deg, rgb(5 7 10 / 20%), transparent 26%, #090b0e 73%),
+      linear-gradient(90deg, rgb(5 7 10 / 32%), transparent 70%);
   }
-
   .menu-shell {
-    position: relative;
-    left: auto;
-    top: auto;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    gap: 14px;
-    width: min(500px, calc(100% - 28px));
-    max-width: none;
-    min-height: auto;
-    aspect-ratio: auto;
-    transform: none;
-    container-type: normal;
-    margin: 0 auto;
-    padding: max(64px, calc(env(safe-area-inset-top) + 56px)) 0 64px;
+    min-height: calc(100svh - 94px);
+    padding-top: max(76px, 10svh);
+    padding-bottom: 24px;
   }
-
-  .brand-panel {
-    position: static;
-    width: 100%;
-    order: 1;
-    align-items: center;
-  }
-
-  .action-menu {
-    position: static;
-    width: 100%;
-    order: 2;
-    gap: 10px;
-  }
-
-  .intro-card {
-    position: static;
-    order: 3;
-    width: 100%;
-    max-width: none;
-    transform: none;
-    padding: 15px 16px 17px;
-    background:
-      linear-gradient(180deg, rgba(18, 13, 28, 0.7), rgba(4, 4, 10, 0.72)),
-      rgba(0, 0, 0, 0.28);
-  }
-
+  .brand-panel { width: min(100%, 440px); }
   .title-art {
-    width: min(92%, 390px);
-    margin: 0 auto;
+    top: -32%;
+    left: calc(-1 * var(--menu-gutter));
+    width: calc(100% + 2 * var(--menu-gutter));
   }
-
-  .tagline {
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    width: min(100%, 430px);
-    max-width: none;
-    margin: 4px auto 2px;
-    padding: 8px 0 9px;
-    font-size: clamp(0.88rem, 3.5vw, 1rem);
-    line-height: 1.55;
-    text-align: center;
-  }
-
-  .tagline::after {
-    left: 44px;
-    right: 44px;
-  }
-
-  .quote-copy {
-    white-space: normal;
-    flex-wrap: wrap;
-    row-gap: 0;
-    column-gap: 0.28em;
-  }
-
-  .quote-mark {
-    font-size: 1.24rem;
-  }
-
-  .intro-heading {
-    gap: 10px;
-    margin-bottom: 10px;
-    font-size: 0.9rem;
-  }
-
-  .intro-card p {
-    margin-bottom: 9px;
-    font-size: 0.84rem;
-    line-height: 1.65;
-  }
-
-  .intro-list {
-    gap: 7px;
-    margin-top: 11px;
-    padding-top: 10px;
-  }
-
-  .intro-list li {
-    padding-left: 24px;
-  }
-
-  .intro-list li::before {
-    left: 2px;
-    width: 7px;
-    height: 7px;
-  }
-
-  .menu-button,
-  .menu-button-primary {
-    min-height: 54px;
-    grid-template-columns: 30px 1fr 30px;
-    padding: 0 18px;
-    border-radius: 7px;
-  }
-
-  .menu-button span {
-    font-size: 1rem;
-    letter-spacing: 0.1em;
-  }
-
-  .menu-button-primary span {
-    font-size: 1.08rem;
-  }
-
+  .title-fallback { font-size: clamp(48px, 12vw, 86px); }
+  .tagline { margin-top: 16px; font-size: clamp(15px, 3.8vw, 19px); letter-spacing: 0.12em; }
+  .action-menu { width: min(100%, 310px); margin-top: clamp(160px, 24svh, 240px); gap: 8px; }
+  .menu-button { min-height: 52px; padding-inline: 20px; font-size: 22px; }
+  .menu-button-primary { min-height: 56px; }
   .menu-footer {
-    position: relative;
-    left: auto;
-    bottom: auto;
-    margin: -46px auto 14px;
-    transform: none;
-    justify-content: center;
-    width: calc(100% - 32px);
-    font-size: 0.68rem;
-    letter-spacing: 0.1em;
+    column-gap: 12px;
+    row-gap: 0;
+    padding-top: 0;
+    padding-bottom: max(22px, env(safe-area-inset-bottom));
   }
-
-  .footer-line {
-    display: none;
-  }
+  .footer-message { font-size: 12px; letter-spacing: 0.12em; }
+  .footer-link { font-size: 12px; letter-spacing: 0.06em; }
+  .start-view :deep(.bgm-control) { top: max(14px, env(safe-area-inset-top)); right: 16px; }
+  .dialog-panel { padding: 22px; }
 }
 
-@media (max-width: 480px) {
-  .menu-shell {
-    width: calc(100% - 22px);
-    gap: 11px;
-    padding-top: max(64px, calc(env(safe-area-inset-top) + 56px));
+@media (max-height: 620px) and (min-width: 480px) and (orientation: landscape) {
+  .menu-scene { height: 100%; }
+  .menu-scene img { object-position: 72% center; }
+  .menu-shade {
+    background:
+      linear-gradient(90deg, rgb(5 7 10 / 38%), rgb(5 7 10 / 12%) 38%, transparent 62%),
+      linear-gradient(0deg, rgb(5 7 10 / 52%), transparent 24%);
   }
-
-  .title-art {
-    width: min(96%, 328px);
-  }
-
-  .tagline {
-    font-size: 0.86rem;
-    line-height: 1.48;
-  }
-
-  .quote-copy strong {
-    font-size: 1.08em;
-  }
-
-  .intro-heading {
-    margin-bottom: 9px;
-  }
-
-  .intro-card p {
-    font-size: 0.8rem;
-    line-height: 1.62;
-  }
-
-  .intro-list {
-    margin-top: 10px;
-  }
-
-  .intro-list li {
-    font-size: 0.78rem;
-    line-height: 1.48;
-  }
-
-  .menu-button,
-  .menu-button-primary {
-    min-height: 50px;
-  }
-
-  .menu-button span {
-    font-size: 0.94rem;
-  }
-
-  .menu-button-primary span {
-    font-size: 1rem;
-  }
+  .menu-shell { min-height: 0; padding-top: 28px; padding-bottom: 24px; }
+  .brand-panel { width: min(39vw, 420px); }
+  .title-art { top: -48%; left: -12%; width: 128%; }
+  .tagline { margin-top: 10px; font-size: 15px; }
+  .action-menu { width: min(290px, 34vw); margin-top: 20px; gap: 4px; }
+  .menu-button { min-height: 44px; font-size: 20px; }
+  .menu-button-primary { min-height: 48px; }
+  .menu-footer { padding-bottom: 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .menu-bg,
-  .rain-layer {
-    animation: none;
-  }
-
+  .start-view.fade-leave-active,
   .menu-button,
-  .menu-button::before,
-  .arrow-icon {
-    transition: none;
-  }
+  .footer-link,
+  .save-slot-button,
+  .start-view :deep(.bgm-control) { transition: none; }
 }
 </style>

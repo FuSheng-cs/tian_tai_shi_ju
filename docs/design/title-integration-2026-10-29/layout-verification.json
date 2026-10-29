@@ -1,0 +1,177 @@
+[
+  {
+    "cropOverflow": "visible",
+    "horizontalOverflow": false,
+    "outerTitleFilter": "none",
+    "paintedBounds": {
+      "bottom": 341.96326830110496,
+      "left": 67.94716131445672,
+      "right": 853.9179327808472,
+      "top": 171.91449412983425
+    },
+    "particlesClearOfTagline": true,
+    "particlesWithinViewport": true,
+    "selected": [
+      "start"
+    ],
+    "titleFilter": "none",
+    "titleLoaded": true,
+    "titleSource": "http://127.0.0.1:5173/assets/images/homepage_20261029/title-expanded-v1.webp",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      1920,
+      1080
+    ],
+    "case": "desktop"
+  },
+  {
+    "cropOverflow": "visible",
+    "horizontalOverflow": false,
+    "outerTitleFilter": "none",
+    "paintedBounds": {
+      "bottom": 243.21514589088395,
+      "left": 48.3483468577348,
+      "right": 607.5320269337017,
+      "top": 122.2308140538674
+    },
+    "particlesClearOfTagline": true,
+    "particlesWithinViewport": true,
+    "selected": [
+      "start"
+    ],
+    "titleFilter": "none",
+    "titleLoaded": true,
+    "titleSource": "http://127.0.0.1:5173/assets/images/homepage_20261029/title-expanded-v1.webp",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      1366,
+      768
+    ],
+    "case": "laptop"
+  },
+  {
+    "cropOverflow": "visible",
+    "horizontalOverflow": false,
+    "outerTitleFilter": "none",
+    "paintedBounds": {
+      "bottom": 209.33582959254144,
+      "left": 34.147502302025785,
+      "right": 506.4797421731123,
+      "top": 107.14552399861878
+    },
+    "particlesClearOfTagline": true,
+    "particlesWithinViewport": true,
+    "selected": [
+      "start"
+    ],
+    "titleFilter": "none",
+    "titleLoaded": true,
+    "titleSource": "http://127.0.0.1:5173/assets/images/homepage_20261029/title-expanded-v1.webp",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      768,
+      1024
+    ],
+    "case": "tablet"
+  },
+  {
+    "cropOverflow": "visible",
+    "horizontalOverflow": false,
+    "outerTitleFilter": "none",
+    "paintedBounds": {
+      "bottom": 159.7310082872928,
+      "left": 24.599447513812155,
+      "right": 364.8618784530387,
+      "top": 86.11222375690608
+    },
+    "particlesClearOfTagline": true,
+    "particlesWithinViewport": true,
+    "selected": [
+      "start"
+    ],
+    "titleFilter": "none",
+    "titleLoaded": true,
+    "titleSource": "http://127.0.0.1:5173/assets/images/homepage_20261029/title-expanded-v1.webp",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      390,
+      844
+    ],
+    "case": "mobile"
+  },
+  {
+    "cropOverflow": "visible",
+    "horizontalOverflow": false,
+    "outerTitleFilter": "none",
+    "paintedBounds": {
+      "bottom": 138.2598843232044,
+      "left": 20.1841620626151,
+      "right": 299.37384898710866,
+      "top": 77.86062672651934
+    },
+    "particlesClearOfTagline": true,
+    "particlesWithinViewport": true,
+    "selected": [
+      "start"
+    ],
+    "titleFilter": "none",
+    "titleLoaded": true,
+    "titleSource": "http://127.0.0.1:5173/assets/images/homepage_20261029/title-expanded-v1.webp",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      320,
+      568
+    ],
+    "case": "small-phone"
+  },
+  {
+    "cropOverflow": "visible",
+    "horizontalOverflow": false,
+    "outerTitleFilter": "none",
+    "paintedBounds": {
+      "bottom": 84.28640797651934,
+      "left": 33.8136869820442,
+      "right": 324.3045580110497,
+      "top": 21.436140366022094
+    },
+    "particlesClearOfTagline": true,
+    "particlesWithinViewport": true,
+    "selected": [
+      "start"
+    ],
+    "titleFilter": "none",
+    "titleLoaded": true,
+    "titleSource": "http://127.0.0.1:5173/assets/images/homepage_20261029/title-expanded-v1.webp",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      667,
+      375
+    ],
+    "case": "landscape"
+  },
+  {
+    "cropOverflow": "visible",
+    "horizontalOverflow": false,
+    "outerTitleFilter": "none",
+    "paintedBounds": {
+      "bottom": 343.7072254834254,
+      "left": 405.6520991597606,
+      "right": 1200.293019106814,
+      "top": 171.78258805248618
+    },
+    "particlesClearOfTagline": true,
+    "particlesWithinViewport": true,
+    "selected": [
+      "start"
+    ],
+    "titleFilter": "none",
+    "titleLoaded": true,
+    "titleSource": "http://127.0.0.1:5173/assets/images/homepage_20261029/title-expanded-v1.webp",
+    "url": "http://127.0.0.1:5173/",
+    "viewport": [
+      2560,
+      1080
+    ],
+    "case": "ultrawide"
+  }
+]
