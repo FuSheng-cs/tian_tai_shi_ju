@@ -1,17 +1,17 @@
 @startuml AIC_Dual_Call_Sequence
-title 《天台十句》AIC · 主回合双调用\n<size:14>UML 时序图 · 剧情生成 → 结构化评价 → 程序结算</size>
+title 主回合：生成 → 评价 → 结算
 
 hide footbox
 autonumber "<b>00</b>"
 skinparam backgroundColor #FFFFFF
 skinparam shadowing false
 skinparam defaultFontName "Microsoft YaHei"
-skinparam defaultFontSize 16
+skinparam defaultFontSize 20
 skinparam titleFontSize 22
 skinparam CaptionFontSize 14
 skinparam sequenceArrowColor #475569
 skinparam sequenceArrowThickness 1.2
-skinparam sequenceArrowFontSize 16
+skinparam sequenceArrowFontSize 20
 skinparam sequenceLifeLineBorderColor #CBD5E1
 skinparam sequenceParticipantBorderColor #64748B
 skinparam sequenceParticipantFontColor #172B4D
@@ -22,37 +22,37 @@ skinparam sequenceMessageAlign left
 skinparam BoxPadding 12
 skinparam Padding 12
 
-participant "主线客户端\nVue / Pinia" as Client #F0F5FB
-participant "回合编排\nGo / Gin" as Chat #EAF1FB
-participant "剧情 LLM\n自然对白" as Story #EBF5F3
-participant "裁判 LLM\n结构化评价" as Judge #F1EFF9
+participant "客户端" as Client #F0F5FB
+participant "回合编排" as Chat #EAF1FB
+participant "剧情 LLM" as Story #EBF5F3
+participant "裁判 LLM" as Judge #F1EFF9
 
-Client -> Client : 记录本句，消耗 1 次机会
-Client -> Chat : POST /api/chat\n本句 + 历史 + 状态
+Client -> Client : 记录本句\n消耗 1 次机会
+Client -> Chat : /api/chat\n本句＋历史\n＋当前状态
 activate Chat
 
 group ① 剧情生成
-  Chat -> Story : 角色 Prompt + 完整历史 + 本句
+  Chat -> Story : 角色提示词\n完整历史\n＋本句
   activate Story
-  Story --> Chat : 自然对白 reply
+  Story --> Chat : 角色对白
   deactivate Story
-  Chat -> Chat : 清洗对白中的机制标签
+  Chat -> Chat : 清洗对白\n机制标签
 end
 
 group ② 独立评价
-  Chat -> Judge : 裁判 Prompt + 本句 + reply\n最近 4 条历史 + 状态
+  Chat -> Judge : 裁判提示词\n本句＋对白＋状态\n最近 4 条历史
   activate Judge
-  Judge --> Chat : evaluation JSON\n情绪 · 姿态 · 信任 · 压力 · 结局
+  Judge --> Chat : 评价 JSON\n情绪／姿态\n信任／压力／结局
   deactivate Judge
 end
 
 group ③ 程序校验与结算
-  Chat -> Chat : 解析 JSON、归一化字段\n按结算信任拦截低信任离开
-  Chat --> Client : reply + evaluation
+  Chat -> Chat : 字段归一化\n校验门槛
+  Chat --> Client : 对白＋评价
   deactivate Chat
-  Client -> Client : 先扣信任损耗，再加信任\n更新姿态、情绪与结局\n十句耗尽时执行结局兜底
+  Client -> Client : 先扣损耗\n再加信任\n更新状态\n结局与耗尽兜底
 end
 
-caption 离开行动由裁判按叙事判断；信任门槛由程序校验。\n提示与复盘分别通过 /api/hint 和 /api/ending-summary 调用。
+caption 剧情生成、语义评价与程序校验各自独立。
 @enduml
 

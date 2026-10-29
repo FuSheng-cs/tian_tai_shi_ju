@@ -1,107 +1,132 @@
+"""Local PlantUML export with explicit CJK fonts, outlined SVG and 3x PNG."""
 import argparse
+import os
+import shutil
 import struct
-import urllib.request
+import subprocess
 import xml.etree.ElementTree as ET
-import zlib
 from pathlib import Path
 
+from fontTools.pens.svgPathPen import SVGPathPen
+from fontTools.ttLib import TTFont
 
-def encode6bit(value: int) -> str:
-    if value < 10:
-        return chr(48 + value)
-    value -= 10
-    if value < 26:
-        return chr(65 + value)
-    value -= 26
-    if value < 26:
-        return chr(97 + value)
-    value -= 26
-    return "-" if value == 0 else "_" if value == 1 else "?"
+SVG = "http://www.w3.org/2000/svg"
+ET.register_namespace("", SVG)
 
 
-def append3(first: int, second: int, third: int) -> str:
-    values = (
-        first >> 2,
-        ((first & 0x3) << 4) | (second >> 4),
-        ((second & 0xF) << 2) | (third >> 6),
-        third & 0x3F,
-    )
-    return "".join(encode6bit(value) for value in values)
-
-
-def plantuml_encode(source: str) -> str:
-    compressed = zlib.compress(source.encode("utf-8"), 9)[2:-4]
-    chunks = []
-    for index in range(0, len(compressed), 3):
-        block = compressed[index : index + 3]
-        if len(block) == 1:
-            chunks.append(append3(block[0], 0, 0))
-        elif len(block) == 2:
-            chunks.append(append3(block[0], block[1], 0))
-        else:
-            chunks.append(append3(block[0], block[1], block[2]))
-    return "".join(chunks)
+def outline_text(data: bytes, regular: Path, bold: Path) -> bytes:
+    fonts = [TTFont(str(path), fontNumber=0) for path in (regular, bold)]
+    document = ET.fromstring(data)
+    try:
+        for parent in list(document.iter()):
+            for element in list(parent):
+                if element.tag != f"{{{SVG}}}text":
+                    continue
+                text = "".join(element.itertext())
+                font = fonts[1 if element.get("font-weight") in ("bold", "700") else 0]
+                glyphs, cmap = font.getGlyphSet(), font.getBestCmap()
+                names = []
+                for char in text:
+                    if ord(char) not in cmap:
+                        raise ValueError(f"Font missing U+{ord(char):04X}: {char}")
+                    names.append(cmap[ord(char)])
+                size = float(element.get("font-size", "16"))
+                scale = size / font["head"].unitsPerEm
+                advance = sum(glyphs[name].width for name in names) * scale
+                target = float(element.get("textLength", str(advance)))
+                stretch = target / advance if advance else 1
+                group = ET.Element(f"{{{SVG}}}g", {
+                    "aria-label": text,
+                    "fill": element.get("fill", "#172B4D"),
+                    "transform": f"translate({element.get('x', '0')} {element.get('y', '0')})",
+                })
+                ET.SubElement(group, f"{{{SVG}}}title").text = text
+                cursor = 0
+                for name in names:
+                    pen = SVGPathPen(glyphs)
+                    glyphs[name].draw(pen)
+                    commands = pen.getCommands()
+                    if commands:
+                        ET.SubElement(group, f"{{{SVG}}}path", {
+                            "d": commands,
+                            "transform": f"translate({cursor:.5f} 0) scale({scale * stretch:.7f} {-scale:.7f})",
+                        })
+                    cursor += glyphs[name].width * scale * stretch
+                parent.insert(list(parent).index(element), group)
+                parent.remove(element)
+        document.set("data-aic-font", "Microsoft YaHei; glyph outlines")
+        document.set("role", "img")
+        return ET.tostring(document, encoding="utf-8", xml_declaration=True)
+    finally:
+        for font in fonts:
+            font.close()
 
 
 def validate_pair(svg: bytes, png: bytes) -> tuple[int, int]:
     document = ET.fromstring(svg)
-    if document.tag != "{http://www.w3.org/2000/svg}svg":
-        raise ValueError("Renderer did not return an SVG document")
-
-    # PlantUML can return a valid image containing a syntax error or warning.
-    # Reject those images before replacing the published diagram files.
-    visible_text = " ".join(document.itertext()).lower()
+    if document.tag != f"{{{SVG}}}svg":
+        raise ValueError("Not SVG")
+    visible = " ".join(document.itertext()).lower()
     for marker in ("syntax error", "is ignored: use a style instead", "</size>"):
-        if marker in visible_text:
-            raise ValueError(f"PlantUML diagnostic found in rendered text: {marker}")
-    if not visible_text.strip():
-        raise ValueError("Rendered SVG has no text")
-
+        if marker in visible:
+            raise ValueError(f"PlantUML diagnostic: {marker}")
+    if list(document.iter(f"{{{SVG}}}text")):
+        raise ValueError("SVG contains font-dependent text; outline conversion required")
+    if "data-aic-font" not in document.attrib:
+        raise ValueError("Missing font provenance")
     if png[:8] != b"\x89PNG\r\n\x1a\n" or png[12:16] != b"IHDR":
-        raise ValueError("Renderer did not return a PNG image")
+        raise ValueError("Not PNG")
     width, height = struct.unpack(">II", png[16:24])
-    view_box = [float(value) for value in document.attrib["viewBox"].split()]
-    if width < 1 or height < 1 or any(
-        abs(actual - expected) > 1
-        for actual, expected in zip((width, height), view_box[2:])
-    ):
-        raise ValueError("SVG and PNG canvas dimensions do not match")
+    box = [float(value) for value in document.attrib["viewBox"].split()]
+    if any(abs(actual - expected * 3) > 4
+           for actual, expected in zip((width, height), box[2:])):
+        raise ValueError("PNG must match SVG at 3x resolution")
     return width, height
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Render PlantUML source to SVG and PNG")
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", nargs="?", default=".")
-    parser.add_argument("--check", action="store_true", help="Validate existing image pairs offline")
+    parser.add_argument("--check", action="store_true")
+    parser.add_argument("--jar", default=os.environ.get(
+        "PLANTUML_JAR", "output/toolchain/plantuml-1.2025.2.jar"))
+    parser.add_argument("--font-regular", default="C:/Windows/Fonts/msyh.ttc")
+    parser.add_argument("--font-bold", default="C:/Windows/Fonts/msyhbd.ttc")
     args = parser.parse_args()
-    root = Path(args.root)
-    for source in sorted((root / "docs" / "architecture").glob("*.puml")):
+    root = Path(args.root).resolve()
+    regular, bold = Path(args.font_regular), Path(args.font_bold)
+    java = shutil.which("java")
+    jar = Path(args.jar).resolve()
+    if not args.check and (not java or not jar.is_file()):
+        raise SystemExit("Java and a local PlantUML jar are required; set PLANTUML_JAR.")
+    env = dict(os.environ, AIC_FONT_REGULAR=str(regular), AIC_FONT_BOLD=str(bold))
+    for source in sorted((root / "docs/architecture").glob("*.puml")):
         if args.check:
-            width, height = validate_pair(
-                source.with_suffix(".svg").read_bytes(),
-                source.with_suffix(".png").read_bytes(),
-            )
-            print(f"{source.stem}: SVG + PNG validated ({width} x {height})")
-            continue
-
-        encoded = plantuml_encode(source.read_text(encoding="utf-8"))
-        rendered = {}
-        for extension in ("svg", "png"):
-            url = f"https://www.plantuml.com/plantuml/{extension}/{encoded}"
-            request = urllib.request.Request(
-                url,
-                headers={"User-Agent": "AIC-PlantUML-Renderer/1.0"},
-            )
-            with urllib.request.urlopen(request, timeout=60) as response:
-                rendered[extension] = response.read()
-
+            rendered = {ext: source.with_suffix("." + ext).read_bytes() for ext in ("svg", "png")}
+        else:
+            rendered = {}
+            for ext in ("svg", "png"):
+                content = source.read_text(encoding="utf-8").strip()
+                if ext == "png":
+                    content = content.replace("\n", "\nscale 3\n", 1)
+                process = subprocess.run([
+                    java, "-Djava.awt.headless=true", "-DPLANTUML_LIMIT_SIZE=16384",
+                    "-cp", str(jar), str(root / "scripts/PlantUMLWithFonts.java"),
+                    "-charset", "UTF-8", "-pipe", "-t" + ext,
+                ], input=content.encode("utf-8"), capture_output=True, env=env, check=True)
+                if ext == "svg":
+                    data = outline_text(process.stdout, regular, bold)
+                else:
+                    data = process.stdout
+                rendered[ext] = data
         width, height = validate_pair(rendered["svg"], rendered["png"])
-        for extension, data in rendered.items():
-            target = source.with_suffix(f".{extension}")
-            temporary = target.with_suffix(f".{extension}.tmp")
-            temporary.write_bytes(data)
-            temporary.replace(target)
-        print(f"{source.stem}: SVG + PNG rendered ({width} x {height})")
+        if not args.check:
+            for ext, data in rendered.items():
+                target = source.with_suffix("." + ext)
+                temporary = target.with_suffix("." + ext + ".tmp")
+                temporary.write_bytes(data)
+                temporary.replace(target)
+        print(f"{source.stem}: outlined SVG + 3x PNG ({width} x {height})")
 
 
 if __name__ == "__main__":

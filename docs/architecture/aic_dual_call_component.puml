@@ -1,41 +1,41 @@
 @startuml AIC_Dual_Call_Component
-title 《天台十句》AIC · 双调用架构\n<size:14>UML 组件图 · 主回合的逻辑职责与依赖</size>
+title 《天台十句》AIC 双调用架构
 
 top to bottom direction
 skinparam backgroundColor #FFFFFF
 skinparam shadowing false
 skinparam defaultFontName "Microsoft YaHei"
-skinparam defaultFontSize 17
+skinparam defaultFontSize 20
 skinparam titleFontSize 22
 skinparam CaptionFontSize 14
 skinparam ArrowColor #64748B
 skinparam ArrowThickness 1.3
-skinparam ArrowFontSize 15
+skinparam ArrowFontSize 18
 skinparam componentStyle uml2
 skinparam componentBorderColor #64748B
 skinparam componentFontColor #172B4D
 skinparam componentBackgroundColor #F8FAFC
-skinparam componentFontSize 17
+skinparam componentFontSize 20
 skinparam packageStyle frame
 skinparam packageBorderColor #CBD5E1
 skinparam packageFontColor #334155
 skinparam packageFontSize 16
 skinparam packageBackgroundColor #FFFFFF
-skinparam padding 14
-skinparam nodesep 36
-skinparam ranksep 36
+skinparam padding 10
+skinparam nodesep 22
+skinparam ranksep 24
 
 package "浏览器 · Vue 3 / Pinia" {
-  component "主线客户端\n<size:14>GameView / gameStore / LLMService</size>\n\n自由输入 · 机会计数\n响应归一化 · 信任结算\n状态 / CG / 结局反馈" as Client #F0F5FB
+  component "主线客户端\n自由输入 · 机会计数\n信任结算 · 结局反馈" as Client #F0F5FB
 }
 
 package "后端 · Go / Gin" {
-  component "回合编排\n<size:14>HandleChat → llm.Chat()</size>\n\n组织两次顺序调用\n清洗对白 · 组装响应" as Chat #EAF1FB
+  component "回合编排\n组织两次顺序调用\n清洗对白 · 组装响应" as Chat #EAF1FB
 
   together {
-    component "剧情 LLM\n<size:14>buildMainSystemPrompt()</size>\n\n角色事实 + 完整历史\n生成自然对白" as Story #EBF5F3
-    component "裁判 LLM\n<size:14>EvaluateTurn()</size>\n\n本句 + 对白 + 最近历史\n生成 evaluation JSON" as Judge #F1EFF9
-    component "程序守门\n<size:14>parseTurnEvaluation()</size>\n<size:14>enforceSafeExitTrust()</size>\n\n字段归一化\n信任门槛校验" as Gate #FFF4E6
+    component "剧情 LLM\n角色与历史\n自然对白" as Story #EBF5F3
+    component "裁判 LLM\n心理沟通评价\n结构化 JSON" as Judge #F1EFF9
+    component "程序守门\n字段归一化\n信任门槛校验" as Gate #FFF4E6
   }
 
   Story -[hidden]right-> Judge
@@ -47,6 +47,6 @@ Chat ..> Story : ① 剧情生成
 Chat ..> Judge : ② 沟通评价
 Chat ..> Gate : ③ 规则校验
 
-caption 实线：HTTP 调用；虚线：组件依赖。调用次序见时序图。\n剧情与裁判使用同一 ClientConfig；提示、复盘与安全回访使用独立入口。
+caption 实线：HTTP 调用；虚线：组件依赖。
 @enduml
 

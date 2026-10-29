@@ -55,7 +55,7 @@ AIC 版把一次玩家输入拆成两个职责明确、顺序执行的 LLM 调�
 
 [查看 SVG 矢量版](docs/architecture/aic_dual_call_sequence.svg) · [查看 PlantUML 源码](docs/architecture/aic_dual_call_sequence.puml)
 
-两组图可使用 `python scripts/render_plantuml.py .` 重新生成 PNG 和 SVG；使用 `python scripts/render_plantuml.py . --check` 检查两种格式的画布一致性与渲染诊断。修改源图后，需打开 PNG 和 SVG，以正文宽度检查文字、连线、边界和裁剪。
+两组图在本地使用微软雅黑生成，PNG 以三倍分辨率导出，SVG 将文字固定为字形轮廓。[UML 图维护与字体规范](docs/architecture/README.md)包含生成环境、导出命令及窄屏验收方法。
 
 ## 当前 AIC 版规则与功能
 
