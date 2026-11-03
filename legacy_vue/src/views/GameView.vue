@@ -431,7 +431,6 @@ const handleSend = async () => {
   const text = inputText.value.trim()
   if (!text || gameStore.isWaiting || gameStore.isEnding || isCinematicOverlayActive.value) return
 
-  audioManager.playSfx('click')
   inputText.value = ''
   textCompleted.value = false
   latestHint.value = null
@@ -452,7 +451,6 @@ const handleSend = async () => {
 
 const handleHint = async () => {
   if (gameStore.hintCount <= 0 || gameStore.isWaiting || isCinematicOverlayActive.value) return
-  audioManager.playSfx('click')
   textCompleted.value = false
   waitingVisualState.value = currentVisualState.value
   try {
@@ -466,13 +464,11 @@ const handleHint = async () => {
 }
 
 const clearHint = () => {
-  audioManager.playSfx('click')
   latestHint.value = null
   textCompleted.value = true // Ensure input shows up immediately after closing hint
 }
 
 const openSaveSlots = () => {
-  audioManager.playSfx('click')
   if (gameStore.isWaiting || isCinematicOverlayActive.value) {
     alert('正在等待回应，暂时不能保存。')
     return
@@ -487,7 +483,6 @@ const closeSaveSlots = () => {
 }
 
 const saveToSlot = (slotId: number) => {
-  audioManager.playSfx('click')
   if (getSlot(slotId) && !confirm(`${getSlotTitle(slotId)} 已有存档，是否覆盖？`)) return
 
   if (SaveSystem.save(slotId)) {
@@ -500,12 +495,10 @@ const saveToSlot = (slotId: number) => {
 }
 
 const goHome = () => {
-  audioManager.playSfx('click')
   router.push('/')
 }
 
 const goToChatAfter = () => {
-  audioManager.playSfx('click')
   router.push('/chat-after')
 }
 

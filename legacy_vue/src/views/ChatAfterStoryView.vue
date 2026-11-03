@@ -184,7 +184,6 @@ import { useGameStore } from '@/store/gameStore'
 import { LLMService } from '@/modules/LLMService'
 import { SaveSystem } from '@/modules/SaveSystem'
 import { AchievementTracker } from '@/modules/AchievementTracker'
-import { audioManager } from '@/modules/AudioManager'
 import { useSaveSlots } from '@/composables/useSaveSlots'
 import { Save } from 'lucide-vue-next'
 
@@ -280,7 +279,6 @@ const sendMessage = async () => {
 }
 
 const openSaveSlots = () => {
-  audioManager.playSfx('click')
   if (isWaiting.value) {
     alert('正在等待回应，暂时不能保存。')
     return
@@ -295,7 +293,6 @@ const closeSaveSlots = () => {
 }
 
 const saveToSlot = (slotId: number) => {
-  audioManager.playSfx('click')
   if (getSlot(slotId) && !confirm(`${getSlotTitle(slotId)} 已有存档，是否覆盖？`)) return
 
   if (
@@ -314,7 +311,6 @@ const saveToSlot = (slotId: number) => {
 }
 
 const goHome = () => {
-  audioManager.playSfx('click')
   router.push('/')
 }
 

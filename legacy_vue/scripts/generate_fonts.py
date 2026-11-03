@@ -6,8 +6,8 @@ from fontTools import subset
 from fontTools.ttLib import TTFont
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / 'public/assets/fonts/HYPixel11pxU-2.ttf'
-OUT = SOURCE.parent
+SOURCE = ROOT / 'scripts/font-source/HYPixel11pxU-2.ttf'
+OUT = ROOT / 'public/assets/fonts'
 
 
 def unicode_ranges(codepoints):

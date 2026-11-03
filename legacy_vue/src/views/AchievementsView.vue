@@ -135,7 +135,6 @@ import {
   AchievementTracker,
   type AchievementDefinition
 } from '@/modules/AchievementTracker'
-import { audioManager } from '@/modules/AudioManager'
 
 const router = useRouter()
 const unlockedIds = ref<string[]>(AchievementTracker.getUnlocked())
@@ -197,7 +196,6 @@ const getAchievementIcon = (achievement: AchievementDefinition) =>
     : LockKeyhole
 
 const goBack = () => {
-  audioManager.playSfx('click')
   router.push('/')
 }
 

@@ -17,7 +17,7 @@ type CinematicSequenceOptions = {
   focusSelector: string
   skipExitDelayMs: number
   onAdvanceStep: (fromIndex: number) => void
-  onLastFrameConfirm: (lastIndex: number) => void
+  onLastFrameConfirm?: (lastIndex: number) => void
   onSkip: (lastIndex: number) => void
   onComplete: () => void
   beforeAdvance?: (index: number) => Promise<void>
@@ -68,7 +68,7 @@ export const useCinematicSequence = (options: CinematicSequenceOptions) => {
     if (completed || isExiting.value || preparing) return
 
     if (isLastFrame.value) {
-      options.onLastFrameConfirm(currentIndex.value)
+      options.onLastFrameConfirm?.(currentIndex.value)
       scheduleExit()
       return
     }

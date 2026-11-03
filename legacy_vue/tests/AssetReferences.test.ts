@@ -10,7 +10,7 @@ const root = path.resolve(import.meta.dirname, '..')
 const publicRoot = path.join(root, 'public')
 
 const collectAssetUrls = (value: unknown, urls: Set<string>) => {
-  if (typeof value === 'string' && value.startsWith('/assets/images/')) {
+  if (typeof value === 'string' && value.startsWith('/assets/')) {
     urls.add(value)
   } else if (value && typeof value === 'object') {
     for (const nested of Object.values(value)) collectAssetUrls(nested, urls)
@@ -25,7 +25,7 @@ const collectSourceUrls = (directory: string, urls: Set<string>) => {
     } else if (/\.(vue|ts|css|html)$/.test(entry.name)) {
       const source = readFileSync(file, 'utf8')
       for (const match of source.matchAll(
-        /['"`](\/assets\/images\/[^'"`\s]+\.(?:png|webp|svg))['"`]/g
+        /['"`](\/assets\/[^'"`\s]+\.(?:png|webp|svg|mp3|ogg|wav|woff2))['"`]/g
       )) urls.add(match[1]!)
     }
   }
@@ -43,16 +43,5 @@ it('keeps every game, homepage and original-quality asset available after cleanu
   }
   for (const url of urls) {
     expect(statSync(path.join(publicRoot, url)).isFile(), url).toBe(true)
-  }
-})
-
-it('preserves the source art used by the homepage and unified CG build scripts', () => {
-  expect(statSync(path.join(publicRoot, 'assets/images/menu_home_bg_source.png')).isFile())
-    .toBe(true)
-  const generator = readFileSync(path.join(root, 'scripts/build_unified_image2_candidates.mjs'),
-    'utf8')
-  for (const match of generator.matchAll(/raw:\s*'([^']+)'/g)) {
-    const source = path.join(publicRoot, 'assets/images/unified_image2_2026-07-31', match[1]!)
-    expect(statSync(source).isFile(), source).toBe(true)
   }
 })

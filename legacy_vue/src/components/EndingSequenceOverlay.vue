@@ -122,15 +122,9 @@ const { currentIndex, isExiting, activeFrame, activeCaption, isLastFrame, advanc
     onAdvanceStep: () => {
       if (isLastFrame.value) {
         playFinalImpact()
-      } else {
-        audioManager.playSfx('click')
       }
     },
-    onLastFrameConfirm: () => audioManager.playSfx('click'),
-    onSkip: () => {
-      audioManager.playSfx('click')
-      playFinalImpact()
-    },
+    onSkip: playFinalImpact,
     onComplete: () => emit('complete')
   })
 

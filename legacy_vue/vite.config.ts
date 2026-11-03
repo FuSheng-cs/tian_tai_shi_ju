@@ -4,6 +4,7 @@ import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
+import { HOME_TITLE } from './src/domain/homeTitle.generated'
 
 export default defineConfig({
   plugins: [
@@ -12,12 +13,11 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Damo Game',
-        short_name: 'Damo',
+        name: '天台十句',
+        short_name: '天台十句',
         theme_color: '#000000',
         icons: [
-          { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' }
+          { src: HOME_TITLE.mobile, type: 'image/webp' }
         ]
       }
     })

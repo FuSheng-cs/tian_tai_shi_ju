@@ -2,6 +2,8 @@
 
 ## Project Structure & Module Organization
 
+`master` is the self-contained development branch for the AI narrative indie game. Build and test it using the files and configuration in this checkout.
+
 - `backend/` contains the Go 1.22/Gin API. Routes live in `handlers/`, LLM prompts and rule evaluation in `llm/`, and environment loading in `config/`.
 - `legacy_vue/` is the active Vue 3 client. Put pages in `src/views/`, reusable UI in `src/components/`, state in `src/store/`, domain contracts in `src/domain/`, and integrations in `src/modules/`.
 - Frontend tests are in `legacy_vue/tests/*.test.ts`; Go tests stay beside their package as `*_test.go`.
@@ -16,7 +18,6 @@ Run frontend commands from `legacy_vue/`:
 - `npm test -- --run` runs the Vitest suite once.
 - `npm run lint` checks Vue and TypeScript with ESLint.
 - `npm run build` type-checks and creates the production bundle.
-- `npm run assets:generate` regenerates derived image assets.
 
 Run backend commands from `backend/`:
 

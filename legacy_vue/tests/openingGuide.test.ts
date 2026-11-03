@@ -188,10 +188,8 @@ describe('opening guide flow', () => {
     wrapper.unmount()
   })
 
-  it('always uses the established background even when an old candidate link is opened', () => {
-    mocks.route.query = { homeArt: 'pixel-candidate' }
+  it('loads the current homepage background', () => {
     const wrapper = mount(StartView)
-    expect(wrapper.find('.candidate-home').exists()).toBe(false)
     expect(wrapper.find('.home-background .cg-full img').attributes('src')).toBe(
       '/assets/images/menu_home_bg_1600.webp'
     )

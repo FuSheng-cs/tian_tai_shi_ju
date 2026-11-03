@@ -39,12 +39,6 @@ export class AudioManager {
     const settingsStore = useSettingsStore()
     Howler.volume(1.0)
 
-    this.sfxMap.click = new Howl({
-      preload: false,
-      src: ['/assets/audio/ui_click.wav'],
-      volume: settingsStore.sfxVolume
-    })
-
     this.sfxMap.typewriter = new Howl({
       preload: false,
       src: ['/assets/audio/typing_click.mp3'],

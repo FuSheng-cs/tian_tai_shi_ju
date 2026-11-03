@@ -310,7 +310,6 @@ const testConnection = async () => {
   if (!canTestConnection.value) return
   isTesting.value = true
   testResult.value = null
-  audioManager.playSfx('click')
 
   try {
     const backendUrl = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '')
@@ -349,13 +348,11 @@ const testConnection = async () => {
 }
 
 const updateSettings = () => {
-  audioManager.playSfx('click')
   settings.applyTheme()
   audioManager.updateVolumes()
 }
 
 const goBack = () => {
-  audioManager.playSfx('click')
   router.back()
 }
 </script>

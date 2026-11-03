@@ -91,7 +91,6 @@ import {
   GAME_RULES
 } from '@/domain/gameContract'
 import { useGameStore } from '@/store/gameStore'
-import { audioManager } from '@/modules/AudioManager'
 import BgmControl from '@/components/BgmControl.vue'
 import { SAVE_SLOT_KINDS, SaveSystem } from '@/modules/SaveSystem'
 import { useSaveSlots } from '@/composables/useSaveSlots'
@@ -103,7 +102,7 @@ import ProgressiveImage from '@/components/ProgressiveImage.vue'
 const router = useRouter()
 const gameStore = useGameStore()
 const SAVE_SLOT_IDS = GAME_RULES.saveSlotIds
-const MENU_HOME_ORIGINAL = '/assets/images/home_pixel_20261001/existing-original-224ec4600eb8.webp'
+const MENU_HOME_ORIGINAL = '/assets/images/menu_home_bg_original.webp'
 const MENU_TITLE_IMAGE = '/assets/images/menu_title.png'
 const titleReady = ref(false)
 
@@ -112,13 +111,11 @@ const { refreshSaveSlots, getSlot, hasSlot, getSlotTitle, getSlotStatus } = useS
 
 const startGame = () => {
   warmEntryCGs()
-  audioManager.playSfx('click')
   gameStore.resetGame()
   router.push({ path: '/game', query: { [GAME_ENTRY_QUERY_KEY]: GAME_ENTRY_TYPES.newGame } })
 }
 
 const loadGame = () => {
-  audioManager.playSfx('click')
   refreshSaveSlots()
   showLoadSlots.value = true
 }
@@ -128,7 +125,6 @@ const closeLoadSlots = () => {
 }
 
 const loadFromSlot = (slotId: number) => {
-  audioManager.playSfx('click')
   const slot = getSlot(slotId)
   if (!slot) return
 
@@ -152,12 +148,10 @@ const loadFromSlot = (slotId: number) => {
 }
 
 const goToSettings = () => {
-  audioManager.playSfx('click')
   router.push('/settings')
 }
 
 const goToAchievements = () => {
-  audioManager.playSfx('click')
   router.push('/achievements')
 }
 const MENU_HOME_BG_DESKTOP = '/assets/images/menu_home_bg_1600.webp'

@@ -47,5 +47,6 @@ if (/<!-- home-title-preloads:start -->[\s\S]*?<script>/.test(html)) {
   html = html.replace(/<!-- home-title-preloads:start -->[\s\S]*?<!-- home-title-preloads:end -->\s*/, '')
   html = html.replace(/<script>[\s\S]*?<\/script>/, preloads)
 }
+html = html.replace(/(<link rel="icon" type="image\/webp" href=")[^"]+/, (_, prefix) => prefix + assets.mobile)
 html = html.replace(/^ +$/gm, '')
 await fs.writeFile(indexPath, html)
