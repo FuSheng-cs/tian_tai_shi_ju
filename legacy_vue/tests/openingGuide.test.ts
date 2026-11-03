@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => ({
   playStairStep: vi.fn(),
   chat: vi.fn(),
   getSlots: vi.fn(() => [{ id: 1, timestamp: 1710000000000, data: 'slot' }]),
+  isSlotValid: vi.fn((_slotId: number) => true),
   load: vi.fn(() => true),
   loadChatAfter: vi.fn(() => null),
   save: vi.fn(() => true),
@@ -61,6 +62,7 @@ vi.mock('../src/modules/SaveSystem', () => ({
   },
   SaveSystem: {
     getSlots: mocks.getSlots,
+    isSlotValid: mocks.isSlotValid,
     load: mocks.load,
     loadChatAfter: mocks.loadChatAfter,
     save: mocks.save
@@ -106,6 +108,11 @@ const mountGameView = () => mount(GameView, {
       ChanceCigarettes: true
     }
   }
+})
+
+Object.defineProperties(HTMLDialogElement.prototype, {
+  showModal: { value(this: HTMLDialogElement) { this.open = true }, configurable: true },
+  close: { value(this: HTMLDialogElement) { this.open = false }, configurable: true }
 })
 
 describe('opening guide flow', () => {
@@ -156,6 +163,7 @@ describe('opening guide flow', () => {
     })
     mocks.getSlots.mockClear()
     mocks.getSlots.mockReturnValue([{ id: 1, timestamp: 1710000000000, data: 'slot' }])
+    mocks.isSlotValid.mockReset().mockReturnValue(true)
     mocks.load.mockClear()
     mocks.load.mockReturnValue(true)
     mocks.loadChatAfter.mockClear()
@@ -170,30 +178,59 @@ describe('opening guide flow', () => {
     vi.useRealTimers()
   })
 
-  it('restores the minimal menu while keeping reviewed navigation and saves', async () => {
+  it('opens the master story introduction, settings, achievements and three save slots', async () => {
     const wrapper = mount(StartView)
-    expect(wrapper.find('[aria-label="关于游戏"]').exists()).toBe(false)
-    expect(wrapper.findAll('.menu-button').map((button) => button.text())).toEqual([
-      '开始', '读档', '成就', '设置'
-    ])
-    await wrapper.findAll('.menu-button')[2].trigger('click')
+    await wrapper.get('.footer-link-end').trigger('click')
     expect(mocks.push).toHaveBeenLastCalledWith('/achievements')
-    await wrapper.findAll('.menu-button')[3].trigger('click')
+    await wrapper.get('[data-menu-item="settings"]').trigger('click')
     expect(mocks.push).toHaveBeenLastCalledWith('/settings')
-    await wrapper.findAll('.menu-button')[1].trigger('click')
+    await wrapper.get('.footer-link').trigger('click')
+    expect(wrapper.get('dialog').element.open).toBe(true)
+    expect(wrapper.get('.about-copy').text()).toContain('独立摄影师艾')
+    await wrapper.get('.dialog-close').trigger('click')
+    await wrapper.get('[data-menu-item="load"]').trigger('click')
     expect(wrapper.findAll('.save-slot-button')).toHaveLength(3)
     expect(wrapper.findAll('.save-slot-button')[2].attributes('disabled')).toBeDefined()
-    await wrapper.find('.save-slot-header button').trigger('click')
-    expect(wrapper.find('.save-slot-overlay').exists()).toBe(false)
+    await wrapper.get('.dialog-close').trigger('click')
+    expect(wrapper.get('dialog').element.open).toBe(false)
     wrapper.unmount()
   })
 
-  it('loads the current homepage background', () => {
+  it('shows the responsive rooftop scene and falls back to the PNG title', async () => {
     const wrapper = mount(StartView)
-    expect(wrapper.find('.home-background .cg-full img').attributes('src')).toBe(
-      '/assets/images/menu_home_bg_1600.webp'
-    )
-    expect(wrapper.find('.home-title-mist').exists()).toBe(true)
+    expect(wrapper.get('.menu-scene img').attributes('src')).toContain('/rooftop-1672.webp')
+    expect(wrapper.get('.menu-scene source').attributes('srcset')).toContain('/rooftop-960.webp')
+    await wrapper.get('.title-art').trigger('error')
+    expect(wrapper.get('.title-art').attributes('src')).toContain('/title-expanded-v1.png')
+    wrapper.unmount()
+  })
+
+  it('continues from the most recent usable master save', async () => {
+    mocks.getSlots.mockReturnValue([
+      { id: 1, timestamp: 200, data: 'valid' },
+      { id: 2, timestamp: 300, data: 'corrupt' },
+      { id: 3, timestamp: 100, data: 'older' }
+    ])
+    mocks.isSlotValid.mockImplementation((slotId) => slotId !== 2)
+    const wrapper = mount(StartView)
+    await nextTick()
+    await wrapper.get('[data-menu-item="continue"]').trigger('click')
+    expect(mocks.load).toHaveBeenCalledWith(1)
+    expect(mocks.push).toHaveBeenCalledWith({
+      path: '/game',
+      query: { [GAME_ENTRY_QUERY_KEY]: GAME_ENTRY_TYPES.load }
+    })
+    wrapper.unmount()
+  })
+
+  it('skips the unavailable continue action during keyboard navigation', async () => {
+    mocks.getSlots.mockReturnValue([])
+    const wrapper = mount(StartView, { attachTo: document.body })
+    const start = wrapper.get<HTMLButtonElement>('[data-menu-item="start"]')
+    start.element.focus()
+    await start.trigger('keydown', { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(wrapper.get('[data-menu-item="load"]').element)
+    expect(wrapper.get('[data-menu-item="load"]').classes()).toContain('is-selected')
     wrapper.unmount()
   })
 
@@ -211,7 +248,7 @@ describe('opening guide flow', () => {
   it('marks the next game entry as a loaded save when loading a slot', async () => {
     const wrapper = mount(StartView)
 
-    await wrapper.findAll('.menu-button')[1].trigger('click')
+    await wrapper.get('[data-menu-item="load"]').trigger('click')
     await wrapper.find('.save-slot-button').trigger('click')
 
     expect(mocks.push).toHaveBeenCalledWith({
@@ -237,7 +274,7 @@ describe('opening guide flow', () => {
     })
     const wrapper = mount(StartView)
 
-    await wrapper.findAll('.menu-button')[1].trigger('click')
+    await wrapper.get('[data-menu-item="load"]').trigger('click')
     const slotButton = wrapper.findAll('.save-slot-button')[1]
     expect(slotButton.text()).toContain('栏位 2（日后谈）')
     await slotButton.trigger('click')

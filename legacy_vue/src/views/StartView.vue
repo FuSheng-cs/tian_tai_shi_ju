@@ -1,113 +1,246 @@
 <template>
   <main class="start-view" aria-labelledby="start-title">
-    <ProgressiveImage class="home-layer home-background"
-      :src="MENU_HOME_BG_DESKTOP"
-      :mobile-src="MENU_HOME_BG_MOBILE"
-      :high-quality-src="MENU_HOME_ORIGINAL" />
-
-    <picture class="home-layer home-title-mist" aria-hidden="true">
-      <source :srcset="MENU_HOME_TITLE_MIST_MOBILE" media="(max-width: 768px)" type="image/webp" />
-      <img :src="MENU_HOME_TITLE_MIST_DESKTOP" alt="" decoding="async" draggable="false" />
+    <picture class="menu-scene" aria-hidden="true">
+      <source media="(max-width: 760px)" :srcset="`${SCENE_ROOT}/rooftop-960.webp`" />
+      <img
+        :src="`${SCENE_ROOT}/rooftop-1672.webp`"
+        width="1672"
+        height="941"
+        alt=""
+        decoding="async"
+        fetchpriority="high"
+        draggable="false"
+      />
     </picture>
+    <div class="menu-shade" aria-hidden="true"></div>
 
-    <picture class="home-layer home-menu-aura" aria-hidden="true">
-      <source :srcset="MENU_HOME_MENU_AURA_MOBILE" media="(max-width: 768px)" type="image/webp" />
-      <img :src="MENU_HOME_MENU_AURA_DESKTOP" alt="" decoding="async" draggable="false" />
-    </picture>
-
-    <div class="home-vignette" aria-hidden="true"></div>
     <BgmControl />
-    <section class="home-composition">
-      <div class="home-brand">
-        <h1 id="start-title" class="sr-only">天台十句</h1>
-        <picture class="title-picture">
-          <span v-if="!titleReady" class="title-fallback" aria-hidden="true">天台十句</span>
-          <source :srcset="HOME_TITLE.mobile" media="(max-width: 768px)" type="image/webp" />
-          <source :srcset="HOME_TITLE.desktop" type="image/webp" />
-          <img
-            class="home-title-art title-art"
-            :src="MENU_TITLE_IMAGE"
-            width="1660"
-            height="496"
-            @load="titleReady = true"
-            alt="" aria-hidden="true"
-            decoding="async"
-            fetchpriority="high"
-            draggable="false"
-          />
-        </picture>
-        <p class="home-tagline">你需要在十句话内救下一个女孩</p>
-      </div>
 
-      <nav class="home-actions" aria-label="主菜单">
+    <section class="menu-shell" aria-label="游戏首页">
+      <header class="brand-panel">
+        <h1 id="start-title" class="game-title">
+          <span class="sr-only">{{ GAME_ROLE.gameTitle }}</span>
+          <span class="title-window" aria-hidden="true">
+            <span v-if="!titleReady" class="title-fallback">天台十句</span>
+            <img
+              class="title-art"
+              :class="{ 'is-ready': titleReady }"
+              :src="titleImage"
+              width="2172"
+              height="724"
+              alt=""
+              decoding="async"
+              fetchpriority="high"
+              draggable="false"
+              @load="titleReady = true"
+              @error="onTitleError"
+            />
+          </span>
+        </h1>
+        <p class="tagline">你有十句话。先听她说完。</p>
+      </header>
+
+      <nav
+        class="action-menu"
+        aria-label="主菜单"
+        @pointerover="selectMenuFromEvent"
+        @pointermove="selectMenuFromEvent"
+        @focusin="selectMenuFromEvent"
+        @keydown="onMenuKeydown"
+      >
         <button
-          v-for="action in MENU_ACTIONS"
-          :key="action.id"
+          type="button"
+          class="menu-button menu-button-primary"
+          :class="{ 'is-selected': selectedMenuItem === 'start' }"
+          data-menu-item="start"
+          @pointerenter="warmEntryCGs"
+          @focus="warmEntryCGs"
+          @click="startGame"
+        >
+          <span>开始游戏</span>
+        </button>
+        <button
           type="button"
           class="menu-button"
-          :class="{ 'menu-button-primary': action.primary }"
-          :aria-label="action.label"
-          @pointerenter="action.primary && warmEntryCGs()"
-          @focus="action.primary && warmEntryCGs()"
-          @click="action.onClick"
+          :class="{ 'is-selected': selectedMenuItem === 'continue' }"
+          data-menu-item="continue"
+          aria-label="继续游戏"
+          :disabled="!latestSave"
+          :aria-describedby="!latestSave ? 'continue-status' : undefined"
+          @click="continueGame"
         >
-          <span class="menu-button-copy">{{ action.text }}</span>
+          <span>继续游戏</span>
+          <span v-if="!latestSave" class="empty-save-note" aria-hidden="true">暂无存档</span>
+        </button>
+        <span v-if="!latestSave" id="continue-status" class="sr-only">
+          暂无可读取的存档，开始游戏后可保存进度。
+        </span>
+        <button
+          type="button"
+          class="menu-button"
+          :class="{ 'is-selected': selectedMenuItem === 'load' }"
+          data-menu-item="load"
+          @click="openSaveSlots"
+        >
+          <span>读取存档</span>
+        </button>
+        <button
+          type="button"
+          class="menu-button"
+          :class="{ 'is-selected': selectedMenuItem === 'settings' }"
+          data-menu-item="settings"
+          @click="goToSettings"
+        >
+          <span>设置</span>
         </button>
       </nav>
     </section>
 
-    <div v-if="showLoadSlots" class="save-slot-overlay" @click.self="closeLoadSlots">
-      <section class="save-slot-panel" aria-label="读取存档">
-        <header class="save-slot-header">
-          <h2>选择读取栏位</h2>
-          <button type="button" aria-label="关闭" @click="closeLoadSlots">×</button>
+    <footer class="menu-footer">
+      <button type="button" class="footer-link" @click="openDialog('about')">关于作品</button>
+      <p class="footer-message">别急，我在听。</p>
+      <button type="button" class="footer-link footer-link-end" @click="goToAchievements">
+        成就图鉴
+      </button>
+    </footer>
+
+    <dialog
+      ref="menuDialog"
+      class="menu-dialog"
+      aria-labelledby="menu-dialog-title"
+      @cancel.prevent="closeDialog"
+      @click.self="closeDialog"
+    >
+      <section class="dialog-panel">
+        <header class="dialog-header">
+          <h2 id="menu-dialog-title">{{ activeDialog === 'saves' ? '读取存档' : '关于作品' }}</h2>
+          <button
+            type="button"
+            class="dialog-close"
+            :aria-label="activeDialog === 'saves' ? '关闭读取存档' : '关闭关于作品'"
+            autofocus
+            @click="closeDialog"
+          >
+            <X :size="20" :stroke-width="1.5" aria-hidden="true" />
+          </button>
         </header>
 
-        <div class="save-slot-list">
-          <button
-            v-for="slotId in SAVE_SLOT_IDS"
-            :key="slotId"
-            type="button"
-            class="save-slot-button"
-            :disabled="!hasSlot(slotId)"
-            @click="loadFromSlot(slotId)"
-          >
-            <span class="save-slot-title">{{ getSlotTitle(slotId) }}</span>
-            <span class="save-slot-status">{{ getSlotStatus(slotId) }}</span>
-          </button>
+        <template v-if="activeDialog === 'saves'">
+          <p class="dialog-intro">从上次停下的地方，继续听她说。</p>
+          <p v-if="saveError" class="save-error" role="status">{{ saveError }}</p>
+          <div class="save-slot-list">
+            <button
+              v-for="slotId in SAVE_SLOT_IDS"
+              :key="slotId"
+              type="button"
+              class="save-slot-button"
+              :disabled="!isUsableSlot(slotId)"
+              @click="loadFromSlot(slotId)"
+            >
+              <span class="save-slot-title">{{ getSlotTitle(slotId) }}</span>
+              <span class="save-slot-status">{{ slotStatus(slotId) }}</span>
+            </button>
+          </div>
+          <p v-if="!latestSave" class="dialog-footnote">开始一段新的对话后，可在游戏中保存进度。</p>
+        </template>
+
+        <div v-else-if="activeDialog === 'about'" class="about-copy">
+          <p class="about-lead">一款关于倾听与陪伴的 AI 原生叙事独立游戏。</p>
+          <p>
+            深夜，你在雨中的天台遇见独立摄影师{{ GAME_ROLE.characterName }}。她带着一台旧相机，坐在栏杆边。
+            你说的每句话都会影响她接下来的回应，也可能改变这个夜晚的结局。
+          </p>
+          <p>
+            你起初有 {{ GAME_RULES.initialRoundCount }} 次开口的机会。触动她的话可能换来继续交谈的机会。
+            如果这个夜晚以相识收场，你们还可以在后日谈里继续聊天。
+          </p>
+          <blockquote>你有十句话。先听她说完。</blockquote>
+          <p class="about-safety">
+            故事与角色均为虚构。现实中的支持没有十句期限，也没有万能台词。
+            遇到危险时，请联系可信任的人或当地紧急服务。
+          </p>
         </div>
       </section>
-    </div>
+    </dialog>
   </main>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { X } from 'lucide-vue-next'
 import {
   CHAT_AFTER_SLOT_QUERY_KEY,
   GAME_ENTRY_QUERY_KEY,
   GAME_ENTRY_TYPES,
+  GAME_ROLE,
   GAME_RULES
 } from '@/domain/gameContract'
 import { useGameStore } from '@/store/gameStore'
 import BgmControl from '@/components/BgmControl.vue'
 import { SAVE_SLOT_KINDS, SaveSystem } from '@/modules/SaveSystem'
 import { useSaveSlots } from '@/composables/useSaveSlots'
-import { HOME_TITLE } from '@/domain/homeTitle.generated'
-import { warmEntryCGs, scheduleEntryCGWarmup } from '@/modules/CgWarmup'
-import ProgressiveImage from '@/components/ProgressiveImage.vue'
+import { scheduleEntryCGWarmup, warmEntryCGs } from '@/modules/CgWarmup'
 
-
+const SCENE_ROOT = '/assets/images/homepage_20261029'
+const SAVE_SLOT_IDS = GAME_RULES.saveSlotIds
 const router = useRouter()
 const gameStore = useGameStore()
-const SAVE_SLOT_IDS = GAME_RULES.saveSlotIds
-const MENU_HOME_ORIGINAL = '/assets/images/menu_home_bg_original.webp'
-const MENU_TITLE_IMAGE = '/assets/images/menu_title.png'
+const titleImage = ref(`${SCENE_ROOT}/title-expanded-v1.webp`)
 const titleReady = ref(false)
+const selectedMenuItem = ref('start')
+const menuDialog = ref<HTMLDialogElement | null>(null)
+const activeDialog = ref<'saves' | 'about' | null>(null)
+const saveError = ref('')
+let dialogTrigger: HTMLElement | null = null
+let cancelWarmup: (() => void) | undefined
 
-const showLoadSlots = ref(false)
-const { refreshSaveSlots, getSlot, hasSlot, getSlotTitle, getSlotStatus } = useSaveSlots()
+const { saveSlots, refreshSaveSlots, getSlot, getSlotTitle, getSlotStatus } = useSaveSlots()
+const usableSlots = computed(() => saveSlots.value.filter((slot) => SaveSystem.isSlotValid(slot.id)))
+const latestSave = computed(() =>
+  [...usableSlots.value].sort((a, b) => b.timestamp - a.timestamp || a.id - b.id)[0] ?? null
+)
+
+watch(latestSave, (slot) => {
+  if (!slot && selectedMenuItem.value === 'continue') selectedMenuItem.value = 'start'
+})
+
+const selectMenuFromEvent = (event: Event) => {
+  if (!(event.target instanceof Element)) return
+  const button = event.target.closest<HTMLButtonElement>('.menu-button')
+  if (button && !button.disabled && button.dataset.menuItem) {
+    selectedMenuItem.value = button.dataset.menuItem
+  }
+}
+
+const onMenuKeydown = (event: KeyboardEvent) => {
+  selectMenuFromEvent(event)
+  if (event.altKey || event.ctrlKey || event.metaKey) return
+  if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
+  if (!(event.currentTarget instanceof HTMLElement)) return
+
+  const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>(
+    '.menu-button:not(:disabled)'
+  )]
+  const currentIndex = buttons.findIndex((button) => button === document.activeElement)
+  if (currentIndex === -1) return
+
+  event.preventDefault()
+  const offset = event.key === 'ArrowUp' ? -1 : 1
+  const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1
+    : (currentIndex + offset + buttons.length) % buttons.length
+  buttons[nextIndex]?.focus()
+}
+
+const isUsableSlot = (slotId: number) => usableSlots.value.some((slot) => slot.id === slotId)
+const slotStatus = (slotId: number) => {
+  if (isUsableSlot(slotId)) return getSlotStatus(slotId)
+  return getSlot(slotId) ? '存档无法读取' : '空栏位'
+}
+
+const onTitleError = () => {
+  if (titleImage.value.endsWith('.webp')) titleImage.value = `${SCENE_ROOT}/title-expanded-v1.png`
+}
 
 const startGame = () => {
   warmEntryCGs()
@@ -115,36 +248,57 @@ const startGame = () => {
   router.push({ path: '/game', query: { [GAME_ENTRY_QUERY_KEY]: GAME_ENTRY_TYPES.newGame } })
 }
 
-const loadGame = () => {
-  refreshSaveSlots()
-  showLoadSlots.value = true
+const openDialog = async (kind: 'saves' | 'about') => {
+  if (kind === 'saves') refreshSaveSlots()
+  dialogTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null
+  activeDialog.value = kind
+  await nextTick()
+  if (!menuDialog.value?.open) menuDialog.value?.showModal()
 }
 
-const closeLoadSlots = () => {
-  showLoadSlots.value = false
+const closeDialog = () => {
+  menuDialog.value?.close()
+  activeDialog.value = null
+  dialogTrigger?.focus()
+}
+
+const openSaveSlots = () => {
+  saveError.value = ''
+  void openDialog('saves')
+}
+
+const reportLoadError = () => {
+  refreshSaveSlots()
+  saveError.value = '这份存档暂时无法读取，请选择其他栏位或开始新的游戏。'
+  if (activeDialog.value !== 'saves') void openDialog('saves')
 }
 
 const loadFromSlot = (slotId: number) => {
+  refreshSaveSlots()
   const slot = getSlot(slotId)
-  if (!slot) return
-
-  if (slot.kind === SAVE_SLOT_KINDS.chatAfter) {
-    if (SaveSystem.loadChatAfter(slotId)) {
-      router.push({ path: '/chat-after', query: { [CHAT_AFTER_SLOT_QUERY_KEY]: slotId } })
-      return
-    }
-
-    alert('未找到有效存档。')
-    refreshSaveSlots()
+  if (!slot || !isUsableSlot(slotId)) {
+    reportLoadError()
     return
   }
 
-  if (SaveSystem.load(slotId)) {
+  if (slot.kind === SAVE_SLOT_KINDS.chatAfter) {
+    if (SaveSystem.loadChatAfter(slotId)) {
+      closeDialog()
+      router.push({ path: '/chat-after', query: { [CHAT_AFTER_SLOT_QUERY_KEY]: slotId } })
+      return
+    }
+  } else if (SaveSystem.load(slotId)) {
+    closeDialog()
     router.push({ path: '/game', query: { [GAME_ENTRY_QUERY_KEY]: GAME_ENTRY_TYPES.load } })
-  } else {
-    alert('未找到有效存档。')
-    refreshSaveSlots()
+    return
   }
+  reportLoadError()
+}
+
+const continueGame = () => {
+  refreshSaveSlots()
+  if (latestSave.value) loadFromSlot(latestSave.value.id)
+  else reportLoadError()
 }
 
 const goToSettings = () => {
@@ -154,579 +308,387 @@ const goToSettings = () => {
 const goToAchievements = () => {
   router.push('/achievements')
 }
-const MENU_HOME_BG_DESKTOP = '/assets/images/menu_home_bg_1600.webp'
-const MENU_HOME_BG_MOBILE = '/assets/images/menu_home_bg_900.webp'
-const MENU_ACTIONS = [
-  { id: 'start', text: '开始', label: '开始游戏', primary: true, onClick: startGame },
-  { id: 'load', text: '读档', label: '读取存档', primary: false, onClick: loadGame },
-  { id: 'achievements', text: '成就', label: '成就图鉴', primary: false, onClick: goToAchievements },
-  { id: 'settings', text: '设置', label: '游戏设置', primary: false, onClick: goToSettings }
-] as const
-const MENU_HOME_TITLE_MIST_DESKTOP = '/assets/images/menu_home_title_mist_1600.webp'
-const MENU_HOME_TITLE_MIST_MOBILE = '/assets/images/menu_home_title_mist_900.webp'
-const MENU_HOME_MENU_AURA_DESKTOP = '/assets/images/menu_home_menu_aura_1600.webp'
-const MENU_HOME_MENU_AURA_MOBILE = '/assets/images/menu_home_menu_aura_900.webp'
-let cancelWarmup = () => {}
-onMounted(() => { cancelWarmup = scheduleEntryCGWarmup() })
-onUnmounted(() => cancelWarmup())
+
+onMounted(() => {
+  cancelWarmup = scheduleEntryCGWarmup()
+  refreshSaveSlots()
+  window.addEventListener('focus', refreshSaveSlots)
+  window.addEventListener('storage', refreshSaveSlots)
+})
+
+onBeforeUnmount(() => {
+  cancelWarmup?.()
+  window.removeEventListener('focus', refreshSaveSlots)
+  window.removeEventListener('storage', refreshSaveSlots)
+})
 </script>
 
 <style scoped>
 .start-view {
-  --home-violet: rgba(190, 171, 232, 0.78);
-  --home-violet-strong: rgba(237, 228, 255, 0.96);
-  --home-muted: rgba(205, 199, 220, 0.68);
-  --home-dim: rgba(156, 150, 172, 0.48);
-  --home-line: rgba(185, 177, 203, 0.28);
+  --menu-night: #090b0e;
+  --menu-paper: #e2e1de;
+  --menu-muted: #a3a9b2;
+  --menu-violet: #b3a6c7;
+  --menu-gutter: clamp(40px, 8.4vw, 180px);
 
   position: relative;
-  width: 100vw;
-  height: 100vh;
-  min-height: 560px;
-  overflow: hidden;
-  color: var(--home-muted);
-  background: #020204;
   isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100svh;
+  overflow: hidden auto;
+  color: var(--menu-paper);
+  background: var(--menu-night);
+  scrollbar-width: thin;
+  scrollbar-color: #49434f var(--menu-night);
 }
 
-.home-layer,
-.home-layer img,
-.home-vignette {
+/* Text and controls are available immediately, including during the route entrance. */
+.start-view.fade-enter-active { transition: none; }
+.start-view.fade-enter-from { opacity: 1; }
+
+.menu-scene,
+.menu-shade {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
-.home-layer {
-  z-index: 0;
-}
-
-.home-layer img {
+.menu-scene { z-index: -2; }
+.menu-scene img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: 72% center;
   user-select: none;
 }
 
-.home-background img {
-  object-position: center;
-  filter: contrast(1.05) brightness(0.92);
-  animation: sceneFade 760ms ease-out both;
-}
-
-.home-title-mist,
-.home-menu-aura {
-  z-index: 1;
-  mix-blend-mode: screen;
-  opacity: 0.74;
-}
-
-.home-title-mist img,
-.home-menu-aura img {
-  filter: saturate(0.72) brightness(0.82);
-}
-
-.home-menu-aura {
-  opacity: 0.64;
-}
-
-.home-vignette {
-  z-index: 2;
+.menu-shade {
+  z-index: -1;
   background:
-    radial-gradient(circle at 21% 42%, rgba(255, 255, 255, 0.04), transparent 26%),
-    radial-gradient(circle at 70% 32%, rgba(171, 138, 224, 0.12), transparent 24%),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.06) 34%, rgba(0, 0, 0, 0.52) 100%),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.16), transparent 28%, rgba(0, 0, 0, 0.58));
+    linear-gradient(90deg, rgb(5 7 10 / 38%), rgb(5 7 10 / 12%) 38%, transparent 62%),
+    linear-gradient(0deg, rgb(5 7 10 / 52%), transparent 24%);
 }
 
-.home-composition {
-  position: absolute;
-  z-index: 4;
-  top: clamp(46px, 10vh, 92px);
-  right: clamp(56px, 11vw, 174px);
-  width: min(44vw, 650px);
-  min-width: 480px;
-  display: grid;
-  justify-items: center;
-  gap: clamp(18px, 3vh, 34px);
-  text-align: center;
+.menu-shell {
+  position: relative;
+  flex: 1 0 auto;
+  width: min(100%, 1920px);
+  margin-inline: auto;
+  padding: clamp(76px, 17svh, 220px) var(--menu-gutter) 40px;
 }
 
-.home-brand {
-  width: 100%;
-}
-
-.home-title-art {
-  width: min(100%, 650px);
-  height: auto;
+.brand-panel { width: clamp(380px, 34vw, 660px); }
+.game-title { margin: 0; font-weight: 400; }
+.title-window {
+  position: relative;
   display: block;
-  margin: 0 auto;
+  width: 100%;
+  aspect-ratio: 1130 / 280;
+  overflow: visible;
+}
+
+/* Preserve the approved artwork's transparent margins and complete particle field. */
+.title-art {
+  position: absolute;
+  top: -48%;
+  left: -23%;
+  display: block;
+  width: 138%;
+  max-width: none;
+  height: auto;
   opacity: 0;
-  transform: translateY(10px);
-  filter: blur(7px) brightness(0.64);
-  animation: titleReveal 880ms cubic-bezier(0.2, 0.75, 0.18, 1) 260ms both;
+  pointer-events: none;
   user-select: none;
 }
-
-.home-tagline {
-  position: relative;
-  width: min(76%, 560px);
-  margin: 4px auto 0;
-  padding: 0 18px;
-  color: rgba(196, 190, 208, 0.66);
-  font-family: var(--font-hanyi-pixel) !important;
-  font-size: 1rem;
-  font-weight: 500;
-  line-height: 1.35;
-  letter-spacing: 0;
-  text-align: center;
-  text-shadow:
-    0 0 4px rgba(214, 198, 255, 0.2),
-    0 0 12px rgba(156, 126, 214, 0.12),
-    0 1px 1px rgba(0, 0, 0, 0.82);
-  opacity: 0;
-  transform: translateY(12px);
-  filter: blur(8px) brightness(0.55);
-  animation: titleReveal 800ms cubic-bezier(0.2, 0.75, 0.18, 1) 620ms both;
-}
-
-.home-tagline::before,
-.home-tagline::after {
-  content: '';
+.title-art.is-ready { opacity: 1; }
+.title-fallback {
   position: absolute;
-  top: 50%;
-  width: 42px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(196, 188, 216, 0.38), transparent);
+  inset: 0;
+  display: flex;
+  align-items: center;
+  color: #d3cbdc;
+  font-size: clamp(64px, 7vw, 128px);
+  line-height: 1;
+  letter-spacing: 0.1em;
 }
 
-.home-tagline::before {
-  right: calc(100% - 8px);
+.tagline {
+  margin: clamp(18px, 2.4svh, 28px) 0 0;
+  color: #c4c5cb;
+  font-size: clamp(16px, 1.2vw, 22px);
+  font-weight: 400;
+  line-height: 1.7;
+  letter-spacing: 0.18em;
+  text-shadow: 0 2px 8px #000;
 }
 
-.home-tagline::after {
-  left: calc(100% - 8px);
-}
-
-.home-actions {
-  position: relative;
+.action-menu {
   display: grid;
-  gap: clamp(8px, 1.7vh, 14px);
-  justify-items: center;
-  width: min(300px, 74%);
-  margin-top: clamp(4px, 1vh, 12px);
+  gap: 10px;
+  width: clamp(270px, 22vw, 340px);
+  margin-top: clamp(36px, 7svh, 86px);
 }
 
 .menu-button {
-  --action-delay: 900ms;
-
   position: relative;
-  width: 100%;
-  min-height: clamp(42px, 6.2vh, 56px);
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  color: rgba(218, 211, 230, 0.72);
-  background: transparent;
-  cursor: pointer;
-  opacity: 0;
-  transform: translateY(12px);
-  filter: blur(8px) brightness(0.55);
-  animation: menuReveal 820ms cubic-bezier(0.2, 0.75, 0.18, 1) var(--action-delay) both;
-}
-
-.menu-button::before {
-  content: '';
-  position: absolute;
-  left: 12%;
-  right: 12%;
-  top: 50%;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(171, 157, 202, 0.16),
-    rgba(223, 214, 243, 0.38),
-    rgba(171, 157, 202, 0.16),
-    transparent
-  );
-  opacity: 0.62;
-  transform: translateY(18px) scaleX(0.86);
-  transition:
-    opacity 180ms ease,
-    transform 180ms ease;
-}
-
-.menu-button::after {
-  content: '';
-  position: absolute;
-  inset: 4px 8%;
-  background: radial-gradient(ellipse at center, rgba(166, 132, 218, 0.2), transparent 62%);
-  opacity: 0;
-  filter: blur(12px);
-  transition: opacity 180ms ease;
-}
-
-.menu-button-copy {
-  position: relative;
-  z-index: 1;
-  display: inline-block;
-  min-width: 4em;
-  font-family: var(--font-hanyi-pixel) !important;
-  font-size: 1.58rem;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-shadow:
-    0 0 8px rgba(208, 185, 255, 0.32),
-    0 0 22px rgba(106, 78, 160, 0.22),
-    0 1px 1px rgba(0, 0, 0, 0.86);
-  transition:
-    color 180ms ease,
-    filter 180ms ease,
-    transform 180ms ease;
-}
-
-.menu-button:hover,
-.menu-button:focus-visible {
-  color: var(--home-violet-strong);
-  outline: none;
-}
-
-.menu-button:hover::before,
-.menu-button:focus-visible::before {
-  opacity: 0.95;
-  transform: translateY(18px) scaleX(1.02);
-}
-
-.menu-button:hover::after,
-.menu-button:focus-visible::after {
-  opacity: 1;
-}
-
-.menu-button:hover .menu-button-copy,
-.menu-button:focus-visible .menu-button-copy {
-  filter: brightness(1.18);
-  transform: translateY(-1px);
-}
-
-.menu-button:focus-visible .menu-button-copy {
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 0.28em;
-}
-
-.menu-button:active .menu-button-copy {
-  transform: translateY(1px);
-}
-
-.save-slot-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background:
-    radial-gradient(circle at center, rgba(84, 66, 118, 0.16), transparent 40%),
-    rgba(0, 0, 0, 0.66);
-  backdrop-filter: blur(2px);
-}
-
-.save-slot-panel {
-  width: min(92vw, 430px);
-  padding: 18px;
-  border: 1px solid rgba(142, 141, 155, 0.34);
-  border-radius: 6px;
-  color: rgba(229, 226, 235, 0.9);
-  background:
-    linear-gradient(180deg, rgba(15, 16, 21, 0.92), rgba(4, 5, 8, 0.94)),
-    radial-gradient(circle at top, rgba(154, 125, 202, 0.14), transparent 50%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 22px 70px rgba(0, 0, 0, 0.6);
-}
-
-.save-slot-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 14px;
-}
-
-.save-slot-header h2 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: 0;
-}
-
-.save-slot-header button {
-  width: 32px;
-  height: 32px;
-  border: 1px solid rgba(142, 141, 155, 0.28);
-  border-radius: 4px;
-  color: rgba(226, 222, 235, 0.78);
-  background: rgba(8, 10, 14, 0.58);
-  cursor: pointer;
-}
-
-.save-slot-header button:hover,
-.save-slot-header button:focus-visible {
-  border-color: rgba(216, 208, 235, 0.52);
-  color: rgba(255, 255, 255, 0.94);
-  outline: none;
-}
-
-.save-slot-list {
-  display: grid;
-  gap: 10px;
-}
-
-.save-slot-button {
-  display: grid;
-  gap: 5px;
-  min-height: 72px;
-  padding: 13px 14px;
-  border: 1px solid rgba(124, 130, 145, 0.3);
-  border-radius: 4px;
-  color: rgba(226, 222, 235, 0.84);
+  width: 100%;
+  min-height: clamp(50px, 5.7svh, 62px);
+  padding: 8px 24px;
+  border: 1px solid transparent;
+  border-radius: 1px;
+  color: #c3c4cc;
+  background: transparent;
   text-align: left;
-  background:
-    linear-gradient(180deg, rgba(18, 20, 27, 0.76), rgba(7, 8, 12, 0.84)),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 4px);
+  font-size: clamp(20px, 1.5vw, 26px);
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: 0.22em;
+  text-shadow: 0 2px 8px #000;
   cursor: pointer;
   transition:
+    color 160ms ease,
+    background-color 160ms ease,
     border-color 160ms ease,
-    background 160ms ease,
-    transform 160ms ease;
+    box-shadow 160ms ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.save-slot-button:not(:disabled):hover,
-.save-slot-button:not(:disabled):focus-visible {
-  border-color: rgba(211, 202, 231, 0.52);
-  background:
-    linear-gradient(180deg, rgba(27, 27, 35, 0.82), rgba(9, 10, 14, 0.9)),
-    radial-gradient(circle at right, rgba(153, 121, 202, 0.13), transparent 50%);
-  outline: none;
-  transform: translateY(-1px);
+.menu-button-primary {
+  min-height: clamp(54px, 6.1svh, 66px);
+  margin-bottom: 4px;
 }
 
-.save-slot-button:disabled {
-  color: rgba(158, 156, 166, 0.48);
-  cursor: not-allowed;
-  opacity: 0.72;
+.menu-button.is-selected:not(:disabled) {
+  border-color: rgb(179 166 199 / 62%);
+  color: #eeebf1;
+  background: rgb(179 166 199 / 5%);
+  box-shadow: inset 2px 0 0 #c9bed7, 0 0 18px rgb(179 166 199 / 16%);
 }
 
-.save-slot-title,
-.save-slot-status {
-  display: block;
+.menu-button.is-selected:not(:disabled):hover,
+.menu-button.is-selected:focus-visible {
+  border-color: rgb(179 166 199 / 65%);
+  color: #f2eff4;
+  background: rgb(226 225 222 / 8%);
 }
-
-.save-slot-title {
-  font-size: 1rem;
-  font-weight: 700;
+.menu-button:not(:disabled):active { background: rgb(226 225 222 / 4%); }
+.menu-button.is-selected:focus-visible,
+.footer-link:focus-visible,
+.dialog-close:focus-visible,
+.save-slot-button:focus-visible {
+  outline: 2px solid var(--menu-violet);
+  outline-offset: 5px;
 }
-
-.save-slot-status {
-  font-size: 0.82rem;
-  color: rgba(181, 177, 192, 0.62);
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+.menu-button:disabled { color: #92949d; cursor: default; }
+.empty-save-note {
+  color: #8e929e;
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 0.05em;
   white-space: nowrap;
+}
+
+.menu-footer {
+  position: relative;
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 20px;
+  width: min(100%, 1920px);
+  margin-inline: auto;
+  padding: 12px var(--menu-gutter) max(32px, env(safe-area-inset-bottom));
+}
+.footer-link {
+  justify-self: start;
+  min-height: 44px;
+  padding: 8px 0;
   border: 0;
+  color: #9da1af;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+.footer-link-end { justify-self: end; }
+.footer-link:hover { color: var(--menu-paper); }
+.footer-message {
+  margin: 0;
+  color: #b7b8c1;
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: 0.22em;
 }
 
-@keyframes sceneFade {
-  from {
-    opacity: 0;
-    filter: contrast(1.02) brightness(0.68) blur(3px);
-  }
-  to {
-    opacity: 1;
-    filter: contrast(1.05) brightness(0.92) blur(0);
-  }
+.start-view :deep(.bgm-control) {
+  top: max(24px, env(safe-area-inset-top));
+  right: max(28px, env(safe-area-inset-right));
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 1px;
+  color: #b6b4c0;
+  background: rgb(9 11 14 / 42%);
+  letter-spacing: 0.06em;
+  transition: color 160ms ease, border-color 160ms ease;
+}
+.start-view :deep(.bgm-control:hover) { border-color: #6b6379; color: #e2e1de; }
+.start-view :deep(.bgm-control:focus-visible) { outline-color: var(--menu-violet); }
+
+.menu-dialog {
+  width: min(480px, calc(100vw - 40px));
+  max-height: calc(100svh - 48px);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  border: 1px solid #625b6b;
+  border-radius: 2px;
+  color: var(--menu-paper);
+  background: #111318;
+  box-shadow: 0 24px 100px rgb(0 0 0 / 60%);
+  scrollbar-width: thin;
+  scrollbar-color: #625b6b #111318;
+}
+.menu-dialog::backdrop { background: rgb(3 5 8 / 78%); backdrop-filter: blur(5px); }
+.dialog-panel { padding: 28px; }
+.dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.dialog-header h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.14em;
+}
+.dialog-close {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  margin: -8px -10px -8px 0;
+  border: 0;
+  color: #b6b0c0;
+  background: transparent;
+  cursor: pointer;
+}
+.dialog-close:hover { color: #fff; }
+.dialog-intro,
+.dialog-footnote {
+  color: var(--menu-muted);
+  font-size: 14px;
+  line-height: 1.8;
+}
+.dialog-intro { margin: 14px 0 24px; }
+.dialog-footnote { margin: 20px 0 0; }
+.save-slot-list { display: grid; gap: 12px; }
+.save-slot-button {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  min-height: 88px;
+  padding: 18px 20px;
+  border: 1px solid #51505b;
+  border-radius: 1px;
+  color: #e2e1de;
+  background: rgb(226 225 222 / 3%);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+.save-slot-button:not(:disabled):hover { border-color: #b3a6c7; background: rgb(179 166 199 / 8%); }
+.save-slot-button:disabled { border-color: #2d3039; color: #8b8e98; cursor: default; }
+.save-slot-title { font-size: 17px; line-height: 1.5; }
+.save-slot-status { color: #a3a9b2; font-size: 13px; line-height: 1.6; }
+.save-error { margin: 0 0 20px; color: #d8c5bd; font-size: 14px; line-height: 1.8; }
+.about-copy { color: #bfc1c9; font-size: 15px; line-height: 1.9; }
+.about-copy p { margin: 18px 0; }
+.about-copy .about-lead { color: #e2e1de; }
+.about-copy blockquote {
+  margin: 24px 0;
+  padding-left: 16px;
+  border-left: 1px solid #8a7d9a;
+  color: #cfc5da;
+}
+.about-copy .about-safety {
+  margin-bottom: 0;
+  padding-top: 18px;
+  border-top: 1px solid #30313a;
+  color: #a3a9b2;
+  font-size: 13px;
 }
 
-@keyframes titleReveal {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-    filter: blur(0) brightness(1);
-  }
+@media (min-aspect-ratio: 21/9) {
+  .menu-scene img { object-fit: contain; object-position: right center; }
 }
 
-@keyframes menuReveal {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-    filter: blur(0) brightness(1);
-  }
-}
-
-@media (max-width: 960px) {
-  .start-view {
-    min-height: 620px;
-  }
-
-  .home-background img {
-    object-position: 34% center;
-  }
-
-  .home-vignette {
+@media (max-width: 760px), (max-width: 1024px) and (orientation: portrait) {
+  .start-view { --menu-gutter: clamp(24px, 6.6vw, 52px); }
+  .menu-scene { height: clamp(560px, 74svh, 760px); }
+  .menu-scene img { object-position: 78% center; }
+  .menu-shade {
     background:
-      radial-gradient(circle at 26% 40%, rgba(255, 255, 255, 0.03), transparent 30%),
-      linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.26) 42%, rgba(0, 0, 0, 0.76)),
-      linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.36));
+      linear-gradient(180deg, rgb(5 7 10 / 20%), transparent 26%, #090b0e 73%),
+      linear-gradient(90deg, rgb(5 7 10 / 32%), transparent 70%);
   }
-
-  .home-composition {
-    top: 7vh;
-    right: 0;
-    left: 0;
-    width: auto;
-    min-width: 0;
-    padding: 0 22px;
-    gap: 14px;
+  .menu-shell {
+    min-height: calc(100svh - 94px);
+    padding-top: max(76px, 10svh);
+    padding-bottom: 24px;
   }
-
-  .home-title-art {
-    width: min(94vw, 520px);
+  .brand-panel { width: min(100%, 440px); }
+  .title-art {
+    top: -32%;
+    left: calc(-1 * var(--menu-gutter));
+    width: calc(100% + 2 * var(--menu-gutter));
   }
-
-  .home-actions {
-    width: min(64vw, 250px);
-    margin-top: 7px;
+  .title-fallback { font-size: clamp(48px, 12vw, 86px); }
+  .tagline { margin-top: 16px; font-size: clamp(15px, 3.8vw, 19px); letter-spacing: 0.12em; }
+  .action-menu { width: min(100%, 310px); margin-top: clamp(160px, 24svh, 240px); gap: 8px; }
+  .menu-button { min-height: 52px; padding-inline: 20px; font-size: 22px; }
+  .menu-button-primary { min-height: 56px; }
+  .menu-footer {
+    column-gap: 12px;
+    row-gap: 0;
+    padding-top: 0;
+    padding-bottom: max(22px, env(safe-area-inset-bottom));
   }
+  .footer-message { font-size: 12px; letter-spacing: 0.12em; }
+  .footer-link { font-size: 12px; letter-spacing: 0.06em; }
+  .start-view :deep(.bgm-control) { top: max(14px, env(safe-area-inset-top)); right: 16px; }
+  .dialog-panel { padding: 22px; }
 }
 
-@media (max-width: 640px) {
-  .start-view {
-    min-height: 100svh;
+@media (max-height: 620px) and (min-width: 480px) and (orientation: landscape) {
+  .menu-scene { height: 100%; }
+  .menu-scene img { object-position: 72% center; }
+  .menu-shade {
+    background:
+      linear-gradient(90deg, rgb(5 7 10 / 38%), rgb(5 7 10 / 12%) 38%, transparent 62%),
+      linear-gradient(0deg, rgb(5 7 10 / 52%), transparent 24%);
   }
-
-  .home-background img {
-    object-position: 24% center;
-  }
-
-  .home-composition {
-    top: max(26px, 5.8vh);
-    padding: 0 18px;
-  }
-
-  .home-title-art {
-    width: min(92vw, 440px);
-  }
-
-  .home-tagline {
-    width: min(82vw, 430px);
-    font-size: 0.82rem;
-    padding: 0 10px;
-  }
-
-  .home-tagline::before,
-  .home-tagline::after {
-    width: 24px;
-  }
-
-  .home-actions {
-    width: min(58vw, 210px);
-    gap: 6px;
-  }
-
-  .menu-button {
-    min-height: 42px;
-  }
-
-  .menu-button-copy {
-    font-size: 1.34rem;
-  }
-
-  .save-slot-overlay {
-    padding: 16px;
-    align-items: end;
-  }
-
-  .save-slot-panel {
-    width: 100%;
-  }
+  .menu-shell { min-height: 0; padding-top: 28px; padding-bottom: 24px; }
+  .brand-panel { width: min(39vw, 420px); }
+  .title-art { top: -48%; left: -12%; width: 128%; }
+  .tagline { margin-top: 10px; font-size: 15px; }
+  .action-menu { width: min(290px, 34vw); margin-top: 20px; gap: 4px; }
+  .menu-button { min-height: 44px; font-size: 20px; }
+  .menu-button-primary { min-height: 48px; }
+  .menu-footer { padding-bottom: 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-background img,
-  .home-title-art,
-  .home-tagline,
-  .menu-button {
-    animation-duration: 1ms;
-    animation-delay: 0ms;
-    transform: none;
-    filter: none;
-  }
-
-}
-/* Preserve the original monochrome art; show controls immediately. */
-.start-view { min-height: 100svh; height: 100svh; }
-.start-view.fade-enter-active { transition: none; }
-.start-view.fade-enter-from { opacity: 1; }
-.home-background img, .home-title-art, .home-tagline, .menu-button {
-  animation: none; opacity: 1; transform: none;
-}
-.home-title-art { filter: saturate(0.38) brightness(0.94); }
-.home-background, .home-title-mist, .home-menu-aura { filter: grayscale(1); }
-.home-tagline, .menu-button { filter: none; }
-.title-picture { position: relative; }
-.title-fallback {
-  position: absolute; inset: 0; display: grid; place-items: center;
-  color: #ddd; font-size: clamp(30px, 4vw, 64px); letter-spacing: 0.12em;
-}
-@media (max-width: 768px) {
-  .home-composition { padding-top: 64px; }
-}
-/* Small refinements to the established composition, not a new design. */
-.home-title-mist { opacity: 0.46; }
-.home-menu-aura { opacity: 0.34; }
-.home-tagline { color: rgba(216, 211, 224, 0.78); line-height: 1.5; }
-.menu-button { color: rgba(214, 209, 224, 0.8); min-height: 44px; }
-.menu-button-primary .menu-button-copy {
-  color: #e6e0ed;
-  text-shadow: 0 0 8px rgba(203, 184, 227, 0.2), 0 1px 2px #000;
-}
-.menu-button:focus-visible { outline: 1px solid #b5aebe; outline-offset: 3px; }
-:deep(.bgm-control) {
-  color: #c3bdcc; border-color: rgba(195, 188, 206, 0.25);
-}
-@media (max-width: 960px) {
-  .home-background :deep(img) { object-position: 34% center; }
-  .home-actions { gap: 8px; }
-}
-@media (max-width: 640px) {
-  .home-background :deep(img) { object-position: 18% center; }
-  .home-composition { top: max(30px, 4svh); padding-top: 52px; }
-  .home-title-art { width: min(86vw, 420px); }
-  .home-tagline { margin-top: 10px; line-height: 1.55; }
-  .home-actions { gap: 8px; margin-top: 8px; }
-}
-@media (max-height: 500px) and (min-width: 641px) {
-  .home-composition {
-    top: 62px; right: 7vw; left: auto; width: 44vw; min-width: 0;
-    padding: 0; gap: 8px;
-  }
-  .home-title-art { max-width: 340px; }
-  .home-actions { margin-top: 2px; gap: 0; }
-  .menu-button { min-height: 36px; }
-  .menu-button-copy { font-size: 1.2rem; }
-}
-@media (max-height: 580px) and (max-width: 640px) {
-  .home-composition { top: 22px; padding-top: 44px; gap: 8px; }
-  .home-title-art { width: min(74vw, 290px); }
-  .home-actions { gap: 2px; margin-top: 2px; }
+  .start-view.fade-leave-active,
+  .menu-button,
+  .footer-link,
+  .save-slot-button,
+  .start-view :deep(.bgm-control) { transition: none; }
 }
 </style>

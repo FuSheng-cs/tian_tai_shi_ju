@@ -226,6 +226,31 @@ export class SaveSystem {
     }
   }
 
+  static isSlotValid(slotId: number): boolean {
+    try {
+      const slot = readSlot(slotId)
+      if (
+        !slot || slot.id !== slotId ||
+        !Number.isFinite(slot.timestamp) || slot.timestamp <= 0 ||
+        !Number.isFinite(new Date(slot.timestamp).getTime())
+      ) return false
+
+      const payload = decodePayload(slot) as GameSavePayload | ChatAfterSavePayload
+      if (!checksumMatches(payload.state, payload.checksum)) return false
+
+      if (slot.kind === SAVE_SLOT_KINDS.chatAfter) {
+        const state = payload.state as ChatAfterSaveData
+        return isMessageArray(state?.messages) && isAfterStoryContext(state?.afterStoryContext)
+      }
+
+      const state = payload.state as PersistedGameState | undefined
+      return typeof state?.roundCount === 'number' && Number.isFinite(state.roundCount) &&
+        (state.messages === undefined || isMessageArray(state.messages))
+    } catch {
+      return false
+    }
+  }
+
   static getSlot(slotId: number): SaveSlot | null {
     return readSlot(slotId)
   }

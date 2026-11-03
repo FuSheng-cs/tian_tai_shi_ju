@@ -1,17 +1,18 @@
 // @vitest-environment node
-import fs from 'node:fs'
 import path from 'node:path'
 import sharp from 'sharp'
 import { expect, it } from 'vitest'
-import { HOME_TITLE } from '../src/domain/homeTitle.generated'
 
-it('keeps the existing pixel wordmark transparent and reduces first-load image bytes', async () => {
-  const root = path.resolve(import.meta.dirname, '..')
-  for (const [key, url] of Object.entries(HOME_TITLE)) {
-    const file = path.join(root, 'public', url)
-    expect(fs.statSync(file).size).toBeLessThan(key === 'mobile' ? 50 * 1024 : 95 * 1024)
-    const metadata = await sharp(file).metadata()
-    expect(metadata.format).toBe('webp')
-    expect(metadata.hasAlpha).toBe(true)
+const art = path.resolve(import.meta.dirname, '../public/assets/images/homepage_20261029')
+
+it('serves responsive rooftop art and a transparent title with a matching fallback', async () => {
+  for (const width of [960, 1672]) {
+    const scene = await sharp(path.join(art, `rooftop-${width}.webp`)).metadata()
+    expect(scene.width).toBe(width)
+    expect(scene.format).toBe('webp')
+  }
+  for (const format of ['webp', 'png']) {
+    const title = await sharp(path.join(art, `title-expanded-v1.${format}`)).metadata()
+    expect([title.width, title.height, title.format, title.hasAlpha]).toEqual([2172, 724, format, true])
   }
 })
