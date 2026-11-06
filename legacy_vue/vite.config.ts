@@ -14,9 +14,11 @@ export default defineConfig({
       manifest: {
         name: '天台十句',
         short_name: '天台十句',
-        theme_color: '#000000',
+        theme_color: '#fafafa',
+        background_color: '#fafafa',
         icons: [
-          { src: '/assets/images/homepage_20261029/title-expanded-v1.webp', type: 'image/webp' }
+          { src: '/assets/images/pixel_city_20261104/app-icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/assets/images/pixel_city_20261104/app-icon-512.png', sizes: '512x512', type: 'image/png' }
         ]
       }
     })

@@ -1,7 +1,5 @@
 <template>
-  <div class="settings-view settings-scroll h-screen min-h-0 overflow-x-hidden overflow-y-scroll bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-gray-900 via-gray-950 to-black p-4 text-gray-100 sm:p-8 relative">
-    <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-purple-900/20 rounded-full blur-[120px] pointer-events-none"></div>
-    <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-pink-900/10 rounded-full blur-[120px] pointer-events-none"></div>
+  <div class="settings-view settings-scroll h-screen min-h-0 overflow-x-hidden overflow-y-scroll bg-[#f7f7f7] p-4 text-gray-900 sm:p-8 relative">
 
     <button
       type="button"
@@ -9,27 +7,27 @@
       class="settings-frame-button settings-frame-button--floating"
       aria-label="返回上一页"
     >
-      <ArrowLeft class="h-4 w-4" aria-hidden="true" />
+      <PixelIcon name="arrow_left" class="h-4 w-4" />
       <span>返回</span>
     </button>
 
-    <div class="relative z-10 mx-auto w-full max-w-3xl rounded-2xl border border-gray-700/50 bg-gray-950/72 p-5 shadow-[0_0_40px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:p-8">
+    <div class="settings-panel relative z-10 mx-auto w-full max-w-3xl border border-gray-400 bg-white p-5 sm:p-8">
       <header class="mb-8 flex flex-col gap-2">
-        <p class="text-xs uppercase tracking-[0.28em] text-purple-300/70">System Config</p>
-        <h2 class="text-3xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-300">
+        <p class="text-xs tracking-[0.18em] text-gray-600">天台十句</p>
+        <h2 class="text-3xl font-bold tracking-wide text-gray-900">
           设置
         </h2>
       </header>
 
       <div class="space-y-9">
         <section class="space-y-5">
-          <div class="flex items-end justify-between gap-4 border-b border-gray-700 pb-3">
+          <div class="flex items-end justify-between gap-4 border-b border-gray-300 pb-3">
             <div>
-              <h3 class="text-xl text-purple-200">AI 模型设置</h3>
-              <p class="mt-1 text-sm text-gray-500">选择服务商后，模型名和 Base URL 可留空使用默认值。</p>
-              <p class="mt-1 text-xs text-gray-500">模型预设更新于 2026-10-01，实际可用模型以账户权限为准。</p>
+              <h3 class="text-xl text-[#655969]">AI 模型设置</h3>
+              <p class="mt-1 text-sm text-gray-600">选择服务商后，模型名和 Base URL 可留空使用默认值。</p>
+              <p class="mt-1 text-xs text-gray-600">模型预设更新于 2026-10-01，实际可用模型以账户权限为准。</p>
             </div>
-            <span class="hidden rounded-full border border-purple-400/30 px-3 py-1 text-xs text-purple-200 sm:inline-flex">
+            <span class="hidden rounded-full border border-[#aaa0ad] px-3 py-1 text-xs text-[#655969] sm:inline-flex">
               {{ protocolLabel }}
             </span>
           </div>
@@ -37,7 +35,7 @@
           <div class="space-y-4">
             <div v-for="group in providerGroups" :key="group.id" class="space-y-2">
               <div class="flex items-baseline justify-between gap-3">
-                <h4 class="text-sm font-semibold text-gray-300">{{ group.title }}</h4>
+                <h4 class="text-sm font-semibold text-gray-700">{{ group.title }}</h4>
                 <span class="text-xs text-gray-600">{{ group.description }}</span>
               </div>
               <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -49,16 +47,16 @@
                   :class="[
                     'provider-option min-h-[78px] rounded-lg border px-3 py-3 text-left transition-all',
                     llmConfig.provider === provider.id
-                      ? 'border-purple-400 bg-purple-700/70 text-white shadow-[0_0_18px_rgba(168,85,247,0.32)]'
-                      : 'border-gray-700 bg-gray-900/72 text-gray-400 hover:border-gray-500 hover:bg-gray-900 hover:text-gray-100'
+                      ? 'border-[#87768d] bg-[#eee9f0] text-gray-900'
+                      : 'border-gray-300 bg-gray-50 text-gray-700 hover:border-gray-500 hover:bg-white hover:text-gray-900'
                   ]"
                 >
                   <span class="flex items-center justify-between gap-2">
                     <span class="font-semibold">{{ provider.name }}</span>
-                    <CheckCircle2 v-if="llmConfig.provider === provider.id" class="h-4 w-4 text-purple-100" aria-hidden="true" />
+                    <PixelIcon v-if="llmConfig.provider === provider.id" name="check" class="h-4 w-4 text-[#655969]" />
                   </span>
                   <span class="mt-1 block text-xs opacity-70">{{ provider.vendor }}</span>
-                  <span class="mt-2 inline-flex rounded border border-white/10 px-1.5 py-0.5 text-[11px] opacity-75">
+                  <span class="mt-2 inline-flex rounded border border-gray-300 px-1.5 py-0.5 text-[11px] opacity-75">
                     {{ provider.protocol === 'anthropic' ? 'Anthropic' : 'OpenAI 兼容' }}
                   </span>
                 </button>
@@ -66,11 +64,11 @@
             </div>
           </div>
 
-          <div class="rounded-xl border border-gray-700/70 bg-black/18 p-4">
+          <div class="rounded-xl border border-gray-300 bg-gray-50 p-4">
             <div class="flex flex-col gap-4">
               <div class="flex flex-col gap-2">
-                <label class="flex items-center gap-2 text-sm font-semibold text-gray-300">
-                  <KeyRound class="h-4 w-4 text-purple-300" aria-hidden="true" />
+                <label class="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                  <PixelIcon name="key" class="h-4 w-4 text-[#655969]" />
                   API Key
                 </label>
                 <div class="relative">
@@ -79,31 +77,30 @@
                     v-model="llmConfig.apiKey"
                     @input="saveLLMCfg"
                     :placeholder="currentProvider.keyPlaceholder"
-                    class="w-full rounded-lg border border-gray-700 bg-gray-950 px-4 py-3 pr-12 text-gray-100 outline-none transition-colors focus:border-purple-500"
+                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 pr-12 text-gray-900 outline-none transition-colors focus:border-[#87768d]"
                   />
                   <button
                     type="button"
                     @click="showKey = !showKey"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-gray-500 transition-colors hover:text-gray-200"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-gray-600 transition-colors hover:text-gray-200"
                     :aria-label="showKey ? '隐藏 API Key' : '显示 API Key'"
                   >
-                    <EyeOff v-if="showKey" class="h-4 w-4" aria-hidden="true" />
-                    <Eye v-else class="h-4 w-4" aria-hidden="true" />
+                    <PixelIcon :name="showKey ? 'eye_off' : 'eye'" class="h-4 w-4" />
                   </button>
                 </div>
-                <p class="text-xs leading-relaxed text-gray-500">
+                <p class="text-xs leading-relaxed text-gray-600">
                   {{ currentProvider.hint }} API Key 保存在本地浏览器，请求时会发送到后端用于调用对应服务商。
                 </p>
               </div>
 
               <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div class="flex flex-col gap-2">
-                  <label class="flex items-center justify-between gap-2 text-sm font-semibold text-gray-300">
+                  <label class="flex items-center justify-between gap-2 text-sm font-semibold text-gray-700">
                     <span class="flex items-center gap-2">
-                      <Server class="h-4 w-4 text-purple-300" aria-hidden="true" />
+                      <PixelIcon name="server" class="h-4 w-4 text-[#655969]" />
                       模型名
                     </span>
-                    <button type="button" class="text-xs text-gray-500 hover:text-purple-200" @click="llmConfig.model = ''; saveLLMCfg()">
+                    <button type="button" class="text-xs text-gray-600 hover:text-[#655969]" @click="llmConfig.model = ''; saveLLMCfg()">
                       使用默认
                     </button>
                   </label>
@@ -113,7 +110,7 @@
                     @input="saveLLMCfg"
                     :list="modelDatalistId"
                     :placeholder="currentProvider.defaultModel || '填写模型名'"
-                    class="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2.5 text-sm text-gray-100 outline-none transition-colors focus:border-purple-500"
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition-colors focus:border-[#87768d]"
                   />
                   <datalist :id="modelDatalistId">
                     <option v-for="model in currentProvider.models" :key="model" :value="model" />
@@ -122,12 +119,12 @@
                 </div>
 
                 <div class="flex flex-col gap-2">
-                  <label class="flex items-center justify-between gap-2 text-sm font-semibold text-gray-300">
+                  <label class="flex items-center justify-between gap-2 text-sm font-semibold text-gray-700">
                     <span class="flex items-center gap-2">
-                      <Link2 class="h-4 w-4 text-purple-300" aria-hidden="true" />
+                      <PixelIcon name="link" class="h-4 w-4 text-[#655969]" />
                       Base URL
                     </span>
-                    <button type="button" class="text-xs text-gray-500 hover:text-purple-200" @click="llmConfig.baseUrl = ''; saveLLMCfg()">
+                    <button type="button" class="text-xs text-gray-600 hover:text-[#655969]" @click="llmConfig.baseUrl = ''; saveLLMCfg()">
                       使用默认
                     </button>
                   </label>
@@ -136,14 +133,14 @@
                     v-model="llmConfig.baseUrl"
                     @input="saveLLMCfg"
                     :placeholder="currentProvider.defaultBaseUrl || 'https://your-api.example/v1'"
-                    class="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2.5 font-mono text-sm text-gray-100 outline-none transition-colors focus:border-purple-500"
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 font-mono text-sm text-gray-900 outline-none transition-colors focus:border-[#87768d]"
                   />
                   <p class="truncate text-xs text-gray-600">当前将使用：{{ effectiveBaseUrl }}</p>
                 </div>
               </div>
 
-              <div class="flex flex-col gap-3 border-t border-gray-800 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                <div class="text-xs leading-relaxed text-gray-500">
+              <div class="flex flex-col gap-3 border-t border-gray-300 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="text-xs leading-relaxed text-gray-600">
                   <p>密钥入口：{{ currentProvider.credentialUrl || '由你的中转服务提供' }}</p>
                   <p v-if="currentProvider.id === 'custom'">自定义服务需兼容 OpenAI Chat Completions 响应结构。</p>
                 </div>
@@ -154,8 +151,8 @@
                     :disabled="!canTestConnection"
                     class="settings-frame-button settings-frame-button--test"
                   >
-                    <Loader2 v-if="isTesting" class="h-4 w-4 animate-spin" aria-hidden="true" />
-                    <PlugZap v-else class="h-4 w-4" aria-hidden="true" />
+                    <PixelIcon v-if="isTesting" name="spinner" class="h-4 w-4 animate-spin" />
+                    <PixelIcon v-else name="plug" class="h-4 w-4" />
                     {{ isTesting ? '测试中' : '测试连接' }}
                   </button>
                   <span v-if="testResult" :class="testResult.ok ? 'text-green-400' : 'text-red-400'" class="text-sm">
@@ -168,33 +165,33 @@
         </section>
 
         <section class="space-y-4">
-          <h3 class="border-b border-gray-700 pb-2 text-xl text-gray-300">音频</h3>
+          <h3 class="border-b border-gray-300 pb-2 text-xl text-gray-700">音频</h3>
 
           <div class="flex items-center justify-between gap-6">
-            <label class="text-gray-300">主音量</label>
+            <label class="text-gray-700">主音量</label>
             <input type="range" min="0" max="1" step="0.1" v-model.number="settings.bgmVolume" @change="updateSettings" class="w-1/2">
           </div>
 
           <div class="flex items-center justify-between gap-6">
-            <label class="text-gray-300">音效音量</label>
+            <label class="text-gray-700">音效音量</label>
             <input type="range" min="0" max="1" step="0.1" v-model.number="settings.sfxVolume" @change="updateSettings" class="w-1/2">
           </div>
         </section>
 
         <section class="space-y-4">
-          <h3 class="border-b border-gray-700 pb-2 text-xl text-gray-300">显示</h3>
+          <h3 class="border-b border-gray-300 pb-2 text-xl text-gray-700">显示</h3>
 
           <div class="flex items-center justify-between gap-6">
-            <label class="text-gray-300">字体大小 ({{ settings.fontSize }}px)</label>
+            <label class="text-gray-700">字体大小 ({{ settings.fontSize }}px)</label>
             <input type="range" min="14" max="24" step="1" v-model.number="settings.fontSize" @change="updateSettings" class="w-1/2">
           </div>
 
           <div class="flex items-center justify-between gap-6">
-            <label class="text-gray-300">行高 ({{ settings.lineHeight }})</label>
+            <label class="text-gray-700">行高 ({{ settings.lineHeight }})</label>
             <input type="range" min="1.2" max="2.0" step="0.1" v-model.number="settings.lineHeight" @change="updateSettings" class="w-1/2">
           </div>
 
-          <label class="flex items-center justify-between gap-6 text-gray-300">
+          <label class="flex items-center justify-between gap-6 text-gray-700">
             <span>屏幕阅读器友好模式</span>
             <input type="checkbox" v-model="settings.isScreenReaderMode" @change="updateSettings" class="h-5 w-5">
           </label>
@@ -207,7 +204,7 @@
           @click="goBack"
           class="settings-frame-button settings-frame-button--footer"
         >
-          <ArrowLeft class="h-4 w-4" aria-hidden="true" />
+          <PixelIcon name="arrow_left" class="h-4 w-4" />
           返回
         </button>
       </div>
@@ -218,17 +215,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import {
-  ArrowLeft,
-  CheckCircle2,
-  Eye,
-  EyeOff,
-  KeyRound,
-  Link2,
-  Loader2,
-  PlugZap,
-  Server
-} from 'lucide-vue-next'
+import PixelIcon from '@/components/PixelIcon.vue'
 import { GAME_RULES } from '@/domain/gameContract'
 import { useSettingsStore } from '@/store/settingsStore'
 import { audioManager } from '@/modules/AudioManager'
@@ -462,6 +449,35 @@ const goBack = () => {
 .settings-frame-button--footer {
   min-width: 82px;
   padding-inline: 22px;
+}
+
+.settings-scroll { scrollbar-color: #8e8492 #eeeeee; }
+.settings-scroll::-webkit-scrollbar-track { background: #eeeeee; }
+.settings-scroll::-webkit-scrollbar-thumb { background: #8e8492; border-color: #eeeeee; }
+.settings-scroll::-webkit-scrollbar-thumb:hover { background: #6f6275; }
+.settings-frame-button {
+  border: 1px solid #77717d;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: 3px 3px 0 #d6d2d9;
+  color: #29262d;
+  text-shadow: none;
+}
+.settings-frame-button:hover:not(:disabled),
+.settings-frame-button:focus-visible:not(:disabled) {
+  border-color: #75657d;
+  background: #efecf0;
+  box-shadow: 3px 3px 0 #c6bccb;
+  color: #29262d;
+}
+.settings-frame-button:disabled {
+  border-color: #d1cdd2;
+  background: #f1f1f1;
+  color: #8a858c;
+  box-shadow: none;
+}
+@media (max-width: 639px) {
+  .settings-panel { margin-top: 54px; }
 }
 
 @media (min-width: 640px) {

@@ -9,15 +9,14 @@
     @keydown.stop
     @click="manager.toggleBgm()"
   >
-    <Volume2 v-if="state === 'playing'" :size="16" aria-hidden="true" />
-    <VolumeX v-else :size="16" aria-hidden="true" />
+    <PixelIcon :name="state === 'playing' ? 'volume' : 'volume_off'" class="h-4 w-4" />
     <span>{{ label }}</span>
   </button>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Volume2, VolumeX } from 'lucide-vue-next'
+import PixelIcon from '@/components/PixelIcon.vue'
 import { audioManager, type AudioManager } from '@/modules/AudioManager'
 
 const props = defineProps<{ manager?: AudioManager }>()
@@ -42,12 +41,12 @@ const label = computed(() => {
   gap: 6px;
   min-height: 40px;
   padding: 8px 12px;
-  border: 1px solid rgba(216, 182, 255, 0.3);
-  border-radius: 6px;
-  background: rgba(8, 8, 16, 0.72);
-  color: #d8b6ff;
+  border: 1px solid #aaa5b0;
+  border-radius: 0;
+  background: rgb(251 251 251 / 90%);
+  color: #34313a;
   font-size: 12px;
   cursor: pointer;
 }
-.bgm-control:focus-visible { outline: 2px solid #b66cff; outline-offset: 3px; }
+.bgm-control:focus-visible { outline: 2px solid #74647f; outline-offset: 3px; }
 </style>

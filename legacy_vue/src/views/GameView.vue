@@ -1,9 +1,9 @@
 <template>
   <div
-    class="game-view min-h-screen w-full relative flex flex-col bg-black text-gray-100 overflow-hidden"
+    class="game-view min-h-screen w-full relative flex flex-col bg-white text-gray-100 overflow-hidden"
   >
     <!-- Background (now using the character images directly as they contain the full scene) -->
-    <div class="absolute inset-0 z-0">
+    <div class="scene-layer absolute inset-0 z-0" :class="{ 'scene-layer--ending': gameStore.isEnding }">
       <ProgressiveImage v-if="!isOpeningSequenceActive"
         :src="currentBg.desktop" :mobile-src="currentBg.mobile"
         :preview="getCGPreview(currentBg.desktop)" alt="Background"
@@ -27,18 +27,18 @@
 
     <!-- Top UI -->
     <div
-      class="absolute top-0 left-0 right-0 z-30 flex flex-wrap items-start justify-between gap-3 p-4 pointer-events-auto md:p-6"
+      class="game-hud absolute top-0 left-0 right-0 z-30 flex flex-wrap items-start justify-between gap-3 p-4 pointer-events-auto md:p-6"
     >
-      <div class="flex max-w-[calc(100%-112px)] flex-wrap gap-2 md:max-w-none md:gap-4">
+      <div class="game-hud__status flex max-w-[calc(100%-112px)] flex-wrap gap-2 md:max-w-none md:gap-4">
         <div
-          class="rounded-md border border-white/10 bg-black/35 px-2 py-1.5 shadow-[0_0_18px_rgba(0,0,0,0.45)] backdrop-blur-[2px]"
+          class="rounded-md border border-white/20 bg-black/75 px-2 py-1.5 shadow-[0_0_18px_rgba(0,0,0,0.25)]"
         >
           <ChanceCigarettes :value="gameStore.roundCount" :max="GAME_RULES.initialRoundCount" />
         </div>
 
         <div
           v-if="gameStore.hintCount > 0 && !gameStore.isEnding"
-          class="rounded-md border border-white/10 bg-black/35 px-2 py-1.5 shadow-[0_0_18px_rgba(0,0,0,0.45)] backdrop-blur-[2px]"
+          class="rounded-md border border-white/20 bg-black/75 px-2 py-1.5 shadow-[0_0_18px_rgba(0,0,0,0.25)]"
         >
           <button
             @click="handleHint"
@@ -59,7 +59,7 @@
         </div>
       </div>
 
-      <div class="flex shrink-0 gap-2 md:gap-3">
+      <div class="game-hud__actions flex shrink-0 gap-2 md:gap-3">
         <button
           type="button"
           @click="openSaveSlots"
@@ -111,11 +111,12 @@
     <!-- Dialog Box -->
     <div
       v-if="!isCinematicOverlayActive"
-      class="absolute bottom-0 left-0 right-0 z-30 p-4 md:p-8 pointer-events-auto bg-gradient-to-t from-black via-black/80 to-transparent pt-24"
+      class="dialog-overlay absolute bottom-0 left-0 right-0 z-30 p-4 md:p-8 pointer-events-auto bg-gradient-to-t from-black via-black/80 to-transparent pt-24"
+      :class="{ 'is-settlement': canShowEndingSettlement }"
     >
       <div class="max-w-4xl mx-auto">
         <div
-          class="bg-black/60 border border-gray-700/50 rounded-xl p-6 shadow-2xl backdrop-blur-md min-h-[160px] flex flex-col justify-end transition-all duration-500"
+          class="dialog-panel bg-black/60 border border-gray-700/50 rounded-xl p-6 shadow-2xl backdrop-blur-md min-h-[160px] flex flex-col justify-end transition-all duration-500"
         >
           <div v-if="gameStore.isWaiting" class="italic text-gray-500 text-base md:text-lg py-4">
             <TypewriterText :text="gameStore.waitingText" />
@@ -143,10 +144,10 @@
           </div>
 
           <div v-else-if="latestMessage" class="text-lg md:text-xl leading-relaxed text-gray-100">
-            <div class="font-pixel text-purple-400 text-lg mb-3">
+            <div class="font-pixel text-purple-400 text-lg mb-3" data-test="message-speaker">
               {{
                 latestMessage.role === 'assistant'
-                  ? gameStore.isEnding
+                  ? gameStore.isEnding || !hasPlayerMessages
                     ? GAME_ROLE.narratorSpeakerName
                     : GAME_ROLE.assistantSpeakerName
                   : GAME_ROLE.playerSpeakerName
@@ -199,11 +200,11 @@
               v-if="endingDefinition"
               class="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
               :class="{
-                'border-red-300/35 bg-red-950/25 text-red-50':
+                'border-[#a29296] bg-[#3f383c] text-gray-100':
                   gameStore.endingType === ENDINGS.death.type,
-                'border-sky-300/35 bg-sky-950/25 text-sky-50':
+                'border-[#99949d] bg-[#39373d] text-gray-100':
                   gameStore.endingType === ENDINGS.disappear.type,
-                'border-emerald-300/35 bg-emerald-950/25 text-emerald-50':
+                'border-[#a59aab] bg-[#403a43] text-gray-100':
                   gameStore.endingType === ENDINGS.acquaintance.type
               }"
             >
@@ -251,7 +252,7 @@
               <button
                 v-if="gameStore.endingType === ENDINGS.acquaintance.type"
                 @click="goToChatAfter"
-                class="px-8 py-3 bg-[#07c160] hover:bg-[#06ad56] text-white font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(7,193,96,0.4)]"
+                class="px-8 py-3 bg-[#685d6e] hover:bg-[#7a6d80] text-white font-bold border border-[#a99cac] transition-colors"
               >
                 添加联系人...
               </button>
@@ -305,7 +306,7 @@ const route = useRoute()
 const router = useRouter()
 const gameStore = useGameStore()
 const SAVE_SLOT_IDS = GAME_RULES.saveSlotIds
-const HINT_BULB_IMAGE = '/assets/images/ui_hint_bulb.svg'
+const HINT_BULB_IMAGE = '/assets/images/pixel_city_20261104/hint.svg'
 
 const inputText = ref('')
 const textCompleted = ref(false)
@@ -378,7 +379,7 @@ const backgroundImageClass = computed(() =>
     ? 'death-cinematic-background'
     : gameStore.isEnding
       ? 'opacity-100'
-      : 'opacity-80'
+      : 'opacity-100'
 )
 
 const startRooftopBgm = () => {
@@ -522,6 +523,26 @@ onMounted(() => {
 </script>
 
 <style scoped>
+:deep(.progressive-image img) { image-rendering: pixelated; }
+
+@media (max-width: 768px) {
+  :deep(.progressive-image img) { object-position: 68% center; }
+  .scene-layer--ending { bottom: auto; height: 50svh; }
+}
+
+@media (min-width: 1100px) {
+  .dialog-overlay { background: linear-gradient(90deg, rgb(0 0 0 / 88%), transparent 64%); padding-top: 0; }
+  .dialog-overlay > div { max-width: none; margin: 0; }
+  .dialog-panel { width: min(56vw, 800px); min-height: 160px; }
+  .dialog-overlay.is-settlement { padding-right: clamp(60px, 6vw, 90px); }
+  .dialog-overlay.is-settlement > div { display: flex; justify-content: flex-end; }
+  .dialog-overlay.is-settlement .dialog-panel { width: min(31vw, 440px); }
+}
+
+@media (max-height: 620px) {
+  .dialog-overlay { max-height: 58svh; overflow-y: auto; padding-top: 20px; }
+}
+
 :deep(.death-cinematic-background) {
   opacity: 0.78;
   filter: brightness(0.82) contrast(1.05);
@@ -906,6 +927,9 @@ onMounted(() => {
 }
 
 @media (max-width: 640px) {
+  .game-hud__status { max-width: calc(100% - 112px); }
+  .game-hud__actions { position: absolute; top: 16px; right: 16px; }
+
   .hint-card {
     margin-bottom: 20px;
     padding: 12px 13px 13px 30px;

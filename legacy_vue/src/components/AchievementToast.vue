@@ -3,17 +3,17 @@
     <TransitionGroup
       name="achievement-toast"
       tag="div"
-      class="pointer-events-none fixed right-4 top-4 z-[90] flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-3 sm:right-6 sm:top-6"
+      class="achievement-toast-list pointer-events-none fixed right-4 top-4 z-[90] flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-3 sm:right-6 sm:top-6"
       aria-live="polite"
     >
       <aside
         v-for="toast in toasts"
         :key="toast.key"
-        class="pointer-events-auto rounded border border-purple-200/25 bg-[#08070d]/92 p-4 text-gray-100 shadow-[0_16px_44px_rgba(0,0,0,0.45)] backdrop-blur-md"
+        class="achievement-toast-card pointer-events-none border border-[#99909d] bg-white/95 p-4 text-gray-900 shadow-[4px_4px_0_rgba(50,45,53,0.18)]"
       >
-        <div class="text-[11px] uppercase tracking-[0.22em] text-purple-200/70">档案点亮</div>
-        <div class="mt-1 text-base font-bold text-white">{{ toast.achievement.name }}</div>
-        <p class="mt-1 text-sm leading-5 text-gray-400">{{ toast.achievement.unlockText }}</p>
+        <div class="text-[11px] uppercase tracking-[0.22em] text-[#746478]">档案点亮</div>
+        <div class="mt-1 text-base font-bold text-gray-900">{{ toast.achievement.name }}</div>
+        <p class="mt-1 text-sm leading-5 text-gray-600">{{ toast.achievement.unlockText }}</p>
       </aside>
     </TransitionGroup>
   </Teleport>
@@ -91,6 +91,18 @@ onBeforeUnmount(() => {
 .achievement-toast-leave-to {
   opacity: 0;
   transform: translateY(-8px);
+}
+
+@media (max-width: 640px) {
+  .achievement-toast-list {
+    top: max(76px, calc(env(safe-area-inset-top) + 64px));
+    right: 12px;
+    width: min(230px, calc(100vw - 140px));
+    gap: 6px;
+  }
+
+  .achievement-toast-card { padding: 8px 10px; }
+  .achievement-toast-card p { font-size: 12px; line-height: 1.4; }
 }
 
 @media (prefers-reduced-motion: reduce) {

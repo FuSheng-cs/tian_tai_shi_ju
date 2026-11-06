@@ -130,12 +130,22 @@ describe('opening guide flow', () => {
     vi.unstubAllGlobals()
   })
 
-  it('shows a readable title and usable menu while the title artwork is downloading', async () => {
+  it('shows a readable title and usable menu independently of background loading', () => {
     const wrapper = mount(StartView)
-    expect(wrapper.get('.title-fallback').text()).toBe('天台十句')
+    expect(wrapper.get('.game-title').text()).toBe('天台十句')
     expect(wrapper.get('.menu-button-primary').attributes('disabled')).toBeUndefined()
-    await wrapper.get('.title-art').trigger('load')
-    expect(wrapper.find('.title-fallback').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('labels the scene introduction as narration and later replies as dialogue', async () => {
+    const store = useGameStore()
+    const wrapper = mountGameView()
+    expect(wrapper.get('[data-test="message-speaker"]').text()).toBe('旁白')
+
+    store.messages.push({ role: 'user', content: '我在听。' })
+    store.messages.push({ role: 'assistant', content: '你说吧。' })
+    await nextTick()
+    expect(wrapper.get('[data-test="message-speaker"]').text()).toBe('艾')
     wrapper.unmount()
   })
 
@@ -196,12 +206,11 @@ describe('opening guide flow', () => {
     wrapper.unmount()
   })
 
-  it('shows the responsive rooftop scene and falls back to the PNG title', async () => {
+  it('shows the responsive rooftop scene and renders the title as text', () => {
     const wrapper = mount(StartView)
-    expect(wrapper.get('.menu-scene img').attributes('src')).toContain('/rooftop-1672.webp')
-    expect(wrapper.get('.menu-scene source').attributes('srcset')).toContain('/rooftop-960.webp')
-    await wrapper.get('.title-art').trigger('error')
-    expect(wrapper.get('.title-art').attributes('src')).toContain('/title-expanded-v1.png')
+    expect(wrapper.get('.menu-scene img').attributes('src')).toContain('/home-1672.webp')
+    expect(wrapper.get('.menu-scene source').attributes('srcset')).toContain('/home-960.webp')
+    expect(wrapper.get('h1').text()).toBe('天台十句')
     wrapper.unmount()
   })
 

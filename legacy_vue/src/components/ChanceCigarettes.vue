@@ -33,7 +33,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-const CIGARETTE_CHANCE_IMAGE = '/assets/images/ui_cigarette_chance.webp'
+const CIGARETTE_CHANCE_IMAGE = '/assets/images/pixel_city_20261104/cigarette.svg'
 
 const props = defineProps<{
   value: number;
@@ -110,12 +110,11 @@ const isLit = (index: number) => index <= clampedValue.value
   object-fit: contain;
   pointer-events: none;
   user-select: none;
+  image-rendering: pixelated;
 }
 
 .chance-cigarettes__slot--lit {
-  filter:
-    drop-shadow(0 0 3px rgba(255, 236, 189, 0.95))
-    drop-shadow(0 0 7px rgba(255, 196, 94, 0.48));
+  filter: none;
   opacity: 1;
 }
 

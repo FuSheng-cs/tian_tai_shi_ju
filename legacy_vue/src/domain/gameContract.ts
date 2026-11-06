@@ -35,7 +35,7 @@ export const GAME_ENTRY_TYPES = {
   load: 'load'
 } as const
 
-const UNIFIED_GAME_CG_ROOT = '/assets/images/unified_image2_2026-07-31/game_cg'
+const PIXEL_CITY_ASSET_ROOT = '/assets/images/pixel_city_20261104'
 
 export const OPENING_SEQUENCE_FRAMES = [
   {
@@ -56,7 +56,7 @@ export const OPENING_SEQUENCE_FRAMES = [
     id: 'rooftop-entry',
     image: CG_ASSETS['opening/opening_03'].image,
     mobileImage: CG_ASSETS['opening/opening_03'].mobileImage,
-    caption: '栏杆边那个背影让我停住了脚步。是艾。'
+    caption: '栏杆边那个背影让我停住了脚步。'
   },
   {
     id: 'approach',
@@ -68,7 +68,7 @@ export const OPENING_SEQUENCE_FRAMES = [
     id: 'first-words',
     image: CG_ASSETS['opening/opening_05'].image,
     mobileImage: CG_ASSETS['opening/opening_05'].mobileImage,
-    caption: '她坐在雨里，像城市忘了关掉的一盏冷灯。我把呼吸压低，怕再响一点，她就会被风带走。'
+    caption: '她坐在雨里，身旁放着一台旧相机。我放轻了脚步。'
   }
 ] as const
 
@@ -77,7 +77,7 @@ export const DEATH_ENDING_SEQUENCE_FRAMES = [
     id: 'fall-01-silence',
     image: CG_ASSETS['ending/death_01'].image,
     mobileImage: CG_ASSETS['ending/death_01'].mobileImage,
-    caption: '她的手从栏杆上松开，烟先一步落进雨里。',
+    caption: '她的手松开相机的背带，烟落在雨水里。',
     chapterTitle: '结局',
     chapterMeta: '坠落'
   },
@@ -85,19 +85,19 @@ export const DEATH_ENDING_SEQUENCE_FRAMES = [
     id: 'fall-02-step-back',
     image: CG_ASSETS['ending/death_02'].image,
     mobileImage: CG_ASSETS['ending/death_02'].mobileImage,
-    caption: '栏杆湿得发亮，她的重心越过了最后一点边界。'
+    caption: '我来不及再说什么。相机留在了湿漉漉的地面上。'
   },
   {
     id: 'fall-03-drop',
     image: CG_ASSETS['ending/death_03'].image,
     mobileImage: CG_ASSETS['ending/death_03'].mobileImage,
-    caption: '风把她的外套和头发一起托起，城市忽然远得没有尽头。'
+    caption: '风吹动消防门，雨声盖住了我的声音。'
   },
   {
     id: 'fall-04-falling-wide',
     image: CG_ASSETS['ending/death_04'].image,
     mobileImage: CG_ASSETS['ending/death_04'].mobileImage,
-    caption: '高楼的灯一层层掠过去，她变成雨夜里无法抓住的一点。'
+    caption: '天台空了下来。我站在原地，不知道该做什么。'
   },
   {
     id: 'fall-05-empty-rooftop',
@@ -114,7 +114,7 @@ export const GAME_ROLE = {
   narratorSpeakerName: '旁白',
   playerSpeakerName: '你',
   openingMessage:
-    '夜晚的天台，微风吹过。霓虹灯的色彩在她的头发上跳跃。她坐在围栏上，指间的香烟忽明忽暗。你记得她，那个在夜色中游荡的摄影师。',
+    '雨还在下。一个人坐在栏杆旁，身边放着一台旧相机。她抬眼看了你一下，又把视线移开。',
   coreDescription:
     '艾是紫色内染发的独立摄影师，长期看见别人却很少被真正看见。她需要的是具体倾听、尊重边界和愿意停留，而不是居高临下的说教。'
 } as const
@@ -143,7 +143,7 @@ export const SCENE_MOBILE_BACKGROUNDS = {
   nearJump: CG_ASSETS['state/state_edge'].mobileImage
 } as const
 
-export const CHAT_AVATAR_IMAGE = `${UNIFIED_GAME_CG_ROOT}/state/avatar_guarded_480.webp`
+export const CHAT_AVATAR_IMAGE = `${PIXEL_CITY_ASSET_ROOT}/avatar.webp`
 
 export const MOBILE_BACKGROUND_MEDIA_QUERY = '(max-width: 768px)'
 

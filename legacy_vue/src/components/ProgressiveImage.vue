@@ -87,7 +87,7 @@ onMounted(() => {
 <style scoped>
 .progressive-image { position: absolute; inset: 0; width: 100%; height: 100%; }
 .cg-preview, .cg-full, .cg-original { position: absolute; inset: 0; display: block; }
-img { width: 100%; height: 100%; }
+img { width: 100%; height: 100%; image-rendering: pixelated; }
 .cg-preview img { image-rendering: pixelated; }
 .cg-preview { opacity: 1; transition: opacity 160ms ease; }
 .cg-preview-hidden { opacity: 0; }

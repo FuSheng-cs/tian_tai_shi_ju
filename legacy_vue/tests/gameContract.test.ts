@@ -112,6 +112,15 @@ describe('game contract', () => {
     }
   })
 
+  it('keeps the opening and implied ending captions consistent with the new scenes', () => {
+    expect(OPENING_SEQUENCE_FRAMES[2].caption).not.toContain('是艾')
+    expect(GAME_ROLE.openingMessage).toContain('旧相机')
+    expect(GAME_ROLE.openingMessage).not.toContain('你记得她')
+    expect(DEATH_ENDING_SEQUENCE_FRAMES[0].caption).toContain('相机')
+    expect(DEATH_ENDING_SEQUENCE_FRAMES.slice(2).map((frame) => frame.caption).join(''))
+      .not.toContain('高楼的灯一层层掠过去')
+  })
+
   it('maps every ending and the chat avatar to existing unified CG assets', () => {
     for (const ending of Object.values(ENDINGS)) {
       for (const backgroundImage of [ending.backgroundImage, ending.mobileBackgroundImage]) {
@@ -190,7 +199,7 @@ describe('game contract', () => {
       chapterTitle: '序章',
       chapterMeta: '23:47 / 天台入口'
     })
-    expect(OPENING_SEQUENCE_FRAMES[4].caption).toContain('怕再响一点')
+    expect(OPENING_SEQUENCE_FRAMES[4].caption).toContain('我放轻了脚步')
     expect(OPENING_SEQUENCE_FRAMES[4].caption).not.toContain('十句话')
   })
 

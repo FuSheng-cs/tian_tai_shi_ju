@@ -2,23 +2,10 @@
   <div class="chat-after-story relative h-screen min-h-0 bg-gray-100 flex flex-col overflow-hidden">
     <!-- Header -->
     <div
-      class="bg-gray-100 border-b border-gray-300 px-4 py-3 flex items-center gap-3 sticky top-0 z-10"
+      class="chat-header bg-gray-100 border-b border-gray-300 px-4 py-3 flex items-center gap-3 sticky top-0 z-10"
     >
-      <button @click="goHome" class="text-gray-600 hover:text-gray-900">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-6 w-6"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M15 19l-7-7 7-7"
-          />
-        </svg>
+      <button @click="goHome" class="text-gray-600 hover:text-gray-900" aria-label="返回标题">
+        <PixelIcon name="arrow_left" class="h-6 w-6" />
       </button>
       <div class="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex-shrink-0">
         <img :src="CHAT_AVATAR_IMAGE" alt="Avatar" class="w-full h-full object-cover object-top" />
@@ -34,7 +21,7 @@
         data-test="chat-after-save"
         @click="openSaveSlots"
       >
-        <Save :size="16" :stroke-width="1.9" aria-hidden="true" />
+        <PixelIcon name="save" class="h-4 w-4" />
         <span>保存</span>
       </button>
     </div>
@@ -67,7 +54,7 @@
             v-for="slotId in SAVE_SLOT_IDS"
             :key="slotId"
             type="button"
-            class="rounded-lg border border-gray-300 bg-white px-4 py-3 text-left transition-colors hover:border-green-500 hover:bg-green-50"
+            class="rounded-lg border border-gray-300 bg-white px-4 py-3 text-left transition-colors hover:border-purple-500 hover:bg-purple-50"
             data-test="chat-after-save-slot"
             @click="saveToSlot(slotId)"
           >
@@ -80,87 +67,89 @@
 
     <!-- Chat Messages -->
     <div
-      class="chat-scrollbar flex-1 min-h-0 overflow-y-scroll p-4 pr-2 space-y-4"
+      class="chat-scrollbar flex-1 min-h-0 overflow-y-scroll px-4 pr-2"
       ref="chatContainer"
     >
-      <div
-        v-for="(msg, index) in messages"
-        :key="index"
-        class="flex"
-        :class="msg.role === 'user' ? 'justify-end' : 'justify-start'"
-      >
-        <!-- Assistant Avatar -->
+      <div class="chat-message-list space-y-4">
         <div
-          v-if="msg.role === 'assistant'"
-          class="w-8 h-8 rounded-full bg-gray-300 overflow-hidden flex-shrink-0 mr-2 mt-1"
+          v-for="(msg, index) in messages"
+          :key="index"
+          class="flex"
+          :class="msg.role === 'user' ? 'justify-end' : 'justify-start'"
         >
-          <img
-            :src="CHAT_AVATAR_IMAGE"
-            alt="Avatar"
-            class="w-full h-full object-cover object-top"
-          />
+          <!-- Assistant Avatar -->
+          <div
+            v-if="msg.role === 'assistant'"
+            class="w-8 h-8 rounded-full bg-gray-300 overflow-hidden flex-shrink-0 mr-2 mt-1"
+          >
+            <img
+              :src="CHAT_AVATAR_IMAGE"
+              alt="Avatar"
+              class="w-full h-full object-cover object-top"
+            />
+          </div>
+
+          <!-- Message Bubble -->
+          <div
+            class="max-w-[75%] rounded-2xl px-4 py-2 text-sm md:text-base break-words"
+            :class="
+              msg.role === 'user'
+                ? 'bg-[#ded8e2] text-gray-900 rounded-tr-sm'
+                : 'bg-white text-gray-900 border border-gray-200 rounded-tl-sm'
+            "
+          >
+            {{ msg.content }}
+          </div>
+
+          <!-- User Avatar (Mock) -->
+          <div
+            v-if="msg.role === 'user'"
+            class="w-8 h-8 rounded-full bg-[#6c6271] flex-shrink-0 ml-2 mt-1 flex items-center justify-center text-white text-xs"
+          >
+            Me
+          </div>
         </div>
 
-        <!-- Message Bubble -->
-        <div
-          class="max-w-[75%] rounded-2xl px-4 py-2 text-sm md:text-base break-words"
-          :class="
-            msg.role === 'user'
-              ? 'bg-[#95ec69] text-gray-900 rounded-tr-sm'
-              : 'bg-white text-gray-900 border border-gray-200 rounded-tl-sm'
-          "
-        >
-          {{ msg.content }}
-        </div>
-
-        <!-- User Avatar (Mock) -->
-        <div
-          v-if="msg.role === 'user'"
-          class="w-8 h-8 rounded-full bg-blue-500 flex-shrink-0 ml-2 mt-1 flex items-center justify-center text-white text-xs"
-        >
-          Me
-        </div>
-      </div>
-
-      <!-- Typing Indicator -->
-      <div v-if="isWaiting" class="flex justify-start">
-        <div class="w-8 h-8 rounded-full bg-gray-300 overflow-hidden flex-shrink-0 mr-2 mt-1">
-          <img
-            :src="CHAT_AVATAR_IMAGE"
-            alt="Avatar"
-            class="w-full h-full object-cover object-top"
-          />
-        </div>
-        <div
-          class="bg-white text-gray-500 border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-2 text-sm flex items-center gap-1"
-        >
-          <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
-          <span
-            class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
-            style="animation-delay: 0.1s"
-          ></span>
-          <span
-            class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
-            style="animation-delay: 0.2s"
-          ></span>
+        <!-- Typing Indicator -->
+        <div v-if="isWaiting" class="flex justify-start">
+          <div class="w-8 h-8 rounded-full bg-gray-300 overflow-hidden flex-shrink-0 mr-2 mt-1">
+            <img
+              :src="CHAT_AVATAR_IMAGE"
+              alt="Avatar"
+              class="w-full h-full object-cover object-top"
+            />
+          </div>
+          <div
+            class="bg-white text-gray-500 border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-2 text-sm flex items-center gap-1"
+          >
+            <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
+            <span
+              class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+              style="animation-delay: 0.1s"
+            ></span>
+            <span
+              class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+              style="animation-delay: 0.2s"
+            ></span>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Input Area -->
-    <div class="bg-gray-100 border-t border-gray-300 p-3 pb-safe">
+    <div class="chat-composer bg-gray-100 border-t border-gray-300 p-3 pb-safe">
       <div class="flex gap-2 items-end">
         <textarea
           v-model="inputText"
           @keydown.enter.prevent="sendMessage"
           rows="1"
-          class="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:outline-none focus:border-green-500 resize-none max-h-32"
+          class="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:outline-none focus:border-purple-500 resize-none max-h-32"
           placeholder="发消息..."
         ></textarea>
         <button
           @click="sendMessage"
           :disabled="!inputText.trim() || isWaiting"
-          class="bg-[#07c160] text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors h-10"
+          class="bg-[#625468] text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors h-10"
         >
           发送
         </button>
@@ -185,7 +174,7 @@ import { LLMService } from '@/modules/LLMService'
 import { SaveSystem } from '@/modules/SaveSystem'
 import { AchievementTracker } from '@/modules/AchievementTracker'
 import { useSaveSlots } from '@/composables/useSaveSlots'
-import { Save } from 'lucide-vue-next'
+import PixelIcon from '@/components/PixelIcon.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -320,6 +309,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.chat-after-story img { image-rendering: pixelated; }
+.chat-header { padding-left: max(16px, calc((100vw - 820px) / 2)); padding-right: max(16px, calc((100vw - 820px) / 2)); }
+.chat-message-list { width: 100%; max-width: 820px; margin: 0 auto; padding: 16px 0; }
+.chat-composer > div { max-width: 820px; margin-inline: auto; }
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 12px);
 }

@@ -7,4 +7,5 @@
 - [游戏设定集](product/game_setting_bible.md)
 - [技术说明](engineering/technical_overview.md)
 - [Prompt 与结算规则](engineering/prompts_and_settings.md)
+- [美术资源生成约束](engineering/art_generation_constraints.md)
 - [游戏资源维护](engineering/art_asset_maintenance.md)

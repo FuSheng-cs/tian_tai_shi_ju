@@ -1,9 +1,9 @@
 import { CG_ASSETS } from './cgAssets.generated'
 
-const root = '/assets/images/unified_image2_2026-07-31/game_cg'
+const root = '/assets/images/pixel_city_20261104/originals'
 const originals: Record<string, string> = Object.fromEntries(
   Object.entries(CG_ASSETS).flatMap(([name, asset]) => {
-    const original = `${root}/${name}_${name.startsWith('opening/') ? '1920' : '1600'}.webp`
+    const original = `${root}/${name}.webp`
     return [[asset.image, original], [asset.mobileImage, original]]
   })
 )
