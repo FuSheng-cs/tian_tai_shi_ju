@@ -1,0 +1,9 @@
+web/node_modules/
+web/dist/
+web/test-results/
+web/playwright-report/
+.run/
+server/.env
+server/.data/
+server/tiantai-v2
+art/raw/

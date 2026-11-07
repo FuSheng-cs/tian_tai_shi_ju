@@ -1,0 +1,53 @@
+name: V2 isolated checks
+on:
+  pull_request:
+    paths: ['v2/**', 'docs/v2/**', '.github/workflows/v2.yml']
+  push:
+    branches: ['v2/**']
+    paths: ['v2/**', 'docs/v2/**', '.github/workflows/v2.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.12'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: v2/web/package-lock.json
+      - run: go test -race ./...
+        working-directory: v2/server
+      - run: go build -o ../.run/tiantai-v2 .
+        working-directory: v2/server
+      - run: npm ci
+        working-directory: v2/web
+      - run: npm test && npm run lint && npm run build
+        working-directory: v2/web
+      - run: npx playwright install --with-deps chromium
+        working-directory: v2/web
+      - name: Start isolated test services
+        run: |
+          V2_DATA_DIR="$RUNNER_TEMP/tiantai-v2-sessions" v2/.run/tiantai-v2 > "$RUNNER_TEMP/tiantai-v2-server.log" 2>&1 &
+          npm run dev --prefix v2/web > "$RUNNER_TEMP/tiantai-v2-web.log" 2>&1 &
+          for attempt in {1..40}; do
+            if curl -fsS http://127.0.0.1:5174/api/v2/health; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - run: npm run test:e2e
+        working-directory: v2/web
+        env:
+          PLAYWRIGHT_USE_BUNDLED: '1'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v2-browser-evidence
+          path: /tmp/tiantai-v2-qa
+          if-no-files-found: ignore
